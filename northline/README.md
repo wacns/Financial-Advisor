@@ -39,10 +39,24 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test
 - Category budgets with spending progress and over-budget states.
 - Savings goals with editable progress, spending insights, and fixed Bahrain regional settings.
 - Google OAuth and email/password Supabase sign-in, sign-up, sign-out, authenticated route gating, and workspace persistence when configured.
+- Recurring bills, subscriptions and salary schedules, with weekly/monthly/yearly repeats, due states, editing and pause/resume.
+- Manual payment recording that creates one transaction and advances the schedule without moving real money.
+- Debt tracking with monthly due dates, repayment history, and separate cash/principal amounts.
+- Project budgets, linked expenses, remaining-budget indicators, and archive/reopen controls.
 - A separate demo namespace with sample data. Real accounts begin empty.
 
 Balances are entered manually; adding a transaction adjusts its selected account. Goal progress does not transfer funds. All amounts use Bahraini dinars (BHD) with three decimal places; calculations preserve fils. CSV downloads reflect the active month and search filters and include three-decimal BHD amounts and an explicit currency column.
 
+
+## Planning workflows (v1.1)
+
+**Bills & salary:** add a schedule and its receiving/paying account. The list shows the next occurrence only; the monthly summary includes the next occurrences due in the selected month, including planned loan repayments. Overdue items are based on Bahrain’s current date. Recording a payment creates a transaction and advances one interval. January 31 becomes February 28/29, then March 31. Weekly repeats advance seven days; yearly repeats retain their original month/day. Pause/resume preserves history. Old unpaid occurrences are not skipped automatically.
+
+**Debts & loans:** enter the current outstanding principal and planned monthly payment. Adding a debt does not change account balances. When recording a repayment, enter the actual cash payment and its principal portion from your statement. Only principal reduces the debt; the full cash payment reduces the selected account. Interest/fees are the difference, entered manually; no APR, interest accrual, payoff estimate, or financial advice is implied. The next due date advances one month.
+
+**Projects:** create a budget and optionally a target date and notes. Add an expense from a project card, or select a project in the transaction form. The same transaction affects the account once and counts toward the project budget across all dates. Archived projects retain transactions and can be reopened. Income cannot be tagged as project spending.
+
+Existing workspaces get empty `recurring`, `debts`, and `projects` arrays on load without losing existing values or receiving sample data. These collections use the existing per-user JSON storage and RLS policies; no database migration is needed. New demo workspaces include examples; reset the demo in Settings to refresh an older sample workspace if desired.
 
 ## Bahrain localization
 
@@ -83,8 +97,8 @@ Production: https://northline-bahrain.vercel.app/
 
 - Vercel project: `prj_qxwKj4JA488Ma9AJktColvsqIR6c` (`northline-bahrain`)
 - Account: `team_xwKACwKczzvsN97PQXPLT8tT` (`wacns-projects`)
-- Deployment: `dpl_ttdbwjAnJ8EiKPT3B4YUCmVsQibi`, READY, production
-- Source was uploaded directly from this workspace; no Git commit was used.
+- GitHub repository: `wacns/Financial-Advisor`, root directory `northline`, production branch `main`.
+- The Vercel Git integration is connected; pushes to `main` trigger production builds.
 - Public Supabase build variables are configured for production, preview, and development.
 - Production is publicly reachable; Vercel authentication remains enabled on previews. Private finance data is protected by Supabase authentication and RLS.
 
@@ -97,6 +111,8 @@ In Supabase URL Configuration, set Site URL and an allowed Redirect URL to exact
 - Mobile browser: 390px layout without horizontal overflow and working navigation.
 - Bahrain browser regression: fixed regional settings, preserved legacy demo records, and Bahrain dates while the browser is set to America/Los_Angeles.
 - Google OAuth browser tests with mocked Supabase: account-selection redirect with PKCE challenge, code exchange, user validation before data access, sign-out, and cancelled/expired callback recovery. These do not contact Google or establish live provider readiness.
+- Planning unit tests cover schedule month ends/leap years, repeat protection, principal/fee separation, project totals, old-workspace compatibility, and invalid date/amount rejection.
+- Planning browser tests cover bills/income, edit/pause/resume, repayments, project expenses, archive/reopen, mobile layout, and authenticated JSON persistence using a mocked Supabase service.
 - Production build.
 
 Browser screenshots are generated in ignored `artifacts/` by the tests. Live database isolation and anonymous API denial are verified. Production is deployed; a complete Google account consent/session test still needs user verification.

@@ -1,5 +1,5 @@
-import { bahrainDate, CURRENCY, REGION, TIME_ZONE, toFils } from './locale.js';
-export const categories = ['Shopping', 'Food & drink', 'Transport', 'Home', 'Health', 'Entertainment', 'Utilities', 'Income', 'Other'];
+import { bahrainDate, CURRENCY, REGION, TIME_ZONE, toFils, isCivilDate } from './locale.js';
+export const categories = ['Shopping', 'Food & drink', 'Transport', 'Home', 'Health', 'Entertainment', 'Utilities', 'Debts & loans', 'Income', 'Other'];
 export function totalBalance(state) {
   return state.accounts.reduce((sum, account) => sum + toFils(account.balance), 0) / 1000;
 }
@@ -13,7 +13,9 @@ export function addTransaction(state, transaction) {
   const amount = Number(transaction.amount);
   if (!Number.isFinite(amount) || amount <= 0 || amount > 1e12) throw Error('Enter a valid positive amount.');
   if (!['income','expense'].includes(transaction.type)) throw Error('Select a transaction type.');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(transaction.date)) throw Error('Choose a valid date.');
+  if (!isCivilDate(transaction.date)) throw Error('Choose a valid date.');
+  if (transaction.projectId && !state.projects?.some(p => p.id === transaction.projectId && !p.archived)) throw Error('Choose an active project.');
+  if (transaction.projectId && transaction.type !== 'expense') throw Error('Project budgets track expenses only.');
   const account = state.accounts.find(a => a.id === transaction.accountId);
   if (!account) throw Error('Choose an account first.');
   const fils = toFils(amount);
@@ -21,7 +23,7 @@ export function addTransaction(state, transaction) {
   state.transactions.unshift({...transaction, amount});
   return state;
 }
-export function blankState() { return {accounts: [], transactions: [], budgets: [], goals: [], currency: CURRENCY, region: REGION, timeZone: TIME_ZONE}; }
+export function blankState() { return {accounts: [], transactions: [], budgets: [], goals: [], recurring: [], debts: [], projects: [], currency: CURRENCY, region: REGION, timeZone: TIME_ZONE}; }
 export function demoState() {
   const month = bahrainDate().slice(0, 7);
   const tx = (id, name, category, amount, day, type='expense', accountId='current') => ({id, name, category, amount, date:`${month}-${String(day).padStart(2,'0')}`, type, accountId});
@@ -48,6 +50,14 @@ export function demoState() {
     {id:'shopping',category:'Shopping',limit:100},
     {id:'transport',category:'Transport',limit:60},
     {id:'utilities',category:'Utilities',limit:80}
+  ],recurring:[
+    {id:'salary-plan',name:'Monthly salary',type:'income',category:'Income',amount:1800,accountId:'current',frequency:'monthly',nextDue:`${month}-28`,anchorDay:28,anchorMonth:Number(month.slice(5)),paused:false},
+    {id:'ewa-plan',name:'EWA electricity & water',type:'expense',category:'Utilities',amount:35.750,accountId:'current',frequency:'monthly',nextDue:`${month}-20`,anchorDay:20,anchorMonth:Number(month.slice(5)),paused:false},
+    {id:'internet-plan',name:'Home internet',type:'expense',category:'Utilities',amount:18.500,accountId:'current',frequency:'monthly',nextDue:`${month}-25`,anchorDay:25,anchorMonth:Number(month.slice(5)),paused:false}
+  ],debts:[
+    {id:'car-finance',name:'Car finance',lender:'Sample finance plan',originalBalance:4500,balance:4500,installment:150,nextDue:`${month}-27`,anchorDay:27}
+  ],projects:[
+    {id:'home-refresh',name:'Our home refresh',budget:750,targetDate:`${month}-28`,notes:'Furniture, paint and the finishing touches.',archived:false}
   ],goals:[
     {id:'emergency',name:'Emergency fund',saved:2500,target:5000,icon:'shield-check'},
     {id:'staycation',name:'Bahrain staycation',saved:180,target:400,icon:'sun'},
