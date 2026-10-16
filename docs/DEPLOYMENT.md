@@ -1,8 +1,8 @@
 # Deployment
 
-Production: https://northline-bahrain.vercel.app/
+Production: https://financial-advisor-partner.vercel.app/
 
-- Vercel project: `prj_qxwKj4JA488Ma9AJktColvsqIR6c` (`northline-bahrain`)
+- Vercel project: `prj_qxwKj4JA488Ma9AJktColvsqIR6c` (`financial-advisor-partner`)
 - Account: `team_xwKACwKczzvsN97PQXPLT8tT` (`wacns-projects`)
 - GitHub repository: `wacns/Financial-Advisor`, root directory **repository root** (leave Vercel Root Directory blank), production branch `main`.
 - The Vercel Git integration is connected; pushes to `main` trigger production builds.
@@ -10,7 +10,18 @@ Production: https://northline-bahrain.vercel.app/
 - Public Supabase build variables are configured for production, preview, and development.
 - Production is publicly reachable; Vercel authentication remains enabled on previews. Private finance data is protected by Supabase authentication and RLS.
 
-In Supabase URL Configuration, set Site URL and an allowed Redirect URL to exactly `https://northline-bahrain.vercel.app/`. This final dashboard setting cannot be changed by the available connector tools. Google’s callback stays `https://srwzgwodlpylezdaipce.supabase.co/auth/v1/callback`.
+## Hostname transition
+
+The Vercel project and public address are now `financial-advisor-partner` and `https://financial-advisor-partner.vercel.app/`. The original `https://northline-bahrain.vercel.app/` remains attached during the transition so existing links and sessions keep working.
+
+**Pending dashboard step:** in [Supabase URL Configuration](https://supabase.com/dashboard/project/srwzgwodlpylezdaipce/auth/url-configuration), set:
+
+- Site URL: `https://financial-advisor-partner.vercel.app/`
+- Redirect URLs: add `https://financial-advisor-partner.vercel.app/` and retain `https://northline-bahrain.vercel.app/` during the transition. Preserve any required development entries.
+
+The available Supabase connector cannot update Auth URL configuration. The new address serves the app over HTTPS and reaches Google authorization, but a live cancellation check still returned to the old origin before the dashboard update. Verify cancellation returns to the new origin after saving. Complete Google consent and email confirmation must also be checked in the browser that started the flow; PKCE verifiers and sessions are scoped to their origin. Signed-in workspace records remain in the same Supabase project. Local demo edits and login sessions are separate between hostnames.
+
+Google's provider callback remains `https://srwzgwodlpylezdaipce.supabase.co/auth/v1/callback`; changing the application address does not replace that callback.
 
 ## Build settings
 
@@ -26,4 +37,4 @@ The unit suite must pass before Vercel builds a deployment. Run both browser sui
 
 After pulling the root-layout change, move any ignored `northline/.env.local` and `northline/.vercel/` into the repository root. These local files were never in Git, so Git cannot move them. Run `npm ci` from the root to install dependencies there. The old nested `node_modules`, `dist`, and browser artifacts are disposable; remove them only after confirming no local work remains in that folder. Do not commit environment files or Vercel metadata.
 
-The public site URL and OAuth callback URLs stay the same: a repository directory move does not change URL routes. Database migrations are preserved byte-for-byte and must not be reapplied for this move.
+The earlier repository directory move did not change URL routes. The later hostname transition is covered above. Database migrations are preserved byte-for-byte and must not be reapplied for this move.

@@ -1,5 +1,10 @@
 # Changelog
 
+## FinancialAdvisor Partner hosting — 2026-10-16
+
+- Connected `financial-advisor-partner.vercel.app` and renamed the Vercel project to `financial-advisor-partner`.
+- Updated the public links and documented the pending Supabase Auth URL configuration change and verification.
+
 ## FinancialAdvisor branding — 2026-10-16
 
 - Aligned the product name, wordmark, page metadata, accessible labels and export filenames with the Financial-Advisor repository.
