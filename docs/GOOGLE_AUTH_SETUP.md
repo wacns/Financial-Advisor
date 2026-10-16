@@ -1,10 +1,10 @@
 # Enable Google sign-in for Northline Bahrain
 
-The app implementation is complete and tested with a simulated Supabase service. Northline is now connected to the user's **Financial-Advisor** Supabase project (`srwzgwodlpylezdaipce`). Google is now enabled in the project's Auth settings. Northline is deployed at https://northline-bahrain.vercel.app/. The final Supabase Site URL / Redirect URLs configuration and a complete user Google consent/session test remain pending.
+The app implementation is complete and tested with a simulated Supabase service. Northline is now connected to the user's **Financial-Advisor** Supabase project (`srwzgwodlpylezdaipce`). Google is now enabled in the project's Auth settings. Northline is deployed at https://northline-bahrain.vercel.app/. The production return URL has been verified with an OAuth cancellation. A complete user Google consent/session test remains pending.
 
 ## 1. Supabase project — connected
 
-The workspace migration is installed, ownership rules passed live transactional tests, anonymous REST reads are denied, and the security advisor reported no findings. `.env.local` contains the project URL and public publishable key. No privileged key is used by the app.
+The workspace migration is installed, ownership rules passed live transactional tests, anonymous REST reads are denied, and the security advisor reported no findings. Configure the project URL and public publishable key in the repository root `.env.local`. No privileged key is used by the app.
 
 ## 2. Create a Google OAuth client
 

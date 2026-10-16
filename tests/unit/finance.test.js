@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {addTransaction, blankState, summary, categorySpend, totalBalance} from './finance.js';
+import {addTransaction, blankState, summary, categorySpend, totalBalance} from '../../src/finance.js';
 test('transaction updates only selected balance, preserves precision, and counts within month', () => {
  const state=blankState(); state.accounts=[{id:'a',balance:100},{id:'b',balance:50}];
  addTransaction(state,{id:'1',accountId:'a',type:'expense',amount:10.11,date:'2026-10-15',category:'Food & drink'});

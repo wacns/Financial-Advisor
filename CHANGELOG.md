@@ -1,5 +1,13 @@
 # Changelog
 
+## Repository layout — 2026-10-16
+
+- Made the repository root the application root; removed the redundant `northline/` wrapper.
+- Grouped unit and browser tests under `tests/unit/` and `tests/e2e/` and updated their imports/configuration.
+- Consolidated onboarding in the root README and moved detailed guides into `docs/`.
+- Added Node.js 24 and editor conventions, and required unit tests before Vercel builds.
+- Preserved application source, dependencies, routes and database migrations.
+
 ## 1.1.0 — Planning your financial life
 
 - Added Bills & salary with weekly, monthly and yearly schedules, due/overdue status, editing, and pause/resume.

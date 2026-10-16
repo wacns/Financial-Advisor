@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {bahrainDate,formatDate,formatMoney,requireBahrainWorkspace,DEMO_STORAGE_KEY} from './locale.js';
-import {blankState,demoState} from './finance.js';
+import {bahrainDate,formatDate,formatMoney,requireBahrainWorkspace,DEMO_STORAGE_KEY} from '../../src/locale.js';
+import {blankState,demoState} from '../../src/finance.js';
 
 test('Bahrain civil date crosses midnight and month boundary at UTC+3',()=>{
  assert.equal(bahrainDate(new Date('2026-10-31T20:59:59Z')),'2026-10-31');
