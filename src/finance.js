@@ -23,6 +23,30 @@ export function addTransaction(state, transaction) {
   state.transactions.unshift({...transaction, amount});
   return state;
 }
+// A transfer is one ledger record with two account effects. It is neither
+// income nor an expense, so existing budget and summary calculations exclude it.
+export function addTransfer(state, transfer) {
+  const source = state.accounts.find(a => a.id === transfer.accountId);
+  const destination = state.accounts.find(a => a.id === transfer.toAccountId);
+  if (!source || !destination) throw Error('Choose two existing accounts.');
+  if (source.id === destination.id) throw Error('Choose different accounts for your transfer.');
+  const fils = toFils(transfer.amount);
+  if (fils <= 0) throw Error('Enter a valid positive amount.');
+  if (!isCivilDate(transfer.date)) throw Error('Choose a valid date.');
+  const name = String(transfer.name || '').trim();
+  if (!name || name.length > 80) throw Error('Enter a description between 1 and 80 characters.');
+  const sourceBalance = toFils(source.balance) - fils;
+  const destinationBalance = toFils(destination.balance) + fils;
+  // Validate both resulting balances before changing either account.
+  toFils(sourceBalance / 1000);
+  toFils(destinationBalance / 1000);
+  source.balance = sourceBalance / 1000;
+  destination.balance = destinationBalance / 1000;
+  state.transactions.unshift({id: transfer.id, name, type: 'transfer',
+    category: 'Transfer', amount: fils / 1000, date: transfer.date,
+    accountId: source.id, toAccountId: destination.id});
+  return state;
+}
 export function blankState() { return {accounts: [], transactions: [], budgets: [], goals: [], recurring: [], debts: [], projects: [], currency: CURRENCY, region: REGION, timeZone: TIME_ZONE}; }
 export function demoState() {
   const month = bahrainDate().slice(0, 7);
@@ -44,7 +68,21 @@ export function demoState() {
     tx('10','EWA electricity & water','Utilities',35.750,5),
     tx('11','Gym membership','Health',25,3),
     tx('12','Freelance project','Income',150,4,'income'),
-    tx('13','Family lunch in Riffa','Food & drink',22,2)
+    tx('13','Family lunch in Riffa','Food & drink',22,2),
+    // Illustrative history makes the six-month report useful in a fresh demo.
+    ...Array.from({length:5}, (_, i) => {
+      const date = new Date(`${month}-01T12:00:00Z`);
+      date.setUTCMonth(date.getUTCMonth() - i - 1);
+      const period = date.toISOString().slice(0,7);
+      return [
+        ['Monthly salary','Income',1800,14,'income'],
+        ['Manama apartment rent','Home',350,1,'expense'],
+        ['Weekly groceries','Food & drink',[155,172,148,165,190][i],8,'expense'],
+        ['Bapco petrol','Transport',35 + i * 2,10,'expense'],
+        ['EWA electricity & water','Utilities',48 + i * 3,5,'expense'],
+        ['City Centre Bahrain','Shopping',[65,48,90,52,120][i],12,'expense'],
+      ].map(([name,category,amount,day,type], j) => ({...tx(`history-${i}-${j}`,name,category,amount,day,type),date:`${period}-${String(day).padStart(2,'0')}`}));
+    }).flat()
   ],budgets:[
     {id:'food',category:'Food & drink',limit:180},
     {id:'shopping',category:'Shopping',limit:100},

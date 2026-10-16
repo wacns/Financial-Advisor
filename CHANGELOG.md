@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0 — A clearer rhythm
+
+- Added a dashboard financial pulse with spending comparisons, category budget room, and next payment totals.
+- Rebuilt Insights with account filtering, category spending charts, six-month cash-flow comparisons, exact monthly figures, and top spending descriptions.
+- Added a payment calendar with daily details, recurring projections, recorded payment history, and direct payment recording.
+- Added manual account transfers that update both balances while preserving total wealth and excluding transfers from income, spending, and budgets.
+- Added transaction account filtering and transfer-aware CSV exports with account and destination columns.
+- Added illustrative historical records to fresh demo workspaces and refined the responsive layouts.
+- Added calculation and browser coverage for transfers, reports, calendar projections, and authenticated workspace persistence.
+
 ## Repository layout — 2026-10-16
 
 - Made the repository root the application root; removed the redundant `northline/` wrapper.

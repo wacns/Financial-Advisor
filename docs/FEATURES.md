@@ -12,8 +12,21 @@
 - Debt tracking with monthly due dates, repayment history, and separate cash/principal amounts.
 - Project budgets, linked expenses, remaining-budget indicators, and archive/reopen controls.
 - A separate demo namespace with sample data. Real accounts begin empty.
+- Dashboard financial pulse with spending comparisons, category budget room, and next scheduled payments.
+- Account-specific Insights with category charts, six-month income/expense trends, exact figures, and largest spending descriptions.
+- Payment calendar with recurring projections, daily details, recorded payment history, and payment recording.
+- Manual account transfers, transaction account filters, and transfer-aware CSV exports.
 
 Balances are entered manually; adding a transaction adjusts its selected account. Goal progress does not transfer funds. All amounts use Bahraini dinars (BHD) with three decimal places; calculations preserve fils. CSV downloads reflect the active month and search filters and include three-decimal BHD amounts and an explicit currency column.
+
+
+## Reports, calendar and transfers (v1.2)
+
+**Overview and Insights:** the financial pulse links directly to reports, budgets and the calendar. Its payment total includes only the next occurrence of each bill or loan due in the selected month. Budget room sums only the categories with budgets; an individual category may exceed its limit even when the combined remaining amount is positive. Insights can be scoped to one account or all accounts. Six-month charts and previous-month comparisons use recorded calendar-month totals, which may be incomplete. The exact-amount table provides an accessible alternative to the bars. Spending categories and descriptions are derived from actual expense records, including custom categories. Fresh demos include five earlier months of illustrative history; existing workspaces are preserved. Reset sample data in Settings to refresh an older demo.
+
+**Calendar:** recurring weekly, monthly and yearly schedules are projected forward from their next due date into the selected month. Anchored month ends and leap years are preserved. Paused schedules are hidden. Loans show only their next repayment because future principal/fee splits are unknown. Only a schedule's next due occurrence offers a recording action; later projections cannot create transactions. Recorded recurring payments appear on their actual payment date. Browsing the calendar never changes balances or schedules, and there are no background notifications or payment execution.
+
+**Transfers:** use **Record transfer** in Accounts or Transactions after moving money yourself. Choose two different accounts, a BHD amount, a date and a description. A single transfer record subtracts from the source and adds to the destination using integer fils. Total account wealth is unchanged. Transfers are excluded from income, expenses, category budgets, project spending and cash-flow charts, and appear under either account in transaction filters. Negative source balances are allowed, as with other manual entries. Exports respect month, search, transaction type and account filters; the appended `Account` and `To Account` columns identify the transfer direction. These fields use the existing authenticated JSON workspace persistence; no schema migration is required.
 
 
 ## Planning workflows (v1.1)

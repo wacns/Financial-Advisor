@@ -1,4 +1,5 @@
 import "./style.css";
+import "./reports.css";
 import { hydrateIcons } from "./icons.js";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -8,6 +9,7 @@ import {
   categorySpend,
   monthTransactions,
   addTransaction,
+  addTransfer,
   blankState,
   demoState,
 } from "./finance.js";
@@ -33,6 +35,8 @@ import {
   saveProject,
 } from "./planning.js";
 import { planningPage, planningForm, duePanel } from "./planning-ui.js";
+import { financialPulse, reportsPage, calendarPage } from "./reports-ui.js";
+import { shiftMonth } from "./reports.js";
 const app = document.querySelector("#app");
 const url = import.meta.env.VITE_SUPABASE_URL,
   key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -53,6 +57,7 @@ let user = null,
   filter = "all",
   saving = false;
 let planningFilter = "all";
+let accountFilter = "all", reportAccount = "all", calendarDate = "";
 let month = bahrainDate().slice(0, 7);
 const esc = (s) =>
   String(s ?? "").replace(
@@ -75,6 +80,7 @@ const nav = [
   ["budgets", "chart-no-axes-combined", "Budgets"],
   ["goals", "flag", "Goals"],
   ["bills", "calendar-clock", "Bills & salary"],
+  ["calendar", "calendar-days", "Calendar"],
   ["debts", "landmark", "Debts & loans"],
   ["projects", "folder-open", "Projects"],
   ["insights", "chart-pie", "Insights"],
@@ -134,7 +140,7 @@ function transactionRows(items) {
     ? items
         .map(
           (t) =>
-            `<tr><td><div class="merchant"><span class="merchant-icon ${t.type === "income" ? "income" : ""}">${icon(t.type === "income" ? "arrow-down-left" : { Shopping: "shopping-bag", "Food & drink": "coffee", Home: "house", Transport: "car", Utilities: "zap", Entertainment: "music", Health: "heart-pulse" }[t.category] || "receipt")}</span><div><b>${esc(t.name)}</b><small>${esc(state.accounts.find((a) => a.id === t.accountId)?.name || "Account")}${t.projectId ? " · " + esc(state.projects.find((p) => p.id === t.projectId)?.name || "Project") : ""}</small></div></div></td><td><span class="category-chip">${esc(t.category)}</span></td><td class="date-cell">${formatDate(t.date)}</td><td class="amount ${t.type === "income" ? "positive" : ""}">${t.type === "income" ? "+" : "−"}${money(t.amount, 2)}</td></tr>`,
+            `<tr><td><div class="merchant"><span class="merchant-icon ${t.type === "income" ? "income" : ""}">${icon(t.type === "transfer" ? "arrow-left-right" : t.type === "income" ? "arrow-down-left" : { Shopping: "shopping-bag", "Food & drink": "coffee", Home: "house", Transport: "car", Utilities: "zap", Entertainment: "music", Health: "heart-pulse" }[t.category] || "receipt")}</span><div><b>${esc(t.name)}</b><small>${esc(state.accounts.find((a) => a.id === t.accountId)?.name || "Account")}${t.type === "transfer" ? " → " + esc(state.accounts.find(a => a.id === t.toAccountId)?.name || "Account") : ""}${t.projectId ? " · " + esc(state.projects.find((p) => p.id === t.projectId)?.name || "Project") : ""}</small></div></div></td><td><span class="category-chip ${t.type === 'transfer' ? 'transfer-chip' : ''}">${esc(t.category)}</span></td><td class="date-cell">${formatDate(t.date)}</td><td class="amount ${t.type === "income" ? "positive" : ""}">${t.type === "transfer" ? "↔ " : t.type === "income" ? "+" : "−"}${money(t.amount, 2)}</td></tr>`,
         )
         .join("")
     : `<tr><td colspan="4"><div class="empty">No transactions here yet.<br><small>Add your first transaction to start seeing the bigger picture.</small></div></td></tr>`;
@@ -180,6 +186,7 @@ function flowChart() {
     }),
   );
   for (const t of tx) {
+    if (t.type === "transfer") continue;
     buckets[Math.min(4, Math.floor((Number(t.date.slice(8)) - 1) / 7))][
       t.type
     ] += t.amount;
@@ -191,7 +198,7 @@ function overview() {
   const { income, expenses } = summary(state, month),
     rate = income ? Math.round(((income - expenses) / income) * 100) : 0;
   shell(
-    `${heading(`A clearer picture${demo ? ", Fatima" : ""}.`, "A moment to check in. A little more confidence for what’s next.", `<button class="button primary" data-action="transaction">${icon("plus")} Add transaction</button>`)}<div class="stats-grid"><article class="stat-card balance"><div class="stat-label">Total balance ${icon("wallet")}</div><div class="stat-number">${money(totalBalance(state), 2)}</div><div class="stat-bottom"><span class="balance-pill">${state.accounts.length} accounts</span><span>All in one place ${icon("arrow-up-right")}</span></div><div class="balance-decoration"></div></article><article class="stat-card"><div class="stat-label">Money in ${icon("arrow-down-left")}</div><div class="stat-number">${money(income, 2)}</div><div class="stat-bottom"><span class="positive">${icon("circle-arrow-out-down-left")} Income</span><span>This month</span></div></article><article class="stat-card"><div class="stat-label">Money out ${icon("arrow-up-right")}</div><div class="stat-number">${money(expenses, 2)}</div><div class="stat-bottom"><span class="expense-text">${icon("circle-arrow-out-up-right")} Spending</span><span>This month</span></div></article><article class="stat-card"><div class="stat-label">Savings rate ${icon("sprout")}</div><div class="stat-number">${rate}<span class="percent">%</span></div><div class="stat-bottom"><span class="positive">${income ? money(income - expenses) : "No income yet"}</span><span>${income ? "left this month" : "Add a transaction"}</span></div></article></div><div class="overview-grid"><section class="panel cashflow"><div class="panel-heading"><div><h2>Money in motion</h2><p>Your income and spending, side by side.</p></div><div class="chart-legend"><span><i class="legend-dot green"></i>Income</span><span><i class="legend-dot pale"></i>Expenses</span></div></div>${flowChart()}<div class="chart-foot">${icon("sparkles")}<span>${income > expenses ? `You’ve kept ${money(income - expenses)} of your income this month. Keep the momentum going.` : "Every transaction adds a little clarity to your financial picture."}</span></div></section><section class="panel"><div class="panel-heading"><div><h2>Monthly budgets</h2><p>A plan for the everyday.</p></div><button class="icon-button" data-go="budgets" aria-label="View budgets">${icon("arrow-up-right")}</button></div>${budgetCards()}</section><section class="panel transactions-panel"><div class="panel-heading"><div><h2>Recent transactions</h2><p>The little details behind the big picture.</p></div><button class="text-link" data-go="transactions">View all ${icon("arrow-right")}</button></div>${transactionTable(
+    `${heading(`A clearer picture${demo ? ", Fatima" : ""}.`, "A moment to check in. A little more confidence for what’s next.", `<button class="button primary" data-action="transaction">${icon("plus")} Add transaction</button>`)}<div class="stats-grid"><article class="stat-card balance"><div class="stat-label">Total balance ${icon("wallet")}</div><div class="stat-number">${money(totalBalance(state), 2)}</div><div class="stat-bottom"><span class="balance-pill">${state.accounts.length} accounts</span><span>All in one place ${icon("arrow-up-right")}</span></div><div class="balance-decoration"></div></article><article class="stat-card"><div class="stat-label">Money in ${icon("arrow-down-left")}</div><div class="stat-number">${money(income, 2)}</div><div class="stat-bottom"><span class="positive">${icon("circle-arrow-out-down-left")} Income</span><span>This month</span></div></article><article class="stat-card"><div class="stat-label">Money out ${icon("arrow-up-right")}</div><div class="stat-number">${money(expenses, 2)}</div><div class="stat-bottom"><span class="expense-text">${icon("circle-arrow-out-up-right")} Spending</span><span>This month</span></div></article><article class="stat-card"><div class="stat-label">Savings rate ${icon("sprout")}</div><div class="stat-number">${rate}<span class="percent">%</span></div><div class="stat-bottom"><span class="positive">${income ? money(income - expenses) : "No income yet"}</span><span>${income ? "left this month" : "Add a transaction"}</span></div></article></div>${financialPulse(state, month, {icon, money})}<div class="overview-grid"><section class="panel cashflow"><div class="panel-heading"><div><h2>Money in motion</h2><p>Your income and spending, side by side.</p></div><div class="chart-legend"><span><i class="legend-dot green"></i>Income</span><span><i class="legend-dot pale"></i>Expenses</span></div></div>${flowChart()}<div class="chart-foot">${icon("sparkles")}<span>${income > expenses ? `You’ve kept ${money(income - expenses)} of your income this month. Keep the momentum going.` : "Every transaction adds a little clarity to your financial picture."}</span></div></section><section class="panel"><div class="panel-heading"><div><h2>Monthly budgets</h2><p>A plan for the everyday.</p></div><button class="icon-button" data-go="budgets" aria-label="View budgets">${icon("arrow-up-right")}</button></div>${budgetCards()}</section><section class="panel transactions-panel"><div class="panel-heading"><div><h2>Recent transactions</h2><p>The little details behind the big picture.</p></div><button class="text-link" data-go="transactions">View all ${icon("arrow-right")}</button></div>${transactionTable(
       monthTransactions(state, month)
         .sort((a, b) => b.date.localeCompare(a.date))
         .slice(0, 5),
@@ -199,6 +206,12 @@ function overview() {
   );
 }
 function render() {
+  if (!state.accounts.some(a => a.id === accountFilter)) accountFilter = "all";
+  if (!state.accounts.some(a => a.id === reportAccount)) reportAccount = "all";
+  if (page === "calendar") {
+    shell(calendarPage(state, month, calendarDate, {esc, icon, money, heading}));
+    return;
+  }
   if (["bills", "debts", "projects"].includes(page)) {
     shell(
       planningPage(page, state, {
@@ -215,13 +228,13 @@ function render() {
   if (page === "overview") return overview();
   if (page === "transactions") {
     shell(
-      `${heading("Every move, in view.", "The story of your money, one transaction at a time.", `<button class="button primary" data-action="transaction">${icon("plus")} Add transaction</button>`)}<section class="panel"><div class="toolbar"><label class="search">${icon("search")}<input id="search" placeholder="Search transactions…" value="${esc(search)}" aria-label="Search transactions"/></label><select id="filter" aria-label="Transaction type"><option value="all">All transactions</option><option value="income" ${filter === "income" ? "selected" : ""}>Income</option><option value="expense" ${filter === "expense" ? "selected" : ""}>Expenses</option></select><button class="button secondary" data-action="export">${icon("download")} Export CSV</button></div>${transactionTable(filteredTransactions())}</section>`,
+      `${heading("Every move, in view.", "The story of your money, one transaction at a time.", `<button class="button secondary" data-action="transfer">${icon("arrow-left-right")} Record transfer</button><button class="button primary" data-action="transaction">${icon("plus")} Add transaction</button>`)}<section class="panel"><div class="toolbar"><label class="search">${icon("search")}<input id="search" placeholder="Search transactions…" value="${esc(search)}" aria-label="Search transactions"/></label><select id="account-filter" aria-label="Transaction account"><option value="all">All accounts</option>${state.accounts.map(a => `<option value="${esc(a.id)}" ${accountFilter === a.id ? "selected" : ""}>${esc(a.name)}</option>`).join("")}</select><select id="filter" aria-label="Transaction type"><option value="all">All transactions</option><option value="income" ${filter === "income" ? "selected" : ""}>Income</option><option value="expense" ${filter === "expense" ? "selected" : ""}>Expenses</option><option value="transfer" ${filter === "transfer" ? "selected" : ""}>Transfers</option></select><button class="button secondary" data-action="export">${icon("download")} Export CSV</button></div>${transactionTable(filteredTransactions())}</section>`,
     );
     return;
   }
   if (page === "accounts") {
     shell(
-      `${heading("A home for your money.", "Track your balances across accounts. No bank connection required.", `<button class="button primary" data-action="account">${icon("plus")} Add account</button>`)}<div class="account-total"><span>YOUR TOTAL BALANCE</span><h2>${money(totalBalance(state), 2)}</h2><p>Across ${state.accounts.length} manually managed accounts</p></div><div class="goals-grid">${state.accounts.map((a, i) => `<article class="panel account-detail"><span class="account-icon a${i % 3}">${icon(a.type === "Savings" ? "piggy-bank" : "landmark")}</span><p>${esc(a.type)}</p><h2>${esc(a.name)}</h2><div class="stat-number">${money(a.balance, 2)}</div><small>${a.last4 ? "•••• " + esc(a.last4) : "Manually tracked account"}</small></article>`).join("") || '<div class="empty">Add your first account to begin.</div>'}</div>`,
+      `${heading("A home for your money.", "Track your balances across accounts. No bank connection required.", `<button class="button secondary" data-action="transfer">${icon("arrow-left-right")} Record transfer</button><button class="button primary" data-action="account">${icon("plus")} Add account</button>`)}<div class="account-total"><span>YOUR TOTAL BALANCE</span><h2>${money(totalBalance(state), 2)}</h2><p>Across ${state.accounts.length} manually managed accounts</p></div><div class="goals-grid">${state.accounts.map((a, i) => `<article class="panel account-detail"><span class="account-icon a${i % 3}">${icon(a.type === "Savings" ? "piggy-bank" : "landmark")}</span><p>${esc(a.type)}</p><h2>${esc(a.name)}</h2><div class="stat-number">${money(a.balance, 2)}</div><small>${a.last4 ? "•••• " + esc(a.last4) : "Manually tracked account"}</small></article>`).join("") || '<div class="empty">Add your first account to begin.</div>'}</div>`,
     );
     return;
   }
@@ -238,14 +251,7 @@ function render() {
     return;
   }
   if (page === "insights") {
-    const { income, expenses } = summary(state, month),
-      spending = categories
-        .map((c) => ({ name: c, value: categorySpend(state, month, c) }))
-        .filter((c) => c.value > 0)
-        .sort((a, b) => b.value - a.value);
-    shell(
-      `${heading("Find your financial rhythm.", "A thoughtful look at where your money goes.")}<div class="insight-grid"><section class="panel"><div class="panel-heading"><div><h2>Spending breakdown</h2><p>${money(expenses, 2)} spent in ${monthLabel()}</p></div></div>${spending.map((s, i) => `<div class="budget-row"><div class="budget-title"><span>${esc(s.name)}</span><b>${money(s.value, 2)}</b></div><div class="progress"><div class="c${i % 4}" style="width:${(s.value / expenses) * 100}%"></div></div><small>${Math.round((s.value / expenses) * 100)}% of spending</small></div>`).join("") || '<div class="empty">Add expenses to see your spending breakdown.</div>'}</section><section class="panel"><div class="panel-heading"><div><h2>Your monthly cash flow</h2><p>Income minus expenses: ${money(income - expenses, 2)}</p></div></div>${flowChart()}<div class="insight-note">${icon("lightbulb")}<div><h3>Make room for the future</h3><p>${income ? `Your savings rate is ${Math.round(((income - expenses) / income) * 100)}% this month. Set a goal to give your remaining income a purpose.` : "Start by recording your income and everyday spending. Your insights will grow with your data."}</p><button class="text-link" data-go="goals">Explore your goals ${icon("arrow-right")}</button></div></div></section></div>`,
-    );
+    shell(reportsPage(state, month, reportAccount, {esc, icon, money, heading}));
     return;
   }
   shell(
@@ -257,6 +263,7 @@ function filteredTransactions() {
     .filter(
       (t) =>
         (filter === "all" || t.type === filter) &&
+        (accountFilter === "all" || t.accountId === accountFilter || t.toAccountId === accountFilter) &&
         `${t.name} ${t.category}`.toLowerCase().includes(search.toLowerCase()),
     )
     .sort((a, b) => b.date.localeCompare(a.date));
@@ -272,6 +279,15 @@ function showForm(kind, id) {
   const modal = document.querySelector("#modal");
   let title = "",
     content = "";
+  if (kind === "transfer") {
+    if (state.accounts.length < 2) {
+      toast("Add at least two accounts before recording a transfer.");
+      return;
+    }
+    title = "Give your money a new home";
+    const accountSelect = (label, name, selected) => `<label>${label}<select name="${name}" aria-label="${label}">${state.accounts.map(a => `<option value="${esc(a.id)}" ${selected === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>`;
+    content = `${accountSelect('From account', 'accountId', state.accounts[0].id)}${accountSelect('To account', 'toAccountId', state.accounts[1].id)}<div class="form-grid">${field('Amount (BHD)', 'amount', 'number', '', 'min="0.001" max="1000000000000" step="0.001"')}${field('Date', 'date', 'date', bahrainDate())}</div>${field('Description', 'name', 'text', 'Account transfer', 'maxlength="80"')}<p class="payment-context">Record a transfer you have already made. This updates both account balances and stays out of income, spending and budgets. Northline does not move real money.</p>`;
+  }
   if (
     ["recurring", "record", "repayment"].includes(kind) &&
     !state.accounts.length
@@ -457,6 +473,8 @@ document.addEventListener("submit", async (e) => {
         id: crypto.randomUUID(),
         amount: Number(data.amount),
       });
+    if (kind === "transfer")
+      addTransfer(next, {...data, id: crypto.randomUUID()});
     if (kind === "account")
       next.accounts.push({
         ...data,
@@ -510,9 +528,20 @@ function download(content, type, filename) {
 }
 document.addEventListener("click", async (e) => {
   const target = e.target.closest(
-    "[data-action],[data-go],[data-fund],[data-plan-form],[data-plan-action],[data-project-expense]",
+    "[data-action],[data-go],[data-fund],[data-plan-form],[data-plan-action],[data-project-expense],[data-calendar-date],[data-month-offset]",
   );
   if (!target) return;
+  if (target.dataset.calendarDate) {
+    calendarDate = target.dataset.calendarDate;
+    render();
+    document.querySelector(`[data-calendar-date="${calendarDate}"]`)?.focus({preventScroll:true});
+    return;
+  }
+  if (target.dataset.monthOffset) {
+    month = shiftMonth(month, Number(target.dataset.monthOffset));
+    calendarDate = "";
+    return render();
+  }
   if (target.dataset.planForm)
     return showForm(target.dataset.planForm, target.dataset.id);
   if (target.dataset.projectExpense)
@@ -545,8 +574,13 @@ document.addEventListener("click", async (e) => {
   if (target.dataset.go) return route(target.dataset.go);
   if (target.dataset.fund) return showForm("fund", target.dataset.fund);
   const action = target.dataset.action;
-  if (["transaction", "account", "budget", "goal"].includes(action))
+  if (["transaction", "transfer", "account", "budget", "goal"].includes(action))
     return showForm(action);
+  if (action === "calendar-today") {
+    calendarDate = bahrainDate();
+    month = calendarDate.slice(0, 7);
+    return render();
+  }
   if (action === "close") return document.querySelector("#modal").close();
   if (action === "menu")
     return document.querySelector(".sidebar").classList.toggle("open");
@@ -579,9 +613,9 @@ document.addEventListener("click", async (e) => {
       '"';
     download(
       [
-        "Date,Description,Category,Type,Amount (BHD),Currency",
+        "Date,Description,Category,Type,Amount (BHD),Currency,Account,To Account",
         ...filteredTransactions().map((t) =>
-          [t.date, t.name, t.category, t.type, t.amount.toFixed(3), "BHD"]
+          [t.date, t.name, t.category, t.type, t.amount.toFixed(3), "BHD", state.accounts.find(a => a.id === t.accountId)?.name || "", t.type === 'transfer' ? state.accounts.find(a => a.id === t.toAccountId)?.name || "" : ""]
             .map(csvCell)
             .join(","),
         ),
@@ -618,6 +652,14 @@ document.addEventListener("input", (e) => {
   }
 });
 document.addEventListener("change", async (e) => {
+  if (e.target.id === "account-filter") {
+    accountFilter = e.target.value;
+    render();
+  }
+  if (e.target.id === "report-account") {
+    reportAccount = e.target.value;
+    render();
+  }
   if (e.target.id === "planning-filter") {
     planningFilter = e.target.value;
     render();

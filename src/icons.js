@@ -15,6 +15,8 @@ import {
   CircleHelp,
   CalendarDays,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ArrowDownLeft,
   ShoppingBag,
   Coffee,
@@ -54,6 +56,8 @@ import {
   Sparkles,
 } from "lucide";
 const icons = {
+  ChevronLeft,
+  ChevronRight,
   MoveUpRight,
   UserRound,
   ChevronsUpDown,

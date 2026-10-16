@@ -58,7 +58,7 @@ export function planningPage(
           "Based on Bahrain’s date",
         ],
       ])}
-      <section class="panel"><div class="panel-heading"><div><h2>Bills & salary</h2><p>Next occurrence of each schedule. Record payments only after they happen.</p></div><label class="plan-filter">Show<select id="planning-filter" aria-label="Schedule filter">${[
+      <section class="panel"><div class="panel-heading"><div><h2>Bills & salary</h2><p>Next occurrence of each schedule. Record payments only after they happen.</p><button class="text-link schedule-calendar-link" data-go="calendar">${icon('calendar-days')} Open payment calendar</button></div><label class="plan-filter">Show<select id="planning-filter" aria-label="Schedule filter">${[
         ["all", "All schedules"],
         ["expense", "Bills & subscriptions"],
         ["income", "Salary & income"],

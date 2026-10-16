@@ -14,6 +14,9 @@ This is a single Vite application. Install dependencies and run commands at the 
 | `src/locale.js` | Bahrain civil dates, BHD formatting and integer-fils conversion |
 | `src/icons.js` | Explicit icon imports to keep the bundle small |
 | `src/style.css` | Shared styles and responsive layouts |
+| `src/reports.js` | Account scopes, spending totals, budget health and payment calendar projections |
+| `src/reports-ui.js` | Dashboard financial pulse, Insights and payment calendar views |
+| `src/reports.css` | Reporting and calendar styles |
 
 Keep financial calculations in the pure domain modules and UI behavior in rendering/event modules. Add focused unit coverage under `tests/unit/` for financial rules and browser coverage under `tests/e2e/` for important workflows. Escape user-provided text when inserting HTML. Preserve BHD-only records and the separate demo namespace.
 

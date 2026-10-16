@@ -53,7 +53,7 @@ Install Chromium with `npx playwright install chromium` before running browser t
 
 ## Documentation
 
-- [Features and Bahrain conventions](docs/FEATURES.md): accounts, transactions, budgets, goals, bills, salary, debts and project planning.
+- [Features and Bahrain conventions](docs/FEATURES.md): accounts, transactions, budgets, goals, bills, salary, debts, project planning, payment calendars, transfers and account-specific reports.
 - [Authentication and data ownership](docs/AUTHENTICATION.md): Supabase setup, protected routes and RLS.
 - [Google sign-in setup](docs/GOOGLE_AUTH_SETUP.md).
 - [Development conventions](docs/DEVELOPMENT.md).
