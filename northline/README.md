@@ -99,6 +99,7 @@ Production: https://northline-bahrain.vercel.app/
 - Account: `team_xwKACwKczzvsN97PQXPLT8tT` (`wacns-projects`)
 - GitHub repository: `wacns/Financial-Advisor`, root directory `northline`, production branch `main`.
 - The Vercel Git integration is connected; pushes to `main` trigger production builds.
+- Commits must use an email recognized by the connected GitHub account. For this repository, use `43343208+wacns@users.noreply.github.com`; an unlinked author email causes Vercel to block the deployment before building.
 - Public Supabase build variables are configured for production, preview, and development.
 - Production is publicly reachable; Vercel authentication remains enabled on previews. Private finance data is protected by Supabase authentication and RLS.
 
