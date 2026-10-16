@@ -1,6 +1,6 @@
 # Enable Google sign-in for FinancialAdvisor
 
-The app implementation is complete and tested with a simulated Supabase service. FinancialAdvisor is now connected to the user's **Financial-Advisor** Supabase project (`srwzgwodlpylezdaipce`). Google is now enabled in the project's Auth settings. FinancialAdvisor is deployed at https://financial-advisor-partner.vercel.app/. The new address reaches Google authorization. The Supabase Site URL and redirect allow list still need the dashboard update in [DEPLOYMENT.md](DEPLOYMENT.md) before the OAuth return can be verified on the new origin. A complete user Google consent/session test remains pending.
+The app implementation is complete and tested with a simulated Supabase service. FinancialAdvisor is now connected to the user's **Financial-Advisor** Supabase project (`srwzgwodlpylezdaipce`). Google is now enabled in the project's Auth settings. FinancialAdvisor is deployed at https://financial-advisor-partner.vercel.app/. The new address reaches Google authorization. After the dashboard update, live OAuth cancellation checks verified both the application-specific return URL and the default Site URL on the new origin; see [DEPLOYMENT.md](DEPLOYMENT.md). A complete user Google consent/session test remains pending.
 
 ## 1. Supabase project — connected
 
@@ -45,4 +45,4 @@ Use `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium` before the browser c
 
 Production application origin: `https://financial-advisor-partner.vercel.app`
 
-Required Supabase Site URL and allowed Redirect URL (dashboard update pending): `https://financial-advisor-partner.vercel.app/`
+Verified Supabase Site URL and allowed Redirect URL: `https://financial-advisor-partner.vercel.app/`

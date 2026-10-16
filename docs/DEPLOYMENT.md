@@ -14,12 +14,12 @@ Production: https://financial-advisor-partner.vercel.app/
 
 The Vercel project and public address are now `financial-advisor-partner` and `https://financial-advisor-partner.vercel.app/`. The original `https://northline-bahrain.vercel.app/` remains attached during the transition so existing links and sessions keep working.
 
-**Pending dashboard step:** in [Supabase URL Configuration](https://supabase.com/dashboard/project/srwzgwodlpylezdaipce/auth/url-configuration), set:
+**Verified URL configuration:** in [Supabase URL Configuration](https://supabase.com/dashboard/project/srwzgwodlpylezdaipce/auth/url-configuration), set:
 
 - Site URL: `https://financial-advisor-partner.vercel.app/`
 - Redirect URLs: add `https://financial-advisor-partner.vercel.app/` and retain `https://northline-bahrain.vercel.app/` during the transition. Preserve any required development entries.
 
-The available Supabase connector cannot update Auth URL configuration. The new address serves the app over HTTPS and reaches Google authorization, but a live cancellation check still returned to the old origin before the dashboard update. Verify cancellation returns to the new origin after saving. Complete Google consent and email confirmation must also be checked in the browser that started the flow; PKCE verifiers and sessions are scoped to their origin. Signed-in workspace records remain in the same Supabase project. Local demo edits and login sessions are separate between hostnames.
+The user updated Auth URL configuration in the Supabase dashboard. Live browser checks on 2026-10-16 confirmed that both the application-specific Google redirect and the default Site URL return to `https://financial-advisor-partner.vercel.app/` after OAuth cancellation. The new address also serves the app over HTTPS and reaches Google authorization. Complete Google consent and email confirmation must also be checked in the browser that started the flow; PKCE verifiers and sessions are scoped to their origin. Signed-in workspace records remain in the same Supabase project. Local demo edits and login sessions are separate between hostnames.
 
 Google's provider callback remains `https://srwzgwodlpylezdaipce.supabase.co/auth/v1/callback`; changing the application address does not replace that callback.
 
