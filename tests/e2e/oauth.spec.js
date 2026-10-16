@@ -143,7 +143,7 @@ test("Google PKCE redirect, callback, verified workspace, and sign-out with mock
   await page.getByRole("link", { name: "Settings", exact: true }).click();
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Welcome to Northline." }),
+    page.getByRole("heading", { name: "Welcome to FinancialAdvisor." }),
   ).toBeVisible();
 });
 test("denied and expired OAuth callbacks display recoverable errors", async ({

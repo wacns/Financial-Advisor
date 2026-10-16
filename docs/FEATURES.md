@@ -1,5 +1,7 @@
 # Features and Bahrain conventions
 
+The product name is **FinancialAdvisor** and the repository is **Financial-Advisor**. Bahrain identifies the current region and BHD settings, rather than the product brand. Existing `northline_workspaces` and demo storage identifiers are retained for data compatibility.
+
 ## Features
 
 - Responsive dashboard with account balances, monthly income, expenses, savings rate, and a cash-flow chart.

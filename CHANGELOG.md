@@ -1,5 +1,10 @@
 # Changelog
 
+## FinancialAdvisor branding — 2026-10-16
+
+- Aligned the product name, wordmark, page metadata, accessible labels and export filenames with the Financial-Advisor repository.
+- Kept existing workspace identifiers and the current hosting origin compatible with saved data and sign-in.
+
 ## 1.2.0 — A clearer rhythm
 
 - Added a dashboard financial pulse with spending comparisons, category budget room, and next payment totals.

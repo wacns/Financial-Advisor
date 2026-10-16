@@ -1,6 +1,6 @@
-# Northline Bahrain
+# FinancialAdvisor
 
-An English-language personal finance app for Bahrain, built with Vite, JavaScript, and Supabase. Northline has its own navy, ivory, and sage identity and uses BHD with three-decimal fils precision.
+An English-language personal finance app for Bahrain, built with Vite, JavaScript, and Supabase. FinancialAdvisor has its own navy, ivory, and sage identity and uses BHD with three-decimal fils precision.
 
 **Live app:** [northline-bahrain.vercel.app](https://northline-bahrain.vercel.app/)
 

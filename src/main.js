@@ -72,7 +72,7 @@ const icon = (name, cls = "") =>
 const money = formatMoney;
 const monthLabel = () =>
   formatDate(`${month}-15`, { month: "long", year: "numeric" });
-const logo = `<span class="brand-mark">${icon("move-up-right")}</span><span>northline<span class="brand-dot">.</span></span>`;
+const logo = `<span class="brand-mark">${icon("move-up-right")}</span><span class="brand-name">Financial<span>Advisor</span></span>`;
 const nav = [
   ["overview", "layout-dashboard", "Overview"],
   ["accounts", "wallet", "Accounts"],
@@ -129,7 +129,7 @@ async function persist(next) {
   }
 }
 function shell(content) {
-  app.innerHTML = `<div class="workspace"><aside class="sidebar"><a class="brand" href="#/${demo ? "demo" : "app"}/overview" aria-label="Northline home">${logo}</a><div class="workspace-select"><span class="personal-icon">${icon("user-round")}</span><span>Bahrain workspace<small>Bahrain · BHD</small></span>${icon("chevrons-up-down")}</div><p class="nav-label">WORKSPACE</p><nav>${nav.map(([id, ic, title]) => `<a href="#/${demo ? "demo" : "app"}/${id}" class="nav-item ${page === id ? "active" : ""}" ${page === id ? 'aria-current="page"' : ""}>${icon(ic)}${title}${id === "overview" ? '<span class="nav-active-dot"></span>' : ""}</a>`).join("")}</nav><div class="sidebar-bottom"><div class="sidebar-note"><span class="tiny-star">✳</span><h3>Small steps.<br>Brighter horizons.</h3><p>A little intention today goes a long way tomorrow.</p><button class="text-link" data-go="goals">Set your next goal ${icon("arrow-up-right")}</button></div><a href="#/${demo ? "demo" : "app"}/settings" class="nav-item ${page === "settings" ? "active" : ""}">${icon("settings-2")}Settings</a><button class="profile" data-action="signout"><span class="avatar">${demo ? "FA" : esc(user?.email?.slice(0, 2).toUpperCase() || "ME")}</span><span>${demo ? "Fatima Ahmed" : esc(user?.email?.split("@")[0] || "My account")}<small>${demo ? "Demo workspace" : "Personal account"}</small></span>${icon("log-out")}</button></div></aside><div class="main-shell"><header class="topbar"><button class="mobile-menu icon-button" data-action="menu" aria-label="Toggle navigation">${icon("menu")}</button><div class="breadcrumb">My workspace <span>/</span> <strong>${nav.find((n) => n[0] === page)?.[2] || "Settings"}</strong></div><div class="top-actions"><span class="status"><span></span>${demo ? "Demo mode" : "Cloud workspace"}</span><button class="icon-button" data-action="help" aria-label="About Northline">${icon("circle-help")}</button><span class="avatar small">${demo ? "FA" : esc(user?.email?.slice(0, 2).toUpperCase() || "ME")}</span></div></header><main id="main">${demo ? '<div class="demo-banner"><span>You’re exploring Northline Bahrain with sample data. Make it your own.</span><a href="#/login">Create your workspace <span>↗</span></a></div>' : ""}${content}<footer><span><span class="footer-dot"></span> A little clarity. A lot of possibility.</span><span>Made for life in Bahrain.</span></footer></main></div></div><dialog id="modal" aria-labelledby="modal-title"></dialog>`;
+  app.innerHTML = `<div class="workspace"><aside class="sidebar"><a class="brand" href="#/${demo ? "demo" : "app"}/overview" aria-label="FinancialAdvisor home">${logo}</a><div class="workspace-select"><span class="personal-icon">${icon("user-round")}</span><span>Bahrain workspace<small>Bahrain · BHD</small></span>${icon("chevrons-up-down")}</div><p class="nav-label">WORKSPACE</p><nav>${nav.map(([id, ic, title]) => `<a href="#/${demo ? "demo" : "app"}/${id}" class="nav-item ${page === id ? "active" : ""}" ${page === id ? 'aria-current="page"' : ""}>${icon(ic)}${title}${id === "overview" ? '<span class="nav-active-dot"></span>' : ""}</a>`).join("")}</nav><div class="sidebar-bottom"><div class="sidebar-note"><span class="tiny-star">✳</span><h3>Small steps.<br>Brighter horizons.</h3><p>A little intention today goes a long way tomorrow.</p><button class="text-link" data-go="goals">Set your next goal ${icon("arrow-up-right")}</button></div><a href="#/${demo ? "demo" : "app"}/settings" class="nav-item ${page === "settings" ? "active" : ""}">${icon("settings-2")}Settings</a><button class="profile" data-action="signout"><span class="avatar">${demo ? "FA" : esc(user?.email?.slice(0, 2).toUpperCase() || "ME")}</span><span>${demo ? "Fatima Ahmed" : esc(user?.email?.split("@")[0] || "My account")}<small>${demo ? "Demo workspace" : "Personal account"}</small></span>${icon("log-out")}</button></div></aside><div class="main-shell"><header class="topbar"><button class="mobile-menu icon-button" data-action="menu" aria-label="Toggle navigation">${icon("menu")}</button><div class="breadcrumb">My workspace <span>/</span> <strong>${nav.find((n) => n[0] === page)?.[2] || "Settings"}</strong></div><div class="top-actions"><span class="status"><span></span>${demo ? "Demo mode" : "Cloud workspace"}</span><button class="icon-button" data-action="help" aria-label="About FinancialAdvisor">${icon("circle-help")}</button><span class="avatar small">${demo ? "FA" : esc(user?.email?.slice(0, 2).toUpperCase() || "ME")}</span></div></header><main id="main">${demo ? '<div class="demo-banner"><span>You’re exploring FinancialAdvisor with sample data. Make it your own.</span><a href="#/login">Create your workspace <span>↗</span></a></div>' : ""}${content}<footer><span><span class="footer-dot"></span> A little clarity. A lot of possibility.</span><span>Made for life in Bahrain.</span></footer></main></div></div><dialog id="modal" aria-labelledby="modal-title"></dialog>`;
   hydrate();
 }
 function heading(title, subtitle, action = "") {
@@ -255,7 +255,7 @@ function render() {
     return;
   }
   shell(
-    `${heading("Make yourself at home.", "A few preferences for a workspace that feels like yours.")}<section class="panel settings"><h2>Your workspace</h2><p>${demo ? "You are using sample data saved in this browser." : `Signed in as ${esc(user?.email)}`}</p><div class="regional-settings"><div><span>Country</span><strong>Bahrain</strong></div><div><span>Currency</span><strong>Bahraini dinar (BHD)</strong></div><div><span>Precision</span><strong>3 decimal places · 1,000 fils per dinar</strong></div><div><span>Time zone</span><strong>Asia/Bahrain · UTC+03:00</strong></div><div><span>Dates</span><strong>Day / month / year · Gregorian</strong></div></div><p class="helper-note">All accounts, budgets, goals and exports use BHD.</p><hr/><h2>Your data, your control</h2><p>Northline does not connect to your bank or execute payments.</p><button class="button secondary" data-action="backup">${icon("download")} Download backup</button>${demo ? '<button class="button secondary" data-action="reset">Reset sample data</button>' : ""}<hr/><button class="button secondary" data-action="signout">${icon("log-out")} ${demo ? "Leave demo" : "Sign out"}</button></section>`,
+    `${heading("Make yourself at home.", "A few preferences for a workspace that feels like yours.")}<section class="panel settings"><h2>Your workspace</h2><p>${demo ? "You are using sample data saved in this browser." : `Signed in as ${esc(user?.email)}`}</p><div class="regional-settings"><div><span>Country</span><strong>Bahrain</strong></div><div><span>Currency</span><strong>Bahraini dinar (BHD)</strong></div><div><span>Precision</span><strong>3 decimal places · 1,000 fils per dinar</strong></div><div><span>Time zone</span><strong>Asia/Bahrain · UTC+03:00</strong></div><div><span>Dates</span><strong>Day / month / year · Gregorian</strong></div></div><p class="helper-note">All accounts, budgets, goals and exports use BHD.</p><hr/><h2>Your data, your control</h2><p>FinancialAdvisor does not connect to your bank or execute payments.</p><button class="button secondary" data-action="backup">${icon("download")} Download backup</button>${demo ? '<button class="button secondary" data-action="reset">Reset sample data</button>' : ""}<hr/><button class="button secondary" data-action="signout">${icon("log-out")} ${demo ? "Leave demo" : "Sign out"}</button></section>`,
   );
 }
 function filteredTransactions() {
@@ -269,7 +269,7 @@ function filteredTransactions() {
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 function login() {
-  app.innerHTML = `<div class="login-page"><section class="login-story"><a class="brand" href="#/login">${logo}</a><div class="login-story-content"><p class="eyebrow">A LITTLE CLARITY. A LOT OF POSSIBILITY.</p><h1>Your money.<br>Your direction.</h1><p>From everyday spending in Manama to your next big goal. Your financial life in Bahrain, together in BHD.</p><div class="login-features"><span>${icon("wallet")} Every account, together</span><span>${icon("chart-no-axes-combined")} A clearer view of spending</span><span>${icon("flag")} More room for your goals</span></div></div><div class="login-art"><div></div><div></div><div></div><span>Forward looks good on you. ↗</span></div><small>northline · Made for life in Bahrain.</small></section><section class="login-form-wrap"><div class="login-form"><span class="login-badge">${icon("sprout")} Your Bahrain workspace</span><h2>Welcome to Northline.</h2><p>A little intention. A little progress. All yours.</p><form id="auth-form"><button type="button" class="button google-button" data-action="google" ${!client ? "disabled" : ""}><span class="google-mark" aria-hidden="true">G</span> Continue with Google</button><div class="divider">OR CONTINUE WITH EMAIL</div><label>Email address<input type="email" name="email" autocomplete="email" placeholder="you@example.com" required/></label><label>Password<input type="password" name="password" autocomplete="current-password" placeholder="At least 8 characters" minlength="8" required/></label><button class="button primary" ${!client ? "disabled" : ""}>Sign in ${icon("arrow-right")}</button><button type="button" class="button secondary" data-action="signup" ${!client ? "disabled" : ""}>Create an account</button><p id="auth-message" role="status">${!client ? "Live sign-in is pending Supabase project setup. Explore the working demo below." : ""}</p></form><div class="divider">OR TAKE A LOOK AROUND</div><a class="button demo-button" href="#/demo/overview">Explore the demo ${icon("arrow-up-right")}</a><p class="login-privacy">${icon("shield-check")} Your space. Your pace. Your financial life.</p></div></section></div>`;
+  app.innerHTML = `<div class="login-page"><section class="login-story"><a class="brand" href="#/login">${logo}</a><div class="login-story-content"><p class="eyebrow">A LITTLE CLARITY. A LOT OF POSSIBILITY.</p><h1>Your money.<br>Your direction.</h1><p>From everyday spending in Manama to your next big goal. Your financial life in Bahrain, together in BHD.</p><div class="login-features"><span>${icon("wallet")} Every account, together</span><span>${icon("chart-no-axes-combined")} A clearer view of spending</span><span>${icon("flag")} More room for your goals</span></div></div><div class="login-art"><div></div><div></div><div></div><span>Forward looks good on you. ↗</span></div><small>FinancialAdvisor · Personal finance, in focus.</small></section><section class="login-form-wrap"><div class="login-form"><span class="login-badge">${icon("sprout")} Your Bahrain workspace</span><h2>Welcome to FinancialAdvisor.</h2><p>A little intention. A little progress. All yours.</p><form id="auth-form"><button type="button" class="button google-button" data-action="google" ${!client ? "disabled" : ""}><span class="google-mark" aria-hidden="true">G</span> Continue with Google</button><div class="divider">OR CONTINUE WITH EMAIL</div><label>Email address<input type="email" name="email" autocomplete="email" placeholder="you@example.com" required/></label><label>Password<input type="password" name="password" autocomplete="current-password" placeholder="At least 8 characters" minlength="8" required/></label><button class="button primary" ${!client ? "disabled" : ""}>Sign in ${icon("arrow-right")}</button><button type="button" class="button secondary" data-action="signup" ${!client ? "disabled" : ""}>Create an account</button><p id="auth-message" role="status">${!client ? "Live sign-in is pending Supabase project setup. Explore the working demo below." : ""}</p></form><div class="divider">OR TAKE A LOOK AROUND</div><a class="button demo-button" href="#/demo/overview">Explore the demo ${icon("arrow-up-right")}</a><p class="login-privacy">${icon("shield-check")} Your space. Your pace. Your financial life.</p></div></section></div>`;
   hydrate();
 }
 function field(label, name, type = "text", value = "", extra = "") {
@@ -286,7 +286,7 @@ function showForm(kind, id) {
     }
     title = "Give your money a new home";
     const accountSelect = (label, name, selected) => `<label>${label}<select name="${name}" aria-label="${label}">${state.accounts.map(a => `<option value="${esc(a.id)}" ${selected === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>`;
-    content = `${accountSelect('From account', 'accountId', state.accounts[0].id)}${accountSelect('To account', 'toAccountId', state.accounts[1].id)}<div class="form-grid">${field('Amount (BHD)', 'amount', 'number', '', 'min="0.001" max="1000000000000" step="0.001"')}${field('Date', 'date', 'date', bahrainDate())}</div>${field('Description', 'name', 'text', 'Account transfer', 'maxlength="80"')}<p class="payment-context">Record a transfer you have already made. This updates both account balances and stays out of income, spending and budgets. Northline does not move real money.</p>`;
+    content = `${accountSelect('From account', 'accountId', state.accounts[0].id)}${accountSelect('To account', 'toAccountId', state.accounts[1].id)}<div class="form-grid">${field('Amount (BHD)', 'amount', 'number', '', 'min="0.001" max="1000000000000" step="0.001"')}${field('Date', 'date', 'date', bahrainDate())}</div>${field('Description', 'name', 'text', 'Account transfer', 'maxlength="80"')}<p class="payment-context">Record a transfer you have already made. This updates both account balances and stays out of income, spending and budgets. FinancialAdvisor does not move real money.</p>`;
   }
   if (
     ["recurring", "record", "repayment"].includes(kind) &&
@@ -374,7 +374,7 @@ async function handleRoute() {
     return;
   }
   app.innerHTML =
-    '<div class="loading">Opening your Northline workspace…</div>';
+    '<div class="loading">Opening your FinancialAdvisor workspace…</div>';
   try {
     const { data, error } = await client.auth.getUser();
     if (generation !== routeGeneration) return;
@@ -588,7 +588,7 @@ document.addEventListener("click", async (e) => {
   if (action === "google") return googleSignIn();
   if (action === "help")
     return toast(
-      "Northline tracks your finances manually. Demo changes stay in this browser.",
+      "FinancialAdvisor tracks your finances manually. Demo changes stay in this browser.",
     );
   if (action === "signout") {
     try {
@@ -621,14 +621,14 @@ document.addEventListener("click", async (e) => {
         ),
       ].join("\r\n"),
       "text/csv",
-      `northline-${month}.csv`,
+      `financial-advisor-${month}.csv`,
     );
   }
   if (action === "backup")
     download(
       JSON.stringify(state, null, 2),
       "application/json",
-      "northline-backup.json",
+      "financial-advisor-backup.json",
     );
   if (
     action === "reset" &&

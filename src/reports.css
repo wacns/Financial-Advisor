@@ -1,4 +1,4 @@
-/* Reference-inspired reporting and planning, in Northline's own visual language. */
+/* Reference-inspired reporting and planning, in FinancialAdvisor's visual language. */
 .financial-pulse{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:#edf2e9;border:1px solid #e1e8dc;border-radius:12px;margin-top:20px;padding:7px 0}
 .pulse-item{display:flex;gap:12px;text-align:left;align-items:center;padding:17px 20px;min-width:0;border-right:1px solid #dce5d8;border-radius:0}
 .pulse-item:last-child{border-right:0}.pulse-item:hover{background:#e4ecdf}.pulse-item>span:nth-child(2){flex:1;min-width:0}

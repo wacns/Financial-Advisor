@@ -8,7 +8,7 @@ Connected to **Financial-Advisor** (`srwzgwodlpylezdaipce`) in **WACNS's Org** (
 
 Live verification passed: own-workspace reads/inserts, cross-user read/update/delete denial, forged-owner insert denial, owner reassignment denial, BHD-only enforcement, and anonymous read denial. Test fixtures were rolled back. The public Data API returned HTTP 401 for anonymous workspace access; the Supabase security advisor returned no findings.
 
-Google and email/password are enabled in the project's public Auth settings. The production URL is configured and an OAuth cancellation correctly returns to Northline. A full Google account sign-in still needs user verification.
+Google and email/password are enabled in the project's public Auth settings. The production URL is configured and an OAuth cancellation correctly returns to FinancialAdvisor. A full Google account sign-in still needs user verification.
 
 For another checkout or deployment:
 

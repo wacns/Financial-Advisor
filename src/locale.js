@@ -37,7 +37,7 @@ export function toFils(value) {
 
 export function requireBahrainWorkspace(state) {
   if (state.currency !== CURRENCY) {
-    throw Error('This workspace uses another currency. Its records have been preserved; currency conversion is required before opening it in Northline Bahrain.');
+    throw Error('This workspace uses another currency. Its records have been preserved; currency conversion is required before opening it in FinancialAdvisor.');
   }
   return state;
 }

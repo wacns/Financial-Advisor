@@ -1,6 +1,6 @@
-# Enable Google sign-in for Northline Bahrain
+# Enable Google sign-in for FinancialAdvisor
 
-The app implementation is complete and tested with a simulated Supabase service. Northline is now connected to the user's **Financial-Advisor** Supabase project (`srwzgwodlpylezdaipce`). Google is now enabled in the project's Auth settings. Northline is deployed at https://northline-bahrain.vercel.app/. The production return URL has been verified with an OAuth cancellation. A complete user Google consent/session test remains pending.
+The app implementation is complete and tested with a simulated Supabase service. FinancialAdvisor is now connected to the user's **Financial-Advisor** Supabase project (`srwzgwodlpylezdaipce`). Google is now enabled in the project's Auth settings. FinancialAdvisor is deployed at https://northline-bahrain.vercel.app/. The production return URL has been verified with an OAuth cancellation. A complete user Google consent/session test remains pending.
 
 ## 1. Supabase project — connected
 
@@ -10,9 +10,9 @@ The workspace migration is installed, ownership rules passed live transactional 
 
 In [Google Auth Platform](https://console.cloud.google.com/auth/overview):
 
-- Configure consent branding as **Northline Bahrain**, with your support/contact email and the final application domain.
+- Configure consent branding as **FinancialAdvisor**, with your support/contact email and the final application domain.
 - Choose the intended audience. During testing, add the Google accounts that will test the app; publish the consent app for general availability when ready.
-- Configure only the identity scopes: `openid`, email, and profile. Northline does not request Gmail, Drive, or other Google data access.
+- Configure only the identity scopes: `openid`, email, and profile. FinancialAdvisor does not request Gmail, Drive, or other Google data access.
 - Create an OAuth client of type **Web application**.
 - Set the authorized JavaScript origin to the final site origin (scheme and hostname, no hash route).
 - Copy the exact callback URI from Supabase → Authentication → Sign In / Providers → Google into Google's **Authorized redirect URIs**. For this project, use exactly `https://srwzgwodlpylezdaipce.supabase.co/auth/v1/callback`.
@@ -26,7 +26,7 @@ In Supabase URL Configuration, set the Site URL and redirect allow list to the e
 The two callbacks serve different purposes:
 
 - **Google → Supabase:** the `/auth/v1/callback` URL copied from the provider settings.
-- **Supabase → Northline:** the application's document URL, which receives `?code=...` and exchanges it using the browser's PKCE verifier.
+- **Supabase → FinancialAdvisor:** the application's document URL, which receives `?code=...` and exchanges it using the browser's PKCE verifier.
 
 ## 4. Verify live behavior
 
