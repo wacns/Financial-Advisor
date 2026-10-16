@@ -54,8 +54,10 @@ import {
   Check,
   Plane,
   Sparkles,
+  Bell,
 } from "lucide";
 const icons = {
+  Bell,
   ChevronLeft,
   ChevronRight,
   MoveUpRight,

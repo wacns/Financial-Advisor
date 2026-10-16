@@ -1,5 +1,7 @@
+import "./ionic.js";
 import "./style.css";
 import "./reports.css";
+import "./mobile.css";
 import { hydrateIcons } from "./icons.js";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -25,6 +27,7 @@ import {
   authRedirectUrl,
   startGoogleSignIn,
   finishAuthRedirect,
+  finishNativeAuth,
 } from "./auth.js";
 import {
   normalizePlanning,
@@ -37,13 +40,16 @@ import {
 import { planningPage, planningForm, duePanel } from "./planning-ui.js";
 import { financialPulse, reportsPage, calendarPage } from "./reports-ui.js";
 import { shiftMonth } from "./reports.js";
+import { isNative, platform, nativeAuthStorage, nativePreferences, nativeMessaging, initializeNative, openNativeAuth, shareNativeExport } from './mobile.js';
+import { createNotifications } from './notifications.js';
+import { mobileTabs, notificationSettings } from './mobile-ui.js';
 const app = document.querySelector("#app");
 const url = import.meta.env.VITE_SUPABASE_URL,
   key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const client =
   url && key
     ? createClient(url, key, {
-        auth: { flowType: "pkce", detectSessionInUrl: false },
+        auth: { flowType: "pkce", detectSessionInUrl: false, ...(isNative ? {storage:nativeAuthStorage, autoRefreshToken:false} : {}) },
       })
     : null;
 let routeGeneration = 0;
@@ -59,6 +65,10 @@ let user = null,
 let planningFilter = "all";
 let accountFilter = "all", reportAccount = "all", calendarDate = "";
 let month = bahrainDate().slice(0, 7);
+const notifications = createNotifications({native:isNative, platform, preferences:nativePreferences,
+  getMessaging:nativeMessaging, client, getUser:() => demo ? null : user,
+  onChange:() => { if (page === 'settings' && !authStarting && document.querySelector('.workspace')) render(); },
+  onNavigate:target => { location.hash = `/app/${target}`; }, onMessage:message => toast(message)});
 const esc = (s) =>
   String(s ?? "").replace(
     /[&<>"']/g,
@@ -129,7 +139,7 @@ async function persist(next) {
   }
 }
 function shell(content) {
-  app.innerHTML = `<div class="workspace"><aside class="sidebar"><a class="brand" href="#/${demo ? "demo" : "app"}/overview" aria-label="FinancialAdvisor home">${logo}</a><div class="workspace-select"><span class="personal-icon">${icon("user-round")}</span><span>Bahrain workspace<small>Bahrain · BHD</small></span>${icon("chevrons-up-down")}</div><p class="nav-label">WORKSPACE</p><nav>${nav.map(([id, ic, title]) => `<a href="#/${demo ? "demo" : "app"}/${id}" class="nav-item ${page === id ? "active" : ""}" ${page === id ? 'aria-current="page"' : ""}>${icon(ic)}${title}${id === "overview" ? '<span class="nav-active-dot"></span>' : ""}</a>`).join("")}</nav><div class="sidebar-bottom"><div class="sidebar-note"><span class="tiny-star">✳</span><h3>Small steps.<br>Brighter horizons.</h3><p>A little intention today goes a long way tomorrow.</p><button class="text-link" data-go="goals">Set your next goal ${icon("arrow-up-right")}</button></div><a href="#/${demo ? "demo" : "app"}/settings" class="nav-item ${page === "settings" ? "active" : ""}">${icon("settings-2")}Settings</a><button class="profile" data-action="signout"><span class="avatar">${demo ? "FA" : esc(user?.email?.slice(0, 2).toUpperCase() || "ME")}</span><span>${demo ? "Fatima Ahmed" : esc(user?.email?.split("@")[0] || "My account")}<small>${demo ? "Demo workspace" : "Personal account"}</small></span>${icon("log-out")}</button></div></aside><div class="main-shell"><header class="topbar"><button class="mobile-menu icon-button" data-action="menu" aria-label="Toggle navigation">${icon("menu")}</button><div class="breadcrumb">My workspace <span>/</span> <strong>${nav.find((n) => n[0] === page)?.[2] || "Settings"}</strong></div><div class="top-actions"><span class="status"><span></span>${demo ? "Demo mode" : "Cloud workspace"}</span><button class="icon-button" data-action="help" aria-label="About FinancialAdvisor">${icon("circle-help")}</button><span class="avatar small">${demo ? "FA" : esc(user?.email?.slice(0, 2).toUpperCase() || "ME")}</span></div></header><main id="main">${demo ? '<div class="demo-banner"><span>You’re exploring FinancialAdvisor with sample data. Make it your own.</span><a href="#/login">Create your workspace <span>↗</span></a></div>' : ""}${content}<footer><span><span class="footer-dot"></span> A little clarity. A lot of possibility.</span><span>Made for life in Bahrain.</span></footer></main></div></div><dialog id="modal" aria-labelledby="modal-title"></dialog>`;
+  app.innerHTML = `<div class="workspace"><aside class="sidebar"><a class="brand" href="#/${demo ? "demo" : "app"}/overview" aria-label="FinancialAdvisor home">${logo}</a><div class="workspace-select"><span class="personal-icon">${icon("user-round")}</span><span>Bahrain workspace<small>Bahrain · BHD</small></span>${icon("chevrons-up-down")}</div><p class="nav-label">WORKSPACE</p><nav>${nav.map(([id, ic, title]) => `<a href="#/${demo ? "demo" : "app"}/${id}" class="nav-item ${page === id ? "active" : ""}" ${page === id ? 'aria-current="page"' : ""}>${icon(ic)}${title}${id === "overview" ? '<span class="nav-active-dot"></span>' : ""}</a>`).join("")}</nav><div class="sidebar-bottom"><div class="sidebar-note"><span class="tiny-star">✳</span><h3>Small steps.<br>Brighter horizons.</h3><p>A little intention today goes a long way tomorrow.</p><button class="text-link" data-go="goals">Set your next goal ${icon("arrow-up-right")}</button></div><a href="#/${demo ? "demo" : "app"}/settings" class="nav-item ${page === "settings" ? "active" : ""}">${icon("settings-2")}Settings</a><button class="profile" data-action="signout"><span class="avatar">${demo ? "FA" : esc(user?.email?.slice(0, 2).toUpperCase() || "ME")}</span><span>${demo ? "Fatima Ahmed" : esc(user?.email?.split("@")[0] || "My account")}<small>${demo ? "Demo workspace" : "Personal account"}</small></span>${icon("log-out")}</button></div></aside><div class="main-shell"><header class="topbar"><button class="mobile-menu icon-button" data-action="menu" aria-label="Toggle navigation">${icon("menu")}</button><div class="breadcrumb">My workspace <span>/</span> <strong>${nav.find((n) => n[0] === page)?.[2] || "Settings"}</strong></div><div class="top-actions"><span class="status"><span></span>${demo ? "Demo mode" : "Cloud workspace"}</span><button class="icon-button" data-action="help" aria-label="About FinancialAdvisor">${icon("circle-help")}</button><span class="avatar small">${demo ? "FA" : esc(user?.email?.slice(0, 2).toUpperCase() || "ME")}</span></div></header><main id="main">${demo ? '<div class="demo-banner"><span>You’re exploring FinancialAdvisor with sample data. Make it your own.</span><a href="#/login">Create your workspace <span>↗</span></a></div>' : ""}${content}<footer><span><span class="footer-dot"></span> A little clarity. A lot of possibility.</span><span>Made for life in Bahrain.</span></footer></main></div></div>${mobileTabs(page, demo, icon)}<dialog id="modal" aria-labelledby="modal-title"></dialog>`;
   hydrate();
 }
 function heading(title, subtitle, action = "") {
@@ -255,7 +265,7 @@ function render() {
     return;
   }
   shell(
-    `${heading("Make yourself at home.", "A few preferences for a workspace that feels like yours.")}<section class="panel settings"><h2>Your workspace</h2><p>${demo ? "You are using sample data saved in this browser." : `Signed in as ${esc(user?.email)}`}</p><div class="regional-settings"><div><span>Country</span><strong>Bahrain</strong></div><div><span>Currency</span><strong>Bahraini dinar (BHD)</strong></div><div><span>Precision</span><strong>3 decimal places · 1,000 fils per dinar</strong></div><div><span>Time zone</span><strong>Asia/Bahrain · UTC+03:00</strong></div><div><span>Dates</span><strong>Day / month / year · Gregorian</strong></div></div><p class="helper-note">All accounts, budgets, goals and exports use BHD.</p><hr/><h2>Your data, your control</h2><p>FinancialAdvisor does not connect to your bank or execute payments.</p><button class="button secondary" data-action="backup">${icon("download")} Download backup</button>${demo ? '<button class="button secondary" data-action="reset">Reset sample data</button>' : ""}<hr/><button class="button secondary" data-action="signout">${icon("log-out")} ${demo ? "Leave demo" : "Sign out"}</button></section>`,
+    `${heading("Make yourself at home.", "A few preferences for a workspace that feels like yours.")}<section class="panel settings"><h2>Your workspace</h2><p>${demo ? "You are using sample data saved in this browser." : `Signed in as ${esc(user?.email)}`}</p><div class="regional-settings"><div><span>Country</span><strong>Bahrain</strong></div><div><span>Currency</span><strong>Bahraini dinar (BHD)</strong></div><div><span>Precision</span><strong>3 decimal places · 1,000 fils per dinar</strong></div><div><span>Time zone</span><strong>Asia/Bahrain · UTC+03:00</strong></div><div><span>Dates</span><strong>Day / month / year · Gregorian</strong></div></div><p class="helper-note">All accounts, budgets, goals and exports use BHD.</p>${notificationSettings(notifications.status, {demo, esc, icon})}<hr/><h2>Your data, your control</h2><p>FinancialAdvisor does not connect to your bank or execute payments.</p><button class="button secondary" data-action="backup">${icon("download")} Download backup</button>${demo ? '<button class="button secondary" data-action="reset">Reset sample data</button>' : ""}<hr/><button class="button secondary" data-action="signout">${icon("log-out")} ${demo ? "Leave demo" : "Sign out"}</button></section>`,
   );
 }
 function filteredTransactions() {
@@ -399,6 +409,7 @@ async function handleRoute() {
         ? parts[1]
         : "overview";
     render();
+    if (isNative) notifications.restore();
   } catch (error) {
     if (generation !== routeGeneration) return;
     login();
@@ -423,7 +434,7 @@ async function authenticate(signup = false) {
     const result = signup
       ? await client.auth.signUp({
           ...data,
-          options: { emailRedirectTo: authRedirectUrl(location) },
+          options: { emailRedirectTo: authRedirectUrl(location, isNative) },
         })
       : await client.auth.signInWithPassword(data);
     if (result.error) throw result.error;
@@ -443,7 +454,8 @@ async function googleSignIn() {
   setAuthBusy(true);
   msg.textContent = "Taking you to Google…";
   try {
-    await startGoogleSignIn(client, location);
+    await startGoogleSignIn(client, location, isNative ? {open:openNativeAuth} : undefined);
+    if (isNative) setAuthBusy(false);
   } catch (error) {
     msg.textContent = error.message;
     setAuthBusy(false);
@@ -517,7 +529,12 @@ document.addEventListener("submit", async (e) => {
     button.disabled = false;
   }
 });
-function download(content, type, filename) {
+async function download(content, type, filename) {
+  if (isNative) {
+    try { await shareNativeExport(content,filename); }
+    catch { toast('The export could not be shared. Please try again.'); }
+    return;
+  }
   const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob),
     a = document.createElement("a");
@@ -574,6 +591,15 @@ document.addEventListener("click", async (e) => {
   if (target.dataset.go) return route(target.dataset.go);
   if (target.dataset.fund) return showForm("fund", target.dataset.fund);
   const action = target.dataset.action;
+  if (['enable-push','disable-push','test-push'].includes(action)) {
+    if (demo || !user || !isNative) return;
+    try {
+      if (action === 'enable-push') await notifications.enable();
+      if (action === 'disable-push') await notifications.disable();
+      if (action === 'test-push') { await notifications.test(); toast('Test notification sent.'); }
+    } catch (error) { toast(error.message); }
+    return;
+  }
   if (["transaction", "transfer", "account", "budget", "goal"].includes(action))
     return showForm(action);
   if (action === "calendar-today") {
@@ -593,10 +619,12 @@ document.addEventListener("click", async (e) => {
   if (action === "signout") {
     try {
       if (!demo && client) {
+        await notifications.disable();
         const { error } = await client.auth.signOut();
         if (error) throw error;
       }
       user = null;
+      notifications.reset();
       state = blankState();
       location.hash = "/login";
     } catch (e) {
@@ -678,6 +706,7 @@ window.addEventListener("hashchange", handleRoute);
 client?.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && !demo) {
     user = null;
+    notifications.reset();
     state = blankState();
     location.hash = "/login";
   }
@@ -691,7 +720,26 @@ client?.auth.onAuthStateChange((event) => {
 });
 async function startApp() {
   try {
-    await finishAuthRedirect(client, location, history);
+    await initializeNative({
+      onAuthUrl:async callback => {
+        try { await finishNativeAuth(client, callback); location.hash = '/app/overview'; }
+        catch (error) { login(); document.querySelector('#auth-message').textContent = error.message; setAuthBusy(false); }
+      },
+      onBack:(canGoBack, exit) => {
+        const modal = document.querySelector('#modal');
+        if (modal?.open) return modal.close();
+        const sidebar = document.querySelector('.sidebar.open');
+        if (sidebar) return sidebar.classList.remove('open');
+        if (canGoBack) return history.back();
+        if (platform === 'android') return exit();
+      },
+      onActive:active => {
+        if (!client) return;
+        if (active) { client.auth.startAutoRefresh(); if (user && !demo) notifications.restore(); }
+        else client.auth.stopAutoRefresh();
+      },
+    });
+    if (!isNative) await finishAuthRedirect(client, location, history);
   } catch (error) {
     authStarting = false;
     login();

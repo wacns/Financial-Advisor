@@ -14,6 +14,8 @@ The product name is **FinancialAdvisor** and the repository is **Financial-Advis
 - Debt tracking with monthly due dates, repayment history, and separate cash/principal amounts.
 - Project budgets, linked expenses, remaining-budget indicators, and archive/reopen controls.
 - A separate demo namespace with sample data. Real accounts begin empty.
+- Ionic mobile tabs and Capacitor iOS/Android app projects with secure native auth storage and share-sheet exports.
+- Native push notification registration and a protected reminder backend; Firebase/APNs setup and device validation are required before delivery. See [MOBILE.md](MOBILE.md).
 - Dashboard financial pulse with spending comparisons, category budget room, and next scheduled payments.
 - Account-specific Insights with category charts, six-month income/expense trends, exact figures, and largest spending descriptions.
 - Payment calendar with recurring projections, daily details, recorded payment history, and payment recording.

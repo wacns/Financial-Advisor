@@ -1,5 +1,7 @@
 # Authentication and data ownership
 
+Native builds use the same Supabase project and workspace policies, with secure Keychain/Keystore-backed session storage and a custom PKCE return URL. Add `com.wacns.financialadvisor://auth/callback` to Supabase's redirect allow list without changing the web Site URL. See [MOBILE.md](MOBILE.md) for platform configuration and device checks.
+
 Run all commands from the repository root. Local configuration belongs in the root `.env.local`.
 
 ## Supabase connection

@@ -1,18 +1,39 @@
 // PKCE callbacks return to the app's existing document, so static hosts need no rewrite.
-export function authRedirectUrl(location) {
+export const NATIVE_AUTH_REDIRECT = 'com.wacns.financialadvisor://auth/callback';
+export function authRedirectUrl(location, native = false) {
+  if (native) return NATIVE_AUTH_REDIRECT;
   return new URL(location.pathname, location.origin).href;
 }
 
-export async function startGoogleSignIn(client, location) {
+export async function startGoogleSignIn(client, location, nativeRuntime) {
   if (!client) throw Error('Live sign-in is pending Supabase setup.');
-  const {error} = await client.auth.signInWithOAuth({
+  const {data, error} = await client.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: authRedirectUrl(location),
+      redirectTo: authRedirectUrl(location, !!nativeRuntime),
+      ...(nativeRuntime ? {skipBrowserRedirect:true} : {}),
       queryParams: {prompt: 'select_account'},
     },
   });
   if (error) throw error;
+  if (nativeRuntime) {
+    if (!data?.url) throw Error('Could not open Google sign-in. Please try again.');
+    await nativeRuntime.open(data.url);
+  }
+}
+
+export async function finishNativeAuth(client, callback) {
+  const url = new URL(callback);
+  const expected = new URL(NATIVE_AUTH_REDIRECT);
+  if (url.protocol !== expected.protocol || url.hostname !== expected.hostname || url.pathname !== expected.pathname)
+    throw Error('This sign-in link is not for FinancialAdvisor.');
+  const error = url.searchParams.get('error') || new URLSearchParams(url.hash.slice(1)).get('error');
+  if (error) throw Error(error === 'access_denied' ? 'Sign-in was cancelled. You can try again.' : 'Sign-in could not be completed. Please try again.');
+  const code = url.searchParams.get('code');
+  if (!code || !client) throw Error('Start sign-in again from this device.');
+  const result = await client.auth.exchangeCodeForSession(code);
+  if (result.error || !result.data.session) throw Error('This sign-in link has expired. Start sign-in again from this device.');
+  return true;
 }
 
 export async function finishAuthRedirect(client, location, history) {

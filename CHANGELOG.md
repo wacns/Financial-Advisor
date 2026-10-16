@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 — Ionic and native mobile
+
+- Added Ionic Core components, responsive mobile tabs and native-safe layouts.
+- Generated Capacitor iOS/Android projects, system-browser OAuth callbacks and secure native auth storage.
+- Added share-sheet exports and native notification preferences with opt-in permissions, token rotation and disconnect handling.
+- Installed ownership-protected device registration and service-only delivery tracking in the existing Supabase project.
+- Deployed authenticated registration/test functions and a secret-protected FCM reminder dispatcher. Firebase/APNs credentials and the optional scheduler still require setup.
+- Added native auth, notification lifecycle, push-server and Ionic navigation tests, plus a platform setup guide.
+
 ## FinancialAdvisor Partner hosting — 2026-10-16
 
 - Connected `financial-advisor-partner.vercel.app` and renamed the Vercel project to `financial-advisor-partner`.

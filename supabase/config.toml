@@ -1,0 +1,12 @@
+project_id = "financial-advisor"
+
+[functions.register-device]
+verify_jwt = true
+
+[functions.send-push]
+verify_jwt = true
+
+# A scheduler calls this endpoint with a server-only x-reminder-secret header.
+# The handler rejects missing/invalid secrets before any database read or send.
+[functions.dispatch-reminders]
+verify_jwt = false

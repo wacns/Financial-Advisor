@@ -14,11 +14,15 @@ npm run build
 - `tests/unit/`: Node's test runner, importing application modules from `src/`.
 - `tests/e2e/`: Playwright browser workflows. The default configuration excludes OAuth and uses port 5173.
 - `playwright.auth.config.js`: isolated mocked OAuth suite on port 5174 with fake public configuration.
+- `tests/unit/native-auth.test.js`, `notifications.test.js`, `push-server.test.js`: native callback, device-consent and push-server contracts without real provider sends.
+- `tests/e2e/mobile-shell.spec.js`: Ionic mobile tabs and web notification availability.
 - `artifacts/`, `test-results/`, and `playwright-report/`: generated and ignored by Git.
 
 On Linux hosts with system Chromium, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium` for the browser commands instead of downloading a browser. On fresh Linux CI images, use `npx playwright install --with-deps chromium` to install required system libraries too.
 
 The browser tests use demo storage or mocked Supabase responses and do not write real financial records. OAuth tests do not establish live Google consent readiness; a real user must verify that flow.
+
+For native checks, run `npm run native:sync` with public client configuration, then compile Android with JDK 21 / SDK 36 or iOS on a Mac with Xcode. Edge Function TypeScript can be checked with `deno check supabase/functions/*/index.ts`. Physical-device push delivery and warm/cold auth returns require the Firebase/APNs and custom-scheme setup in [MOBILE.md](MOBILE.md).
 
 ## Existing coverage
 

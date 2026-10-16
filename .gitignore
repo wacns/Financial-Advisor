@@ -8,3 +8,13 @@ artifacts/
 supabase/.temp/
 
 .vercel/
+
+# Local Firebase app configurations and signing material
+google-services.json
+GoogleService-Info.plist
+*.p8
+*.p12
+*.mobileprovision
+*.jks
+*.keystore
+ios/App/CapApp-SPM/symlinks/

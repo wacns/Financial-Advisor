@@ -1,6 +1,6 @@
 # FinancialAdvisor
 
-An English-language personal finance app for Bahrain, built with Vite, JavaScript, and Supabase. FinancialAdvisor has its own navy, ivory, and sage identity and uses BHD with three-decimal fils precision.
+An English-language personal finance app for Bahrain, built with Ionic Core, Capacitor, Vite, JavaScript, and Supabase. FinancialAdvisor has its own navy, ivory, and sage identity and uses BHD with three-decimal fils precision. The same app supports the web and native iOS/Android projects.
 
 **Live app:** [financial-advisor-partner.vercel.app](https://financial-advisor-partner.vercel.app/)
 
@@ -22,10 +22,13 @@ Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in the root `.env.lo
 .
 ├── src/                       # Application UI, auth, finance and planning logic
 ├── public/                    # Static assets served unchanged
+├── android/                   # Capacitor Android app
+├── ios/                       # Capacitor iOS app (Swift Package Manager)
 ├── tests/
 │   ├── unit/                  # Node unit tests
 │   └── e2e/                   # Playwright browser tests
-├── supabase/migrations/        # Versioned database schema and ownership policies
+├── supabase/                  # Migrations, native push functions and scheduler setup
+├── scripts/                   # Native build configuration checks
 ├── docs/                      # Feature, authentication, testing and deployment guides
 ├── index.html                 # Vite application entry
 ├── package.json               # Commands and pinned dependencies
@@ -48,6 +51,9 @@ Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in the root `.env.lo
 | `npm run test:oauth` | Run mocked Google OAuth checks |
 | `npm run build` | Create the production build in `dist/` |
 | `npm run preview` | Preview the production build |
+| `npm run native:sync` | Build native assets and sync iOS/Android projects |
+| `npm run native:android` | Sync and open Android Studio |
+| `npm run native:ios` | Sync and open Xcode on macOS |
 
 Install Chromium with `npx playwright install chromium` before running browser tests. See the [testing guide](docs/TESTING.md) for Linux dependencies and system-browser options.
 
@@ -57,6 +63,7 @@ Install Chromium with `npx playwright install chromium` before running browser t
 - [Authentication and data ownership](docs/AUTHENTICATION.md): Supabase setup, protected routes and RLS.
 - [Google sign-in setup](docs/GOOGLE_AUTH_SETUP.md).
 - [Development conventions](docs/DEVELOPMENT.md).
+- [iOS, Android and push notifications](docs/MOBILE.md): native setup, Firebase/APNs and device testing.
 - [Deployment and existing-checkout migration](docs/DEPLOYMENT.md).
 - [Release history](CHANGELOG.md).
 
