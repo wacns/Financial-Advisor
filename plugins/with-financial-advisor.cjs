@@ -1,10 +1,23 @@
 const {
   withAndroidManifest,
   withDangerousMod,
+  withPodfile,
 } = require("expo/config-plugins");
+const { mergeContents } = require("@expo/config-plugins/build/utils/generateCode");
 const fs = require("node:fs");
 const path = require("node:path");
 module.exports = function withFinancialAdvisor(config) {
+  config = withPodfile(config, (config) => {
+    config.modResults.contents = mergeContents({
+      src: config.modResults.contents,
+      newSrc: '$RNFirebaseDisableSPM = true\n$RNFirebaseAsStaticFramework = true',
+      tag: 'financial-advisor-firebase-cocoapods',
+      anchor: /prepare_react_native_project!/,
+      offset: 1,
+      comment: '#',
+    }).contents;
+    return config;
+  });
   config = withAndroidManifest(config, (config) => {
     const application = config.modResults.manifest.application[0];
     application["meta-data"] ??= [];
