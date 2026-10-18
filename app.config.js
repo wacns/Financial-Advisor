@@ -14,11 +14,11 @@ export default {
   expo: {
     name: "FinancialAdvisor",
     slug: "financial-advisor",
-    version: "1.4.0",
+    version: "1.5.0",
     platforms: ["ios", "android"],
     scheme: "com.wacns.financialadvisor",
     orientation: "default",
-    userInterfaceStyle: "light",
+    userInterfaceStyle: "automatic",
     ios: {
       bundleIdentifier: "com.wacns.financialadvisor",
       supportsTablet: true,
@@ -30,13 +30,27 @@ export default {
     },
     android: {
       package: "com.wacns.financialadvisor",
-      versionCode: 2,
+      versionCode: 3,
       ...(androidFirebase ? { googleServicesFile: androidFirebaseFile } : {}),
       permissions: ["POST_NOTIFICATIONS"],
       allowBackup: false,
     },
     plugins: [
       "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          faceIDPermission:
+            "Unlock your FinancialAdvisor workspace with Face ID.",
+        },
+      ],
+      [
+        "expo-image-picker",
+        {
+          cameraPermission: "Allow FinancialAdvisor to scan receipts.",
+          photosPermission: "Choose a receipt photo for FinancialAdvisor.",
+        },
+      ],
       "expo-web-browser",
       [
         "expo-notifications",

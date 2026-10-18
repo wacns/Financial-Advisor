@@ -1,34 +1,43 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
-export const colors = {
-  ink: "#193b35",
-  muted: "#6d7c76",
-  accent: "#b87345",
-  cream: "#f5f6f2",
-  line: "#e2e7e1",
-  soft: "#eef3ed",
-  white: "#fff",
-  danger: "#ad483f",
-};
+import {
+  useAppearance,
+  lightColors,
+  translatedChildren,
+} from "./appearance.jsx";
+export const colors = lightColors;
 export function Label({ children, style, ...props }) {
+  const { colors, language, t } = useAppearance();
   if (Platform.OS !== "web" && props.accessibilityRole === "status") {
     delete props.accessibilityRole;
     props.accessibilityLiveRegion = "polite";
   }
   return (
-    <Text {...props} style={[styles.body, style]}>
-      {children}
+    <Text
+      {...props}
+      style={[
+        styles.body,
+        { color: colors.ink, textAlign: language === "ar" ? "right" : "left" },
+        style,
+      ]}
+    >
+      {translatedChildren(children, t)}
     </Text>
   );
 }
 export function Heading({ children, level = 2, style }) {
+  const { colors, language, t } = useAppearance();
   return (
     <Text
       accessibilityRole="header"
       {...(Platform.OS === "web" ? { "aria-level": level } : {})}
-      style={[level === 1 ? styles.h1 : styles.h2, style]}
+      style={[
+        level === 1 ? styles.h1 : styles.h2,
+        { color: colors.ink, textAlign: language === "ar" ? "right" : "left" },
+        style,
+      ]}
     >
-      {children}
+      {translatedChildren(children, t)}
     </Text>
   );
 }
@@ -41,17 +50,20 @@ export function Button({
   style,
   testID,
 }) {
+  const { colors, t } = useAppearance();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={t(label)}
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
       testID={testID}
       style={({ pressed, hovered }) => [
         styles.button,
-        secondary ? styles.secondary : styles.primary,
+        secondary
+          ? { backgroundColor: colors.white, borderColor: colors.line }
+          : { backgroundColor: colors.primary, borderColor: colors.primary },
         (pressed || hovered) && { opacity: 0.82 },
         disabled && { opacity: 0.42 },
         style,
@@ -63,7 +75,7 @@ export function Button({
           secondary ? { color: colors.ink } : { color: "white" },
         ]}
       >
-        {children}
+        {translatedChildren(children, t)}
       </Text>
     </Pressable>
   );
@@ -76,10 +88,11 @@ export function NavLink({
   style,
   label,
 }) {
+  const { colors, t } = useAppearance();
   return (
     <Pressable
       accessibilityRole="link"
-      accessibilityLabel={label}
+      accessibilityLabel={t(label)}
       {...(Platform.OS === "web" ? { href } : {})}
       accessibilityState={{ selected: active }}
       onPress={(event) => {
@@ -98,21 +111,39 @@ export function NavLink({
           color: active ? colors.ink : colors.muted,
         }}
       >
-        {children}
+        {typeof children === "string" && label
+          ? children.replace(label, t(label))
+          : translatedChildren(children, t)}
       </Label>
     </Pressable>
   );
 }
 export function Card({ children, style, testID }) {
+  const { colors, language, t } = useAppearance();
   return (
-    <View testID={testID} style={[styles.card, style]}>
+    <View
+      testID={testID}
+      style={[
+        styles.card,
+        { backgroundColor: colors.white, borderColor: colors.line },
+        style,
+      ]}
+    >
       {children}
     </View>
   );
 }
 export function Row({ children, style, testID }) {
+  const { colors, language, t } = useAppearance();
   return (
-    <View testID={testID} style={[styles.row, style]}>
+    <View
+      testID={testID}
+      style={[
+        styles.row,
+        { flexDirection: language === "ar" ? "row-reverse" : "row" },
+        style,
+      ]}
+    >
       {children}
     </View>
   );
@@ -121,6 +152,7 @@ export function Stack({ children, style }) {
   return <View style={[styles.stack, style]}>{children}</View>;
 }
 export function Muted({ children, style, ...props }) {
+  const { colors, language, t } = useAppearance();
   return (
     <Label
       {...props}
@@ -136,6 +168,7 @@ export function Empty({
   return <Muted style={{ paddingVertical: 20 }}>{children}</Muted>;
 }
 export function Progress({ value }) {
+  const { colors, language, t } = useAppearance();
   return (
     <View
       accessibilityRole="progressbar"
@@ -144,7 +177,7 @@ export function Progress({ value }) {
         max: 100,
         now: Math.max(0, Math.min(100, Math.round(value || 0))),
       }}
-      style={styles.track}
+      style={[styles.track, { backgroundColor: colors.soft }]}
     >
       <View
         style={[
@@ -159,16 +192,28 @@ export function Progress({ value }) {
   );
 }
 export function Stat({ title, value, note, dark = false, testID }) {
+  const { colors, language, t } = useAppearance();
   return (
     <Card
       testID={testID}
       style={[
         { flex: 1, minWidth: 185 },
-        dark && { backgroundColor: colors.ink, borderColor: colors.ink },
+        dark && {
+          backgroundColor: colors.primary,
+          borderColor: colors.primary,
+        },
       ]}
     >
       <Muted style={dark && { color: "#b7c9bd" }}>{title}</Muted>
-      <Label style={[styles.number, dark && { color: "white" }]}>{value}</Label>
+      <Label
+        style={[
+          styles.number,
+          { color: colors.ink },
+          dark && { color: "white" },
+        ]}
+      >
+        {value}
+      </Label>
       <Muted style={dark && { color: "#c0d0c6" }}>{note}</Muted>
     </Card>
   );

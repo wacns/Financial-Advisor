@@ -1,3 +1,7 @@
+import { normalizeWorkspace, validateWorkspace } from "../domain/model.js";
+import { validateCycleBudgets } from "../domain/cycles.js";
+import { validateProjects } from "../domain/projects.js";
+import { syncWidgets } from "../platform/files";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { client } from "./client.js";
 import * as runtime from "../platform/runtime";
@@ -111,7 +115,7 @@ export function useWorkspace() {
           } catch {
             saved = null;
           }
-          const next = normalizePlanning(
+          const next = normalizeWorkspace(
             requireBahrainWorkspace(saved || demoState()),
           );
           if (active && attempt === generation.current) {
@@ -139,7 +143,7 @@ export function useWorkspace() {
             .maybeSingle();
           if (result.error) throw result.error;
           if (!active || attempt !== generation.current) return;
-          const next = normalizePlanning(
+          const next = normalizeWorkspace(
             requireBahrainWorkspace(result.data?.data || blankState()),
           );
           identity.current = verifiedUser;
@@ -169,6 +173,9 @@ export function useWorkspace() {
   const persist = useCallback(
     async (next) => {
       requireBahrainWorkspace(next);
+      validateWorkspace(next);
+      validateCycleBudgets(next);
+      validateProjects(next);
       if (writeLock.current) throw Error("Please wait for the current save.");
       writeLock.current = true;
       setSaving(true);
@@ -195,6 +202,13 @@ export function useWorkspace() {
     },
     [demo],
   );
+  useEffect(() => {
+    syncWidgets(state, !demo ? user?.id : null).catch(() => {});
+  }, [state, user?.id, demo]);
+  async function replace(next) {
+    await persist(normalizeWorkspace(next));
+    setMessage("Workspace restored. Check your balances.");
+  }
   async function save(kind, data, id) {
     await persist(applyEntry(stateRef.current, kind, data, id));
     setMessage("Saved. A little step forward.");
@@ -245,7 +259,7 @@ export function useWorkspace() {
   async function reset() {
     if (await runtime.confirmReset()) {
       try {
-        await persist(demoState());
+        await persist(normalizeWorkspace(demoState()));
         setMessage("Sample data restored.");
       } catch (error) {
         setMessage(error.message);
@@ -269,6 +283,7 @@ export function useWorkspace() {
     authenticate,
     signout,
     reset,
+    replace,
     clientConfigured: !!client,
     googleSignIn: () => runtime.googleSignIn(client),
   };

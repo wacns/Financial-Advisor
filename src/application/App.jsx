@@ -1,3 +1,4 @@
+import { useAppearance, AppearanceProvider } from "./appearance.jsx";
 import React, { useEffect, useRef, useState } from "react";
 import {
   View,
@@ -9,17 +10,9 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "../platform/safe-area";
-import {
-  Label,
-  Heading,
-  Muted,
-  Button,
-  NavLink,
-  Row,
-  Stack,
-  colors,
-} from "./ui.jsx";
+import { Label, Heading, Muted, Button, NavLink, Row, Stack } from "./ui.jsx";
 import Field from "./Field";
+import PrivacyGate from "../platform/PrivacyGate";
 import Login from "./Login.jsx";
 import EntryModal from "./EntryModal.jsx";
 import { useWorkspace } from "./useWorkspace.js";
@@ -33,7 +26,18 @@ import {
 } from "./FinancialScreens.jsx";
 import { Bills, Debts, Projects, Calendar } from "./PlanningScreens.jsx";
 import { Insights, Settings } from "./ReportsSettings.jsx";
-import { bahrainDate, isCivilDate } from "../locale.js";
+import { bahrainDate, isCivilDate, setDisplayPreferences } from "../locale.js";
+import {
+  AdvancedBudgets,
+  Categories,
+  Templates,
+  Forecast,
+  Salary,
+  Warranties,
+  Receipts,
+  DataTools,
+} from "./ManagementScreens.jsx";
+import { subscribeQuickEntry } from "../platform/files";
 const pages = [
   ["overview", "Overview", "◈"],
   ["accounts", "Accounts", "▣"],
@@ -45,6 +49,14 @@ const pages = [
   ["debts", "Debts & loans", "◇"],
   ["projects", "Projects", "▱"],
   ["insights", "Insights", "◔"],
+  ["advanced-budgets", "Cycle budgets", "▤"],
+  ["salary", "Salary", "◉"],
+  ["forecast", "Commitment forecast", "↗"],
+  ["receipts", "Receipt scanner", "▧"],
+  ["warranties", "Warranties", "✓"],
+  ["categories", "Categories", "⊞"],
+  ["templates", "Templates", "⊕"],
+  ["data", "Import & restore", "⇅"],
   ["settings", "Settings", "⚙"],
 ];
 const titles = {
@@ -70,6 +82,7 @@ const actions = {
   projects: ["New project", "project"],
 };
 function MonthSelector({ month, setMonth }) {
+  const { colors } = useAppearance();
   const [draft, setDraft] = useState(month);
   useEffect(() => setDraft(month), [month]);
   return (
@@ -86,9 +99,14 @@ function MonthSelector({ month, setMonth }) {
   );
 }
 function WorkspaceApp() {
+  const { colors, setPreferences, language } = useAppearance();
   const w = useWorkspace(),
     wide = useWindowDimensions().width >= 1000;
   const { navigate, demo, message, setMessage } = w;
+  setDisplayPreferences(w.state.settings);
+  useEffect(() => {
+    setPreferences(w.state.settings || {});
+  }, [w.state.settings, setPreferences]);
   const [month, setMonth] = useState(() => bahrainDate().slice(0, 7)),
     [form, setForm] = useState(null),
     [menu, setMenu] = useState(false);
@@ -134,13 +152,46 @@ function WorkspaceApp() {
     const timer = setTimeout(() => setMessage(""), 5000);
     return () => clearTimeout(timer);
   }, [message, login, setMessage]);
-  function open(kind, id) {
+  function open(kind, id, context = {}) {
     try {
-      setForm(entryForm(kind, id, w.state));
+      setForm(entryForm(kind, id, w.state, context));
     } catch (error) {
       w.setMessage(error.message);
     }
   }
+  const [quickEntry, setQuickEntry] = useState(null);
+  useEffect(() => subscribeQuickEntry(setQuickEntry), []);
+  useEffect(() => {
+    if (!quickEntry || w.loading || !w.user || w.demo) return;
+    setQuickEntry(null);
+    if (quickEntry.owner !== w.user.id || !w.state.settings.widgetsEnabled) {
+      w.setMessage("This widget belongs to another account or is disabled.");
+      return;
+    }
+    try {
+      let draft = {
+        type: quickEntry.kind === "income" ? "income" : "expense",
+        date: bahrainDate(),
+      };
+      if (quickEntry.kind === "template") {
+        const template = w.state.templates.find(
+          (t) => t.id === quickEntry.templateId,
+        );
+        if (!template) throw Error("This template no longer exists.");
+        draft = { ...template.record, date: bahrainDate() };
+      }
+      setForm(
+        entryForm(
+          draft.type === "transfer" ? "transfer" : "transaction",
+          undefined,
+          w.state,
+          { draft },
+        ),
+      );
+    } catch (error) {
+      w.setMessage(error.message);
+    }
+  }, [quickEntry, w]);
   const prefix = w.demo ? "demo" : "app";
   const nav = (
     <View accessibilityLabel="Workspace navigation" style={{ gap: 2 }}>
@@ -169,6 +220,14 @@ function WorkspaceApp() {
     projects: Projects,
     insights: Insights,
     settings: Settings,
+    "advanced-budgets": AdvancedBudgets,
+    categories: Categories,
+    templates: Templates,
+    forecast: Forecast,
+    salary: Salary,
+    warranties: Warranties,
+    receipts: Receipts,
+    data: DataTools,
   };
   const Screen = screens[page];
   if (login && !w.loading)
@@ -182,7 +241,13 @@ function WorkspaceApp() {
       style={{ flex: 1, backgroundColor: colors.cream }}
       edges={["top", "bottom", "left", "right"]}
     >
-      <View style={{ flex: 1, flexDirection: "row" }}>
+      <View
+        style={{
+          flex: 1,
+          flexDirection: language === "ar" ? "row-reverse" : "row",
+          direction: language === "ar" ? "rtl" : "ltr",
+        }}
+      >
         {wide ? (
           <View
             style={{
@@ -190,7 +255,7 @@ function WorkspaceApp() {
               padding: 23,
               borderRightWidth: 1,
               borderColor: colors.line,
-              backgroundColor: "#fbfcf8",
+              backgroundColor: colors.white,
             }}
           >
             <Label
@@ -208,7 +273,7 @@ function WorkspaceApp() {
               }}
             >
               <Label>Bahrain workspace</Label>
-              <Muted>Bahrain · BHD</Muted>
+              <Muted>Bahrain · {w.state.settings?.base || "BHD"}</Muted>
             </View>
             <ScrollView>{nav}</ScrollView>
             <View style={{ paddingTop: 20, gap: 7 }}>
@@ -235,7 +300,7 @@ function WorkspaceApp() {
             style={{
               paddingHorizontal: wide ? 38 : 18,
               paddingVertical: 17,
-              backgroundColor: "#fbfcf8",
+              backgroundColor: colors.white,
               borderBottomWidth: 1,
               borderColor: colors.line,
             }}
@@ -262,7 +327,7 @@ function WorkspaceApp() {
             <ScrollView
               style={{
                 maxHeight: 390,
-                backgroundColor: "white",
+                backgroundColor: colors.white,
                 borderBottomWidth: 1,
                 borderColor: colors.line,
               }}
@@ -315,7 +380,8 @@ function WorkspaceApp() {
                         ? w.demo
                           ? "A clearer picture, Fatima."
                           : "A clearer picture."
-                        : titles[page]}
+                        : titles[page] ||
+                          pages.find((row) => row[0] === page)?.[1]}
                     </Heading>
                     <Muted>
                       {page === "overview"
@@ -361,7 +427,7 @@ function WorkspaceApp() {
                 flexDirection: "row",
                 borderTopWidth: 1,
                 borderColor: colors.line,
-                backgroundColor: "#fbfcf8",
+                backgroundColor: colors.white,
                 paddingVertical: 7,
               }}
             >
@@ -421,7 +487,7 @@ function WorkspaceApp() {
             accessibilityLiveRegion="polite"
             {...(Platform.OS === "web" ? { role: "status" } : {})}
             style={{
-              backgroundColor: colors.ink,
+              backgroundColor: colors.primary,
               padding: 16,
               borderRadius: 12,
               maxWidth: 600,
@@ -445,7 +511,11 @@ function WorkspaceApp() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <WorkspaceApp />
+      <PrivacyGate>
+        <AppearanceProvider>
+          <WorkspaceApp />
+        </AppearanceProvider>
+      </PrivacyGate>
     </SafeAreaProvider>
   );
 }

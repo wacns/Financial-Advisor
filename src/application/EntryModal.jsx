@@ -1,3 +1,4 @@
+import { useAppearance } from "./appearance.jsx";
 import React, { useState } from "react";
 import {
   Modal,
@@ -8,8 +9,10 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "../platform/safe-area";
 import Field from "./Field";
+import FileField from "./FileField.jsx";
 import { Button, Heading, Muted, Label, Row, colors } from "./ui.jsx";
 export default function EntryModal({ form, onClose, onSave }) {
+  const { colors, motion, language } = useAppearance();
   const [values, setValues] = useState(form.values),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
@@ -30,7 +33,7 @@ export default function EntryModal({ form, onClose, onSave }) {
     <Modal
       visible
       transparent
-      animationType="fade"
+      animationType={motion ? "fade" : "none"}
       onRequestClose={() => {
         if (!busy) onClose();
       }}
@@ -54,9 +57,10 @@ export default function EntryModal({ form, onClose, onSave }) {
           style={{
             width: "100%",
             maxWidth: 540,
+            direction: language === "ar" ? "rtl" : "ltr",
             maxHeight: "94%",
             borderRadius: 18,
-            backgroundColor: "white",
+            backgroundColor: colors.white,
             overflow: "hidden",
           }}
         >
@@ -66,20 +70,36 @@ export default function EntryModal({ form, onClose, onSave }) {
           >
             <Muted>SMALL STEPS, FORWARD</Muted>
             <Heading>{form.title}</Heading>
-            {form.fields.map((field) => (
-              <Field
-                key={field.name}
-                {...field}
-                value={values[field.name]}
-                disabled={busy}
-                onChange={(value) =>
-                  setValues((previous) => ({
-                    ...previous,
-                    [field.name]: value,
-                  }))
-                }
-              />
-            ))}
+            {form.fields.map((field) =>
+              React.createElement(
+                ["image", "file"].includes(field.type) ? FileField : Field,
+                {
+                  key: field.name,
+                  ...field,
+                  label: field.label.replaceAll(
+                    "BHD",
+                    values.currency ||
+                      (form.fields.some((f) => f.name === "accountId")
+                        ? form.accounts?.find(
+                            (a) =>
+                              a.id ===
+                              (values.accountId || form.accounts?.[0]?.id),
+                          )?.currency
+                        : undefined) ||
+                      form.reportingCurrency ||
+                      "BHD",
+                  ),
+                  value: values[field.name],
+                  disabled: busy,
+                  onChange: (value, fileName) =>
+                    setValues((previous) => ({
+                      ...previous,
+                      [field.name]: value,
+                      ...(fileName ? { fileName } : {}),
+                    })),
+                },
+              ),
+            )}
             {form.note ? <Muted>{form.note}</Muted> : null}
             {error ? (
               <Label accessibilityRole="alert" style={{ color: colors.danger }}>
@@ -91,7 +111,7 @@ export default function EntryModal({ form, onClose, onSave }) {
                 Cancel
               </Button>
               <Button disabled={busy} onPress={submit}>
-                {busy ? "Saving…" : "Save"}
+                {busy ? "Saving…" : form.submitLabel || "Save"}
               </Button>
             </Row>
           </ScrollView>

@@ -26,8 +26,13 @@ export function validateDevice(data) {
 }
 export function hasDuePayment(workspace, date) {
   if (workspace?.currency !== 'BHD') return false;
-  return (workspace.recurring || []).some(r => !r.paused && r.type === 'expense' && r.nextDue <= date) ||
+  return (workspace.recurring || []).some(r => !r.paused && (r.type === 'expense'||r.type==='transfer') && r.nextDue <= date) ||
     (workspace.debts || []).some(d => d.balance > 0 && d.nextDue <= date);
+}
+export function hasReminderDue(workspace,time){
+  const r={hour:9,frequency:'daily',expenses:true,salary:false,advice:false,...workspace?.settings?.reminders};
+  if(time.hour<r.hour||r.frequency==='weekly'&&new Date(`${time.date}T12:00:00Z`).getUTCDay()!==0)return false;
+  return r.expenses&&hasDuePayment(workspace,time.date)||r.salary&&(workspace?.recurring||[]).some(p=>!p.paused&&p.type==='income'&&p.isSalary&&p.nextDue<=time.date)||r.advice;
 }
 export function bahrainTime(now = new Date()) {
   const parts = new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Bahrain',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts(now);
@@ -70,7 +75,7 @@ export function createFcmSender(serviceAccount, fetcher = fetch) {
     const credential = await accessToken();
     const response = await fetcher(`https://fcm.googleapis.com/v1/projects/${account.project_id}/messages:send`,{
       method:'POST',headers:{Authorization:`Bearer ${credential}`,'Content-Type':'application/json'},
-      body:JSON.stringify({message:{token,notification:{title:'FinancialAdvisor',body:test ? 'Notifications are connected on this device.' : 'You have payments to review. Open FinancialAdvisor to see what is due.'},
+      body:JSON.stringify({message:{token,notification:{title:'FinancialAdvisor',body:test ? 'Notifications are connected on this device.' : 'Your finance reminder is ready. Open FinancialAdvisor to review your plans.'},
         data:{route:test ? 'overview' : 'bills'},android:{notification:{channel_id:'payment-reminders',icon:'ic_stat_finance'}},
         apns:{headers:{'apns-push-type':'alert','apns-priority':'10'},payload:{aps:{sound:'default'}}}}}),
     });

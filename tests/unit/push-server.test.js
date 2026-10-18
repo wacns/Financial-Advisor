@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {validateDevice,hasDuePayment,bahrainTime,secretMatches,createFcmSender} from '../../supabase/functions/_shared/push.js';
+import {validateDevice,hasDuePayment,hasReminderDue,bahrainTime,secretMatches,createFcmSender} from '../../supabase/functions/_shared/push.js';
 
 test('registration rejects invalid IDs, platforms and oversized tokens and discards owner fields',()=>{
   const valid={installationId:crypto.randomUUID(),action:'register',platform:'ios',token:'a'.repeat(100),userId:'forged'};
@@ -48,6 +48,13 @@ test('FCM requests use a signed server credential and generic cross-platform not
   assert.equal(payloads[1].message.data.route,'overview');
   assert.equal(payloads[0].message.android.notification.channel_id,'payment-reminders');
   assert.equal(payloads[0].message.apns.headers['apns-push-type'],'alert');
-  assert.equal(payloads[0].message.notification.body,'You have payments to review. Open FinancialAdvisor to see what is due.');
+  assert.equal(payloads[0].message.notification.body,'Your finance reminder is ready. Open FinancialAdvisor to review your plans.');
   assert.throws(()=>createFcmSender(undefined),/not configured/);
+});
+
+test('reminder preferences apply hour, weekly cadence and salary/advice opt-in without disclosing amounts',()=>{
+ const workspace={currency:'BHD',recurring:[{type:'income',isSalary:true,nextDue:'2026-10-18'}],settings:{reminders:{hour:15,frequency:'daily',expenses:false,salary:true,advice:false}}};
+ assert.equal(hasReminderDue(workspace,{date:'2026-10-18',hour:14}),false);assert.equal(hasReminderDue(workspace,{date:'2026-10-18',hour:15}),true);
+ workspace.settings.reminders.salary=false;assert.equal(hasReminderDue(workspace,{date:'2026-10-18',hour:15}),false);
+ workspace.settings.reminders.advice=true;workspace.settings.reminders.frequency='weekly';assert.equal(hasReminderDue(workspace,{date:'2026-10-19',hour:15}),false);assert.equal(hasReminderDue(workspace,{date:'2026-10-18',hour:15}),true);
 });

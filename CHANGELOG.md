@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.0 — Reference feature expansion (2026-10-18)
+
+- Add account/transaction/goal editing and deletion, explicit balance reconciliation, transaction times/labels/templates, currency-aware transfers and account terms with linked loan installments.
+- Add cycle budgets with weekly/category allocations and overlap checks, dedicated salary months, recurring transfers/daily repeats, personal money lent and commitment forecasting.
+- Add project allocations, reserves, vendor agreements/variations, milestones, payments, linking, documents and project export.
+- Add flexible reports, categories/subcategories, warranties/receipt photos, local OCR review, validated full backup restore/reference conversion and duplicate-aware CSV import.
+- Add manual exchange rates/reporting currencies, Arabic/RTL, appearance/motion preferences, Android widget integration and native privacy controls. Native device/provider release checks remain required; see docs/FEATURE-PARITY.md.
+- Extend reminder preferences and backend cadence without changing existing financial records or the per-user RLS schema.
+
+
 ## 1.4.0 — React and React Native
 
 - Replaced Ionic/Capacitor with shared React Native screens, React Native Web, and Expo.

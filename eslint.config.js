@@ -15,6 +15,7 @@ export default [
         localStorage: "readonly",
         URL: "readonly",
         Blob: "readonly",
+        FileReader: "readonly", atob: "readonly",
         crypto: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",

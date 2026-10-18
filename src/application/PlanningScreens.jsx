@@ -1,3 +1,4 @@
+import { useAppearance } from "./appearance.jsx";
 import React, { useState } from "react";
 import { View, Pressable } from "react-native";
 import {
@@ -10,7 +11,6 @@ import {
   Row,
   Stack,
   Progress,
-  colors,
 } from "./ui.jsx";
 import Field from "./Field";
 import {
@@ -22,9 +22,11 @@ import {
 import { dueStatus, projectSpend } from "../planning.js";
 import { calendarEntries, shiftMonth } from "../reports.js";
 import { TransactionList } from "./FinancialScreens.jsx";
+import ProjectDetails from "./ProjectDetails.jsx";
 const fullDate = (date) =>
   formatDate(date, { day: "2-digit", month: "short", year: "numeric" });
 export function Bills({ workspace: w, open }) {
+  const { colors } = useAppearance();
   const [filter, setFilter] = useState("all");
   return (
     <Stack>
@@ -38,6 +40,7 @@ export function Bills({ workspace: w, open }) {
           "expense",
           "income",
           "paused",
+          "transfer",
         ]}
       />
       {w.state.recurring
@@ -66,7 +69,7 @@ export function Bills({ workspace: w, open }) {
                 </Muted>
               </View>
               <Label style={{ fontSize: 24, fontWeight: "600" }}>
-                {money(r.amount)}
+                {money(r.amount, r.currency || "BHD")}
               </Label>
             </Row>
             <Row>
@@ -91,6 +94,9 @@ export function Bills({ workspace: w, open }) {
               >
                 {r.paused ? "Resume" : "Pause"}
               </Button>
+              <Button secondary onPress={() => open("deleteSchedule", r.id)}>
+                Delete schedule
+              </Button>
             </Row>
           </Card>
         ))}
@@ -110,6 +116,7 @@ export function Bills({ workspace: w, open }) {
   );
 }
 export function Debts({ workspace: w, open }) {
+  const { colors } = useAppearance();
   return (
     <Stack>
       <Row style={{ alignItems: "stretch" }}>
@@ -119,15 +126,21 @@ export function Debts({ workspace: w, open }) {
             testID="debt-card"
             style={{ flexGrow: 1, flexBasis: 290 }}
           >
-            <Muted>{d.lender || "DEBT TRACKER"}</Muted>
+            <Muted>
+              {d.direction === "lent" ? "Money lent · " : "Money borrowed · "}
+              {d.lender || "DEBT TRACKER"}
+            </Muted>
             <Heading>{d.name}</Heading>
             <Label
               testID="plan-big-number"
               style={{ fontSize: 30, fontWeight: "600" }}
             >
-              {money(d.balance)}
+              {money(d.balance, d.currency || "BHD")}
             </Label>
-            <Muted>outstanding · {money(d.installment)} planned monthly</Muted>
+            <Muted>
+              outstanding · {money(d.installment, d.currency || "BHD")} planned
+              monthly
+            </Muted>
             <Progress value={(1 - d.balance / d.originalBalance) * 100} />
             <Muted>
               {d.balance > 0
@@ -140,6 +153,14 @@ export function Debts({ workspace: w, open }) {
             >
               Record repayment
             </Button>
+            <Row>
+              <Button secondary onPress={() => open("editDebt", d.id)}>
+                Edit debt
+              </Button>
+              <Button secondary onPress={() => open("deleteDebt", d.id)}>
+                Delete debt
+              </Button>
+            </Row>
           </Card>
         ))}
       </Row>
@@ -170,6 +191,7 @@ export function Debts({ workspace: w, open }) {
   );
 }
 export function Projects({ workspace: w, open }) {
+  const { colors } = useAppearance();
   return (
     <Stack>
       {w.state.projects.map((p) => {
@@ -184,11 +206,15 @@ export function Projects({ workspace: w, open }) {
               testID="plan-big-number"
               style={{ fontSize: 29, fontWeight: "600" }}
             >
-              {money(spent)}
+              {money(spent, p.currency || "BHD")}
             </Label>
             <Muted>
-              of {money(p.budget)} ·{" "}
-              {money((toFils(p.budget) - toFils(spent)) / 1000)} remaining
+              of {money(p.budget, p.currency || "BHD")} ·{" "}
+              {money(
+                (toFils(p.budget) - toFils(spent)) / 1000,
+                p.currency || "BHD",
+              )}{" "}
+              remaining
             </Muted>
             <Progress value={(spent / p.budget) * 100} />
             {p.targetDate ? (
@@ -218,6 +244,7 @@ export function Projects({ workspace: w, open }) {
                 {p.archived ? "Reopen" : "Archive"}
               </Button>
             </Row>
+            <ProjectDetails workspace={w} project={p} open={open} />
           </Card>
         );
       })}
@@ -232,6 +259,7 @@ export function Projects({ workspace: w, open }) {
   );
 }
 export function Calendar({ workspace: w, month, setMonth, open }) {
+  const { colors } = useAppearance();
   const [selected, setSelected] = useState("");
   const entries = calendarEntries(w.state, month),
     days =

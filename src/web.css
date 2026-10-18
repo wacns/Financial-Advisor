@@ -58,3 +58,28 @@ input[type="month"] {
   min-width: 0;
   max-width: 100%;
 }
+
+html[data-theme="dark"],
+html[data-theme="dark"] body,
+html[data-theme="dark"] #app {
+  background: #10241e;
+  color-scheme: dark;
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+html[data-motion="false"] *,
+html[data-motion="false"] *::before,
+html[data-motion="false"] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+textarea {
+  font: inherit;
+  resize: vertical;
+  min-width: 0;
+}

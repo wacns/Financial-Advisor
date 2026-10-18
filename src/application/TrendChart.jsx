@@ -1,9 +1,11 @@
+import { useAppearance } from "./appearance.jsx";
 import React from "react";
 import { View } from "react-native";
-import { Card, Heading, Label, Muted, Row, colors } from "./ui.jsx";
+import { Card, Heading, Label, Muted, Row } from "./ui.jsx";
 import { monthlyTrend } from "../reports.js";
 import { formatDate, formatMoney as money } from "../locale.js";
 export default function TrendChart({ state, month }) {
+  const { colors } = useAppearance();
   const trend = monthlyTrend(state, month),
     maximum = Math.max(
       ...trend.flatMap((row) => [row.income, row.expenses]),

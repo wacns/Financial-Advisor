@@ -1,7 +1,7 @@
 {
   "name": "financial-advisor",
   "private": true,
-  "version": "1.4.0",
+  "version": "1.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -15,7 +15,9 @@
     "native:ios": "expo run:ios",
     "native:prebuild": "expo prebuild",
     "build:native": "expo export --platform android --platform ios --output-dir dist-native",
-    "lint": "eslint src/application src/platform src/main.jsx"
+    "lint": "eslint src/application src/platform src/domain src/main.jsx",
+    "predev": "node scripts/prepare-ocr.mjs",
+    "prebuild": "node scripts/prepare-ocr.mjs"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -23,13 +25,18 @@
     "@react-native-firebase/messaging": "26.4.0",
     "@react-native-picker/picker": "2.11.4",
     "@supabase/supabase-js": "2.118.0",
+    "@tesseract.js-data/eng": "1.0.0",
     "expo": "58.0.14",
     "expo-build-properties": "58.0.11",
     "expo-crypto": "58.0.7",
     "expo-dev-client": "58.0.14",
+    "expo-document-picker": "58.0.4",
     "expo-file-system": "58.0.9",
+    "expo-image-picker": "58.0.10",
     "expo-linking": "58.0.13",
+    "expo-local-authentication": "58.0.2",
     "expo-notifications": "58.1.5",
+    "expo-screen-capture": "58.0.5",
     "expo-secure-store": "58.0.2",
     "expo-sharing": "58.0.19",
     "expo-system-ui": "58.0.6",
@@ -39,7 +46,8 @@
     "react-native": "0.88.0",
     "react-native-safe-area-context": "5.10.1",
     "react-native-url-polyfill": "4.0.0",
-    "react-native-web": "0.21.4"
+    "react-native-web": "0.21.4",
+    "tesseract.js": "7.0.0"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",

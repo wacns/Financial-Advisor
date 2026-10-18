@@ -25,10 +25,23 @@ export const authOptions = {
   autoRefreshToken: false,
   storage: createSecureStorage(SecureStore, randomUUID),
 };
+const privatePreferences = createSecureStorage(SecureStore, randomUUID);
 export const preferences = {
-  get: (key) => AsyncStorage.getItem(key),
-  set: (key, value) => AsyncStorage.setItem(key, value),
-  remove: (key) => AsyncStorage.removeItem(key),
+  async get(key) {
+    const current = await privatePreferences.getItem(key);
+    if (current !== null) return current;
+    const legacy = await AsyncStorage.getItem(key);
+    if (legacy !== null) {
+      await privatePreferences.setItem(key, legacy);
+      await AsyncStorage.removeItem(key);
+    }
+    return legacy;
+  },
+  set: (key, value) => privatePreferences.setItem(key, value),
+  async remove(key) {
+    await privatePreferences.removeItem(key);
+    await AsyncStorage.removeItem(key);
+  },
 };
 let route = "login";
 const listeners = new Set();
@@ -61,7 +74,11 @@ export function subscribeAuthLinks(callback) {
     .catch(() => {});
   return () => sub.remove();
 }
-export async function finishRedirect() {
+export async function finishRedirect(client) {
+  if (client) {
+    const { data } = await client.auth.getSession();
+    if (data.session) navigate("app/overview");
+  }
   return false;
 }
 export async function googleSignIn(client) {

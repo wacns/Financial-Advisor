@@ -1,3 +1,4 @@
+import { useAppearance } from "./appearance.jsx";
 import React, { useState } from "react";
 import { View } from "react-native";
 import {
@@ -11,7 +12,6 @@ import {
   Button,
   Progress,
   Empty,
-  colors,
 } from "./ui.jsx";
 import Field from "./Field";
 import {
@@ -26,7 +26,11 @@ import { budgetHealth, shiftMonth } from "../reports.js";
 import TrendChart from "./TrendChart.jsx";
 import { transactionCSV } from "./workspace.js";
 import { exportFile } from "../platform/runtime";
-export function TransactionList({ state, transactions }) {
+import { accountDetails, basicBudgetStats } from "../domain/reports.js";
+import { copyTransaction } from "../domain/ledger.js";
+import { convert, recordValue } from "../domain/model.js";
+export function TransactionList({ state, transactions, open }) {
+  const { colors } = useAppearance();
   if (!transactions.length)
     return <Empty>No transactions match this view.</Empty>;
   return (
@@ -64,14 +68,58 @@ export function TransactionList({ state, transactions }) {
             }}
           >
             {t.type === "income" ? "+" : t.type === "expense" ? "−" : ""}
-            {money(t.amount)}
+            {money(
+              t.amount,
+              t.currency ||
+                state.accounts.find((a) => a.id === t.accountId)?.currency ||
+                "BHD",
+            )}
           </Label>
+          {open ? (
+            <Row>
+              <Button
+                secondary
+                label={`Edit ${t.name}`}
+                onPress={() => open("editTransaction", t.id)}
+              >
+                Edit
+              </Button>
+              <Button
+                secondary
+                label={`Copy ${t.name}`}
+                onPress={() =>
+                  open(
+                    t.type === "transfer" ? "transfer" : "transaction",
+                    null,
+                    { draft: copyTransaction(t) },
+                  )
+                }
+              >
+                Copy
+              </Button>
+              <Button
+                secondary
+                label={`Template ${t.name}`}
+                onPress={() => open("template", null, { transactionId: t.id })}
+              >
+                Template
+              </Button>
+              <Button
+                secondary
+                label={`Delete ${t.name}`}
+                onPress={() => open("deleteTransaction", t.id)}
+              >
+                Delete
+              </Button>
+            </Row>
+          ) : null}
         </Row>
       ))}
     </View>
   );
 }
 export function Overview({ workspace: w, month, open }) {
+  const { colors } = useAppearance();
   const { state } = w,
     totals = summary(state, month),
     health = budgetHealth(state, month),
@@ -84,7 +132,8 @@ export function Overview({ workspace: w, month, open }) {
     (row) => row.type === "expense" && row.nextDue.startsWith(month),
   );
   const planned =
-    scheduled.reduce((sum, row) => sum + toFils(row.amount), 0) / 1000;
+    scheduled.reduce((sum, row) => sum + toFils(recordValue(state, row)), 0) /
+    1000;
   return (
     <Stack>
       <Row testID="stats-grid" style={{ alignItems: "stretch" }}>
@@ -182,7 +231,7 @@ export function Overview({ workspace: w, month, open }) {
           {state.accounts.map((a) => (
             <Row key={a.id} style={{ justifyContent: "space-between" }}>
               <Label style={{ flex: 1 }}>{a.name}</Label>
-              <Label>{money(a.balance)}</Label>
+              <Label>{money(a.balance, a.currency || "BHD")}</Label>
             </Row>
           ))}
           <Button secondary onPress={() => open("account")}>
@@ -209,9 +258,10 @@ export function Overview({ workspace: w, month, open }) {
   );
 }
 export function Accounts({ workspace: w, open }) {
+  const { colors } = useAppearance();
   return (
     <Stack>
-      <Card testID="account-total" style={{ backgroundColor: colors.ink }}>
+      <Card testID="account-total" style={{ backgroundColor: colors.primary }}>
         <Muted style={{ color: "#c7d6c8" }}>TOTAL ACROSS YOUR ACCOUNTS</Muted>
         <Label style={{ color: "white", fontSize: 36, fontWeight: "600" }}>
           {money(totalBalance(w.state))}
@@ -230,11 +280,31 @@ export function Accounts({ workspace: w, open }) {
             <Muted>{a.type}</Muted>
             <Heading>{a.name}</Heading>
             <Label style={{ fontSize: 27, fontWeight: "600" }}>
-              {money(a.balance)}
+              {money(a.balance, a.currency || "BHD")}
             </Label>
             <Muted>
               {a.last4 ? `•••• ${a.last4}` : "Manually tracked account"}
             </Muted>
+            <AccountTerms state={w.state} account={a} />
+            {a.type === "Loan" ? (
+              <Button
+                secondary
+                onPress={() => open("loanInstallment", null, { loanId: a.id })}
+              >
+                Schedule installment
+              </Button>
+            ) : null}
+            <Row>
+              <Button secondary onPress={() => open("editAccount", a.id)}>
+                Edit account
+              </Button>
+              <Button secondary onPress={() => open("reconcile", a.id)}>
+                Reconcile balance
+              </Button>
+              <Button secondary onPress={() => open("deleteAccount", a.id)}>
+                Delete account
+              </Button>
+            </Row>
           </Card>
         ))}
       </Row>
@@ -257,6 +327,7 @@ export function Accounts({ workspace: w, open }) {
   );
 }
 export function Transactions({ workspace: w, month, open }) {
+  const { colors } = useAppearance();
   const [search, setSearch] = useState(""),
     [type, setType] = useState("all"),
     [account, setAccount] = useState("all"),
@@ -267,7 +338,9 @@ export function Transactions({ workspace: w, month, open }) {
       (account === "all" ||
         t.accountId === account ||
         t.toAccountId === account) &&
-      `${t.name} ${t.category}`.toLowerCase().includes(search.toLowerCase()),
+      `${t.name} ${t.category} ${(t.labels || []).join(" ")} ${t.note || ""}`
+        .toLowerCase()
+        .includes(search.toLowerCase()),
   );
   async function download() {
     try {
@@ -304,6 +377,7 @@ export function Transactions({ workspace: w, month, open }) {
               "expense",
               "income",
               "transfer",
+              "adjustment",
             ]}
           />
         </View>
@@ -321,7 +395,9 @@ export function Transactions({ workspace: w, month, open }) {
         </View>
       </Row>
       <Row style={{ justifyContent: "space-between" }}>
-        <Muted>{transactions.length} transactions · BHD</Muted>
+        <Muted>
+          {transactions.length} transactions · {w.state.settings.base}
+        </Muted>
         <Row>
           <Button secondary onPress={() => open("transfer")}>
             Record transfer
@@ -334,6 +410,7 @@ export function Transactions({ workspace: w, month, open }) {
       <TransactionList
         state={w.state}
         transactions={transactions.slice(0, limit)}
+        open={open}
       />
       {transactions.length > limit ? (
         <Button secondary onPress={() => setLimit(limit + 50)}>
@@ -343,26 +420,41 @@ export function Transactions({ workspace: w, month, open }) {
     </Card>
   );
 }
-export function Budgets({ workspace: w, month }) {
+export function Budgets({ workspace: w, month, open }) {
+  const { colors } = useAppearance();
   return (
     <Stack>
+      <Button secondary onPress={() => w.navigate("advanced-budgets")}>
+        Cycle budgets & weekly allocations
+      </Button>
       {w.state.budgets.length ? (
         w.state.budgets.map((b) => {
-          const spent = categorySpend(w.state, month, b.category),
-            percentage = (spent / b.limit) * 100;
+          const { spent, limit } = basicBudgetStats(w.state, b, month),
+            percentage = (spent / limit) * 100;
           return (
             <Card key={b.id} testID="wide-budget">
               <Row style={{ justifyContent: "space-between" }}>
-                <Heading>{b.category}</Heading>
+                <Heading>
+                  {b.category}
+                  {b.period === "Yearly" ? " · Yearly" : ""}
+                </Heading>
                 <Label>
-                  {money(spent)} / {money(b.limit)}
+                  {money(spent)} /{" "}
+                  {money(convert(w.state, b.limit, b.currency || "BHD"))}
                 </Label>
               </Row>
               <Progress value={percentage} />
               <Muted>
-                {money((toFils(b.limit) - toFils(spent)) / 1000)} remaining ·{" "}
-                {Math.round(percentage)}% used
+                {money(
+                  (toFils(convert(w.state, b.limit, b.currency || "BHD")) -
+                    toFils(spent)) /
+                    1000,
+                )}{" "}
+                remaining · {Math.round(percentage)}% used
               </Muted>
+              <Button secondary onPress={() => open("deleteBudget", b.id)}>
+                Delete budget
+              </Button>
             </Card>
           );
         })
@@ -377,6 +469,7 @@ export function Budgets({ workspace: w, month }) {
   );
 }
 export function Goals({ workspace: w, open }) {
+  const { colors } = useAppearance();
   return (
     <Row style={{ alignItems: "stretch" }}>
       {w.state.goals.length ? (
@@ -389,10 +482,11 @@ export function Goals({ workspace: w, open }) {
             <Muted>ON YOUR HORIZON</Muted>
             <Heading>{g.name}</Heading>
             <Label style={{ fontSize: 27, fontWeight: "600" }}>
-              {money(g.saved)}
+              {money(g.saved, g.currency || "BHD")}
             </Label>
             <Muted>
-              of {money(g.target)} · {Math.round((g.saved / g.target) * 100)}%
+              of {money(g.target, g.currency || "BHD")} ·{" "}
+              {Math.round((g.saved / g.target) * 100)}%
             </Muted>
             <Progress value={(g.saved / g.target) * 100} />
             <Button
@@ -402,6 +496,14 @@ export function Goals({ workspace: w, open }) {
             >
               Update progress
             </Button>
+            <Row>
+              <Button secondary onPress={() => open("editGoal", g.id)}>
+                Edit goal
+              </Button>
+              <Button secondary onPress={() => open("deleteGoal", g.id)}>
+                Delete goal
+              </Button>
+            </Row>
           </Card>
         ))
       ) : (
@@ -410,5 +512,67 @@ export function Goals({ workspace: w, open }) {
         </Card>
       )}
     </Row>
+  );
+}
+
+function AccountTerms({ state, account: a }) {
+  const d = accountDetails(a);
+  return (
+    <Stack style={{ gap: 5 }}>
+      {a.apr > 0 ? (
+        <Muted>
+          APR: {a.apr}% · Estimated annual interest:{" "}
+          {money(d.annualInterest, a.currency)}
+        </Muted>
+      ) : null}
+      {a.limit > 0 ? (
+        <Muted>
+          Credit utilization: {d.utilization.toFixed(1)}% of{" "}
+          {money(a.limit, a.currency)}
+        </Muted>
+      ) : null}
+      {a.cost > 0 ? (
+        <Muted>
+          Cost basis: {money(a.cost, a.currency)} · Gain:{" "}
+          {money(d.valuation, a.currency)}
+        </Muted>
+      ) : null}
+      {a.maturity ? (
+        <Muted>
+          Maturity: {formatDate(a.maturity)} · {d.daysRemaining} days
+        </Muted>
+      ) : null}
+      {a.type === "Fixed deposit" && d.maturityValue ? (
+        <>
+          <Progress value={d.termProgress} />
+          <Muted>
+            Term completed: {d.termProgress.toFixed(1)}% · Estimated maturity:{" "}
+            {money(d.maturityValue, a.currency)}
+          </Muted>
+          <Muted>
+            Simple interest, actual/365. Estimate only; balances are unchanged.
+          </Muted>
+        </>
+      ) : null}
+      {a.type === "Loan" && a.loanOriginal > 0 ? (
+        <>
+          <Progress
+            value={(1 - Math.max(0, -a.balance) / a.loanOriginal) * 100}
+          />
+          <Muted>
+            Original loan: {money(a.loanOriginal, a.currency)} ·{" "}
+            {d.paymentsRemaining || "—"} estimated payments remaining
+          </Muted>
+        </>
+      ) : null}
+      <Muted>
+        {
+          state.transactions.filter(
+            (t) => t.accountId === a.id || t.toAccountId === a.id,
+          ).length
+        }{" "}
+        recorded transactions
+      </Muted>
+    </Stack>
   );
 }

@@ -67,7 +67,7 @@ The migration `20261016083103_mobile_push_devices.sql` is already applied to `sr
 | --- | --- | --- |
 | `register-device` | Signed-in user JWT | Register/refresh this installation or disconnect its current owner |
 | `send-push` | Signed-in user JWT | Send a generic test only to the caller's registered installation |
-| `dispatch-reminders` | Scheduler with server-only `x-reminder-secret` | Send generic due/overdue payment reminders after 09:00 Bahrain time |
+| `dispatch-reminders` | Scheduler with server-only `x-reminder-secret` | Send generic due/overdue payment reminders at the saved Bahrain reminder hour |
 
 Registration derives the owner from a validated Supabase user, never a submitted `userId`. The device table's RLS permits only own-device reads/deletes; direct client inserts/updates are revoked. Registration limits each user to ten devices. A stable installation ID and rotating FCM token are retained for the current owner. Explicit disable/sign-out disconnects the registration and/or deletes the provider token; failure of both operations leaves notifications enabled and asks the user to retry. No token values appear in the UI.
 
@@ -79,10 +79,21 @@ The service-only delivery table and claim function prevent concurrent duplicate 
 
 No reminder job is scheduled yet. After a successful device test, save the same `PUSH_CRON_SECRET` in Supabase Vault under `financial_advisor_push_cron_secret`. Enable `pg_cron`, `pg_net` and Vault in the project, then run [setup-reminders.sql](../supabase/setup-reminders.sql) in the private SQL editor. The script verifies that the Vault entry exists without displaying its contents. Do not commit the secret or paste it into chat.
 
-The job invokes the dispatcher hourly. Before 09:00 Bahrain time it does nothing; afterward it checks active expense schedules and outstanding debt payments due on or before the current Bahrain date. Paused schedules, income and fully repaid loans are excluded. A paid occurrence advances its existing schedule and therefore stops being due. Repeated hourly invocations deduplicate successful sends for that day. Disable the job with `select cron.unschedule('financial-advisor-payment-reminders');`.
+The job invokes the dispatcher hourly. The saved reminder hour defaults to 09:00 Bahrain time. Payment reminders include active expense/transfer schedules and outstanding debts due on or before today. Salary reminders and educational check-ins are optional. Weekly cadence sends on Sunday. Paused schedules and repaid debts are excluded. A paid occurrence advances its existing schedule and therefore stops being due. Repeated hourly invocations deduplicate successful sends for that day. Disable the job with `select cron.unschedule('financial-advisor-payment-reminders');`.
 
 ## Verification boundary
 
 The React migration is checked with shared financial-rule/entry-command tests, native callback and consent tests, secure-storage failure recovery, browser demo workflows and a mocked Google PKCE → verified workspace → save → reload → sign-out workflow. Expo dependency compatibility, Android/iOS clean prebuild, web production build and Android/iOS Hermes exports are also checked.
 
 A Hermes export validates native JavaScript resolution and compilation; it is not an installed binary test. This Linux session does not establish an iOS/Xcode build, real-device authentication, native push delivery or store publication. The earlier Capacitor APK belongs to the previous framework and is not a React Native release artifact.
+
+
+## v1.5 native verification
+
+`modules/financial-advisor-native` is a local Expo module discovered during autolinking. Android uses bundled ML Kit text recognition and a RemoteViews Quick Entry widget. iOS uses Apple Vision. Rebuild a development/release client after this update; Expo Go cannot provide the custom module or Firebase messaging. Web deploys do not update installed native binaries.
+
+Test on Android and iOS: fresh launch/unlock with biometric and device passcode, no enrolled lock, cancelled authentication/retry, background privacy cover, return before/after one minute, camera/photo permissions, denied permission recovery, local receipt OCR, document/photo sharing and secure preference migration. Screenshot protection varies by OS; verify Android FLAG_SECURE/capture behavior and iOS recording/app-switcher behavior on supported devices. Do not claim universal iOS screenshot blocking.
+
+On Android additionally: enable widget consent, pin through a supported launcher (or add from the launcher widget list), tap income/expense/template buttons with the app cold/warm, review drafts before saving, change accounts and sign out, remove a template, disable widgets and confirm names disappear. Widgets never show amounts/balances. An old-owner widget must not open a different account's template. iOS widgets are not included.
+
+Use the SDK manager's `platforms;android-37.0` package (not the obsolete `platforms;android-37` identifier), Build Tools 37.0.0 and the NDK selected by Expo. A Mac/Xcode is required to compile and install iOS. Hermes export and prebuild are configuration/bundle checks, not a replacement for these binary/device checks. Never reuse the old ignored Capacitor APK as the current React Native build.

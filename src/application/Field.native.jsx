@@ -2,6 +2,7 @@ import React from "react";
 import { View, TextInput, Platform } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { Label, colors } from "./ui.jsx";
+import { useAppearance } from "./appearance.jsx";
 export default function Field({
   label,
   value,
@@ -11,6 +12,8 @@ export default function Field({
   disabled = false,
   autoComplete,
 }) {
+  const { colors, t, language } = useAppearance();
+  label = t(label);
   return (
     <View style={{ gap: 7, flex: 1, minWidth: 130 }}>
       <Label style={{ fontSize: 13, fontWeight: "600" }}>{label}</Label>
@@ -38,7 +41,7 @@ export default function Field({
               return (
                 <Picker.Item
                   key={row.value}
-                  label={row.label}
+                  label={t(row.label)}
                   value={row.value}
                 />
               );
@@ -48,6 +51,8 @@ export default function Field({
       ) : (
         <TextInput
           accessibilityLabel={label}
+          multiline={type === "textarea"}
+          numberOfLines={type === "textarea" ? 8 : 1}
           value={String(value ?? "")}
           onChangeText={onChange}
           editable={!disabled}
@@ -81,9 +86,10 @@ export default function Field({
             borderColor: colors.line,
             borderRadius: 9,
             padding: 12,
-            backgroundColor: "white",
+            backgroundColor: colors.white,
             color: colors.ink,
             fontSize: 15,
+            textAlign: language === "ar" ? "right" : "left",
           }}
         />
       )}

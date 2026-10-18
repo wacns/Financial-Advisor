@@ -38,3 +38,11 @@ The unit suite must pass before Vercel builds a deployment. Run both browser sui
 After pulling the root-layout change, move any ignored `northline/.env.local` and `northline/.vercel/` into the repository root. These local files were never in Git, so Git cannot move them. Run `npm ci` from the root to install dependencies there. The old nested `node_modules`, `dist`, and browser artifacts are disposable; remove them only after confirming no local work remains in that folder. Do not commit environment files or Vercel metadata.
 
 The earlier repository directory move did not change URL routes. The later hostname transition is covered above. Database migrations are preserved byte-for-byte and must not be reapplied for this move.
+
+## v1.5 rollout
+
+No database migration rewrites existing records. New fields and empty collections are normalized in memory; the next explicit save persists the upgraded JSON for that user. Root `currency: BHD` and existing RLS constraints remain; account currencies and reporting currency are separate fields. A backup restore remains an explicit in-app user action.
+
+The web build's `prebuild` script stages self-hosted OCR worker/core/English-data assets under ignored `public/ocr/`; Vite copies them to the deployment. Commit the preparation script and lockfile, not generated binaries. OCR loads these assets only when requested. Rebuild installed native clients for the new module and privacy gate; Vercel cannot update an installed iOS/Android app.
+
+The `dispatch-reminders` Edge Function was updated to version 2 with workspace hour/cadence and salary/check-in preferences. Its existing server-secret authentication remains in place. No authenticated test notification or dispatch send was made during implementation. Provider credentials and device delivery remain setup/verification tasks.

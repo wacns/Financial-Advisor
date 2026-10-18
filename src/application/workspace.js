@@ -1,3 +1,8 @@
+import { termDetails } from "../domain/accounts.js";
+import { normalizeWorkspace, validateWorkspace } from "../domain/model.js";
+import { featureCommand } from "../domain/commands.js";
+import { projectCommand, validateProjects } from "../domain/projects.js";
+import { saveTransaction } from "../domain/ledger.js";
 import { addTransaction, addTransfer } from "../finance.js";
 import {
   saveRecurring,
@@ -32,14 +37,23 @@ export function applyEntry(
   id,
   uuid = () => crypto.randomUUID(),
 ) {
-  const next = JSON.parse(JSON.stringify(state));
+  const next = normalizeWorkspace(state);
+  const feature = featureCommand(next, kind, data, id, uuid);
+  if (feature) return validateProjects(feature);
+  const project = projectCommand(next, kind, data, id, uuid);
+  if (project) return project;
   if (kind === "transaction")
-    addTransaction(next, {
-      ...data,
-      name: name(data.name),
-      id: uuid(),
-      amount: positive(data.amount, "Amount"),
-    });
+    saveTransaction(
+      next,
+      {
+        ...data,
+        name: name(data.name),
+        id: uuid(),
+        amount: positive(data.amount, "Amount"),
+      },
+      undefined,
+      uuid,
+    );
   else if (kind === "transfer") addTransfer(next, { ...data, id: uuid() });
   else if (kind === "account") {
     if (data.last4 && !/^\d{4}$/.test(data.last4))
@@ -49,13 +63,30 @@ export function applyEntry(
     next.accounts.push({
       ...data,
       id: uuid(),
+      ...termDetails(data),
       name: name(data.name, 60),
       balance: toFils(data.balance) / 1000,
+      currency: data.currency || "BHD",
+      apr: Number(data.apr || 0),
+      limit: Number(data.limit || 0),
+      cost: Number(data.cost || 0),
     });
   } else if (kind === "budget") {
     const limit = positive(data.limit, "Spending limit");
-    next.budgets = next.budgets.filter((b) => b.category !== data.category);
-    next.budgets.push({ id: uuid(), category: data.category, limit });
+    next.budgets = next.budgets.filter(
+      (b) =>
+        !(
+          b.category === data.category &&
+          (b.period || "Monthly") === (data.period || "Monthly")
+        ),
+    );
+    next.budgets.push({
+      id: uuid(),
+      category: data.category,
+      currency: next.settings.base,
+      period: data.period || "Monthly",
+      limit,
+    });
   } else if (kind === "goal")
     next.goals.push({
       id: uuid(),
@@ -63,6 +94,7 @@ export function applyEntry(
       target: positive(data.target, "Target"),
       saved: nonnegative(data.saved),
       icon: "flag",
+      currency: next.settings.base,
     });
   else if (kind === "fund") {
     const goal = next.goals.find((g) => g.id === id);
@@ -74,6 +106,8 @@ export function applyEntry(
   else if (kind === "repayment") recordRepayment(next, id, data, uuid());
   else if (kind === "project") saveProject(next, data, id || uuid());
   else throw Error("Choose a valid entry type.");
+  validateWorkspace(next);
+  validateProjects(next);
   return next;
 }
 export function togglePlan(state, kind, id) {
@@ -102,7 +136,9 @@ export function transactionCSV(state, transactions) {
         t.category,
         t.type,
         t.amount.toFixed(3),
-        "BHD",
+        t.currency ||
+          state.accounts.find((a) => a.id === t.accountId)?.currency ||
+          "BHD",
         state.accounts.find((a) => a.id === t.accountId)?.name || "",
         t.type === "transfer"
           ? state.accounts.find((a) => a.id === t.toAccountId)?.name || ""

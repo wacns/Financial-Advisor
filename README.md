@@ -1,6 +1,6 @@
 # FinancialAdvisor
 
-An English-language personal finance app for Bahrain, built with React, React Native, Expo, React Native Web, Vite, and Supabase. FinancialAdvisor has its own forest, ivory, and sage identity and uses BHD with three-decimal fils precision. Shared React Native components render as React DOM on the web and native views on iOS/Android. There is no WebView wrapper.
+An English/Arabic personal finance app for Bahrain, built with React, React Native, Expo, React Native Web, Vite, and Supabase. FinancialAdvisor has its own forest, ivory, and sage identity with account currencies, manual exchange rates and three-decimal precision. Shared React Native components render as React DOM on the web and native views on iOS/Android. There is no WebView wrapper.
 
 **Live app:** [financial-advisor-partner.vercel.app](https://financial-advisor-partner.vercel.app/)
 
@@ -65,6 +65,7 @@ Install Chromium with `npx playwright install chromium` before running browser t
 
 ## Documentation
 
+- [Reference feature coverage and verification](docs/FEATURE-PARITY.md).
 - [Features and Bahrain conventions](docs/FEATURES.md): accounts, transactions, budgets, goals, bills, salary, debts, project planning, payment calendars, transfers and account-specific reports.
 - [Authentication and data ownership](docs/AUTHENTICATION.md): Supabase setup, protected routes and RLS.
 - [Google sign-in setup](docs/GOOGLE_AUTH_SETUP.md).

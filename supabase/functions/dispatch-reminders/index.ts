@@ -1,12 +1,11 @@
 import {adminClient} from '../_shared/client.ts';
-import {json, secretMatches, bahrainTime, hasDuePayment, createFcmSender, deliver} from '../_shared/push.js';
+import {json, secretMatches, bahrainTime, hasReminderDue, createFcmSender, deliver} from '../_shared/push.js';
 
 Deno.serve(async (request: Request) => {
   if (request.method !== 'POST') return json(request,{error:'Method not allowed.'},405);
   if (!await secretMatches(Deno.env.get('PUSH_CRON_SECRET'),request.headers.get('x-reminder-secret')))
     return json(request,{error:'Unauthorized.'},401);
   const time = bahrainTime();
-  if (time.hour < 9) return json(request,{sent:0,reason:'Before 09:00 in Bahrain.'});
   let send;
   try { send = createFcmSender(Deno.env.get('FCM_SERVICE_ACCOUNT')); }
   catch { return json(request,{error:'Push delivery is not configured.'},503); }
@@ -23,7 +22,7 @@ Deno.serve(async (request: Request) => {
     const ids = [...new Set(devices.map(d => d.user_id))];
     const workspaces = await admin.from('northline_workspaces').select('user_id,data').in('user_id',ids);
     if (workspaces.error) return json(request,{error:'Could not load payment schedules.'},500);
-    const dueUsers = new Set((workspaces.data || []).filter(w => hasDuePayment(w.data,time.date)).map(w => w.user_id));
+    const dueUsers = new Set((workspaces.data || []).filter(w => hasReminderDue(w.data,time)).map(w => w.user_id));
     for (const device of devices.filter(d => dueUsers.has(d.user_id))) {
       try {
         const status = await deliver(admin,send,device,`reminder:${device.installation_id}:${time.date}`);

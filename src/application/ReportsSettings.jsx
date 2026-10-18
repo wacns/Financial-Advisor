@@ -1,3 +1,4 @@
+import { useAppearance } from "./appearance.jsx";
 import React, { useState } from "react";
 import { View } from "react-native";
 import {
@@ -11,15 +12,18 @@ import {
   Button,
   Progress,
   Empty,
-  colors,
 } from "./ui.jsx";
 import Field from "./Field";
 import TrendChart from "./TrendChart.jsx";
 import { accountReport, shiftMonth, spendingBreakdown } from "../reports.js";
-import { summary } from "../finance.js";
+import { summary, monthTransactions } from "../finance.js";
 import { formatMoney as money, formatDate, toFils } from "../locale.js";
 import { exportFile, native } from "../platform/runtime";
-export function Insights({ workspace: w, month }) {
+import { CustomReports, ExtendedSettings } from "./ManagementScreens.jsx";
+import { backupText } from "../domain/imports.js";
+import { recordValue } from "../domain/model.js";
+export function Insights({ workspace: w, month, open }) {
+  const { colors } = useAppearance();
   const [account, setAccount] = useState("all"),
     filtered = accountReport(w.state, account),
     totals = summary(filtered, month),
@@ -29,16 +33,17 @@ export function Insights({ workspace: w, month }) {
     ? Math.round(((totals.expenses - previous) / previous) * 100)
     : null;
   const descriptions = new Map();
-  for (const row of filtered.transactions.filter(
-    (t) => t.type === "expense" && t.date.startsWith(month),
+  for (const row of monthTransactions(filtered, month).filter(
+    (t) => t.type === "expense",
   ))
     descriptions.set(
       row.name,
-      (descriptions.get(row.name) || 0) + toFils(row.amount),
+      (descriptions.get(row.name) || 0) + toFils(recordValue(w.state, row)),
     );
   const largest = [...descriptions].sort((a, b) => b[1] - a[1]).slice(0, 5);
   return (
     <Stack>
+      <CustomReports workspace={w} month={month} open={open} />
       <Field
         label="Report account"
         type="select"
@@ -101,11 +106,12 @@ export function Insights({ workspace: w, month }) {
     </Stack>
   );
 }
-export function Settings({ workspace: w }) {
+export function Settings({ workspace: w, open }) {
+  const { colors } = useAppearance();
   async function download() {
     try {
       await exportFile(
-        JSON.stringify(w.state, null, 2),
+        backupText(w.state),
         "application/json",
         "financial-advisor-backup.json",
       );
@@ -123,10 +129,16 @@ export function Settings({ workspace: w }) {
   }
   return (
     <Stack>
+      <ExtendedSettings workspace={w} open={open} />
       <Card testID="regional-settings">
         <Heading>At home in Bahrain</Heading>
         <Label>Region: Bahrain</Label>
-        <Label>Currency: Bahraini dinar (BHD)</Label>
+        <Label>
+          Currency:{" "}
+          {w.state.settings.base === "BHD"
+            ? "Bahraini dinar (BHD)"
+            : w.state.settings.base}
+        </Label>
         <Muted>
           Amounts use three decimal places. Dates follow Asia/Bahrain, including
           when you travel.
@@ -134,6 +146,9 @@ export function Settings({ workspace: w }) {
       </Card>
       <Card testID="notification-settings">
         <Heading>Notifications</Heading>
+        <Button secondary onPress={() => open("reminderPreferences")}>
+          Reminder preferences
+        </Button>
         {!native ? (
           <>
             <Label>Mobile app feature</Label>

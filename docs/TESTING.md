@@ -50,3 +50,14 @@ Live HTTP and browser checks: login loads, Google button is enabled, BHD demo lo
 The React migration pins transitive `@grpc/grpc-js` to 1.14.6 and Xcode tooling's `uuid` to 11.1.1 to address published advisories while retaining the supported Expo/React Native versions. Clean native prebuild checks Xcode's use of the compatible `uuid.v4()` API.
 
 Two upstream advisories remain in the latest published build-tool dependencies: [braces stack exhaustion](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) (3.0.3, used by Metro's file matching) and [node-forge certificate signature verification](https://github.com/advisories/GHSA-86w9-cpqp-85rv) (1.4.0, used by Expo CLI certificate tooling). npm reports their dependent packages too, so the advisory count is larger than two. Fixed releases were unavailable at this check. Do not run `npm audit fix --force`: its suggested downgrade to Expo 44 / React Native 0.72 would break this SDK 58 project. Use trusted project/configuration inputs for native tooling and revisit these packages when upstream publishes fixes. The deployed Vercel application serves the Vite output; it does not run Metro or Expo CLI as a public server.
+
+
+## v1.5 coverage
+
+`tests/unit/feature-parity.test.js` adds currency/reversal atomicity, reconciliation, hierarchy/template behavior, cycle-day clamping and allocation/overlap checks, salary and forecast conversion, project payments/links/contracts/attachments, malformed backups and full reference backup unit conversion, duplicate-aware CSV imports, receipt ambiguity, flexible report boundaries, foreign-currency debt repayments and linked loan installments.
+
+`tests/e2e/features.spec.js` exercises edit/template/delete persistence, cycle-budget validation, project agreement/milestone/payment creation, warranty/CSV/previewed backup restore, Arabic/RTL/dark/reporting preferences, all new routes at 360px and real local browser OCR from a generated receipt image. It verifies that OCR review/cancellation never persists a transaction. Existing demo, account, report, calendar and mocked OAuth flows remain in the suite.
+
+Native local module source compilation, platform SDK installation and device verification have separate requirements. A Linux session cannot compile Apple Vision/Swift into an iOS app. See the release checklist in MOBILE.md and the coverage distinctions in FEATURE-PARITY.md.
+
+Implementation validation on 2026-10-18: 56 unit tests, 19 demo browser tests and 2 mocked OAuth tests passed. SDK dependency checks, Android/iOS Hermes exports and clean native prebuild passed. The reminder dispatcher passed Deno type checking, was deployed as version 2, and rejects unauthenticated requests with HTTP 401. These checks sent no real test notifications and changed no reference financial records.

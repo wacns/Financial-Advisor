@@ -1,3 +1,6 @@
+import { featureForm } from "./featureForms.js";
+import { categoryPaths } from "../domain/commands.js";
+import { normalizeWorkspace, currencyCodes } from "../domain/model.js";
 import { categories } from "../finance.js";
 import { bahrainDate } from "../locale.js";
 import { frequencies } from "../planning.js";
@@ -9,7 +12,10 @@ const field = (label, name, type = "text", value = "", options) => ({
   options,
 });
 const amount = (label, name, value = "") => field(label, name, "number", value);
-export function entryForm(kind, id, state) {
+export function entryForm(kind, id, state, context = {}) {
+  state = normalizeWorkspace(state);
+  const feature = featureForm(kind, id, state, context);
+  if (feature) return feature;
   const accounts = state.accounts.map((a) => ({ value: a.id, label: a.name }));
   const account = (
     label = "Account",
@@ -17,7 +23,7 @@ export function entryForm(kind, id, state) {
     value = accounts[0]?.value || "",
   ) => field(label, name, "select", value, accounts);
   const category = () =>
-    field("Category", "category", "select", "Shopping", categories);
+    field("Category", "category", "select", "Shopping", categoryPaths(state));
   const date = (label = "Date", name = "date", value = bahrainDate()) =>
     field(label, name, "date", value);
   let title = "",
@@ -38,7 +44,11 @@ export function entryForm(kind, id, state) {
   if (kind === "transaction") {
     title = "A new money moment";
     fields = [
-      field("Type", "type", "select", "expense", ["expense", "income"]),
+      field("Type", "type", "select", "expense", [
+        "expense",
+        "income",
+        "adjustment",
+      ]),
       amount("Amount (BHD)", "amount"),
       field("Description", "name"),
       category(),
@@ -72,18 +82,39 @@ export function entryForm(kind, id, state) {
         "Investment",
         "Cash",
         "Credit card",
+        "Fixed deposit",
+        "Loan",
+        "Money lent",
       ]),
-      amount("Current balance in BHD (negative for debt)", "balance", "0"),
+      amount("Current balance (negative for debt)", "balance", "0"),
       field("Last four digits (optional)", "last4"),
+      field("Account currency", "currency", "select", "BHD", currencyCodes),
+      amount("Tenure in months (optional)", "tenure", 0),
+      amount("Original loan amount (optional)", "loanOriginal", 0),
+      amount("Monthly loan installment (optional)", "installment", 0),
+      amount("APR (%) (optional)", "apr", 0),
+      amount("Credit limit (optional)", "limit", 0),
+      amount("Cost basis (optional)", "cost", 0),
+      date("Start date (optional)", "startDate", ""),
+      date("Maturity date (optional)", "maturity", ""),
     ];
     note =
-      "All balances are in BHD and tracked manually. Never enter bank credentials.";
+      "Balances are tracked manually in the selected account currency. Never enter bank credentials.";
   } else if (kind === "budget") {
     title = "Make a little plan";
     fields = [
-      { ...category(), options: categories.filter((c) => c !== "Income") },
+      {
+        ...category(),
+        options: categoryPaths(state).filter((c) => c !== "Income"),
+      },
       amount("Monthly spending limit (BHD)", "limit"),
     ];
+    fields.push(
+      field("Budget period", "period", "select", "Monthly", [
+        "Monthly",
+        "Yearly",
+      ]),
+    );
     note =
       "Budgets repeat each month. Saving an existing category updates its limit.";
   } else if (kind === "goal") {
@@ -97,6 +128,7 @@ export function entryForm(kind, id, state) {
     const goal = state.goals.find((g) => g.id === id);
     if (!goal) throw Error("This goal no longer exists.");
     title = `Progress: ${goal.name}`;
+    values.currency = goal.currency;
     fields = [amount("Total saved so far (BHD)", "saved", goal.saved)];
     note = "This updates your goal tracker only; no money is moved.";
   } else if (kind === "recurring") {
@@ -104,10 +136,19 @@ export function entryForm(kind, id, state) {
     title = row ? "Edit schedule" : "Plan a bill or salary";
     fields = [
       field("Schedule name", "name"),
-      field("Direction", "type", "select", "expense", ["expense", "income"]),
+      field("Direction", "type", "select", "expense", [
+        "expense",
+        "income",
+        "transfer",
+      ]),
       amount("Amount (BHD)", "amount"),
       category(),
       account(),
+      field("Transfer destination (optional)", "toAccountId", "select", "", [
+        { value: "", label: "None" },
+        ...accounts,
+      ]),
+      field("Salary schedule", "isSalary", "select", "no", ["no", "yes"]),
       field(
         "Repeat",
         "frequency",
@@ -117,7 +158,7 @@ export function entryForm(kind, id, state) {
       ),
       date("Next due date", "nextDue"),
     ];
-    if (row) values = { ...row };
+    if (row) values = { ...row, isSalary: row.isSalary ? "yes" : "no" };
     note =
       "Schedules are reminders. Record each payment after it happens; future payments do not change your balance.";
   } else if (kind === "record" || kind === "repayment") {
@@ -158,6 +199,11 @@ export function entryForm(kind, id, state) {
     fields = [
       field("Debt name", "name"),
       field("Lender (optional)", "lender"),
+      field("Debt direction", "direction", "select", "borrowed", [
+        { value: "borrowed", label: "Money borrowed" },
+        { value: "lent", label: "Money lent" },
+      ]),
+      field("Debt currency", "currency", "select", "BHD", currencyCodes),
       amount("Outstanding principal (BHD)", "balance"),
       amount("Planned monthly payment (BHD)", "installment"),
       date("Next due date", "nextDue"),
@@ -175,8 +221,42 @@ export function entryForm(kind, id, state) {
     ];
     if (row) values = { ...row };
   } else throw Error("Choose an entry type.");
+  const currency =
+    state.accounts.find((a) => a.id === values.accountId)?.currency || "BHD";
+  if (currency !== "BHD")
+    fields = fields.map((f) => ({
+      ...f,
+      label: f.label.replaceAll("BHD", currency),
+    }));
+  if (kind === "transaction")
+    fields.push(
+      field("Time (optional)", "time"),
+      field("Labels (comma separated, optional)", "labels"),
+      field("Note (optional)", "note"),
+      field("Salary month (optional)", "salaryMonth", "month", ""),
+    );
+  if (kind === "transfer")
+    fields.push(amount("Received amount (optional)", "received"));
+  if (kind === "project")
+    fields.push(
+      field("Project currency", "currency", "select", "BHD", currencyCodes),
+      date("Start date (optional)", "startDate", bahrainDate()),
+    );
+  if (kind === "record") {
+    const r = state.recurring.find((r) => r.id === id);
+    if (r?.type === "transfer")
+      fields.push(
+        amount("Received amount (optional)", "received", r.received || ""),
+      );
+  }
+  if (kind === "record")
+    fields.push(field("Salary month (optional)", "salaryMonth", "month", ""));
+  if (kind === "repayment")
+    values.currency = state.debts.find((d) => d.id === id)?.currency || "BHD";
   return {
     kind,
+    accounts: state.accounts.map((a) => ({ id: a.id, currency: a.currency })),
+    reportingCurrency: state.settings.base,
     id,
     title,
     fields,
@@ -184,6 +264,7 @@ export function entryForm(kind, id, state) {
     values: {
       ...Object.fromEntries(fields.map((f) => [f.name, String(f.value)])),
       ...values,
+      ...context.draft,
     },
   };
 }

@@ -24,3 +24,8 @@ ios/App/CapApp-SPM/symlinks/
 /dist-native/
 /android/
 /ios/
+
+/public/ocr/
+/modules/**/android/build/
+/modules/**/android/.gradle/
+/modules/**/android/.cxx/

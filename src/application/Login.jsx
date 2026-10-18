@@ -1,18 +1,11 @@
+import { useAppearance } from "./appearance.jsx";
 import React, { useState } from "react";
 import { View, ScrollView, useWindowDimensions } from "react-native";
-import {
-  Button,
-  Card,
-  Heading,
-  Label,
-  Muted,
-  NavLink,
-  Stack,
-  colors,
-} from "./ui.jsx";
+import { Button, Card, Heading, Label, Muted, NavLink, Stack } from "./ui.jsx";
 import Field from "./Field";
 import * as runtime from "../platform/runtime";
 export default function Login({ workspace }) {
+  const { colors } = useAppearance();
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
     [busy, setBusy] = useState(false);

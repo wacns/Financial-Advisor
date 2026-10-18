@@ -115,9 +115,7 @@ test("Google PKCE redirect, callback, verified workspace, and sign-out with mock
       .getByRole("button", { name: "Add account", exact: true })
       .click();
     await page.getByLabel("Account name", { exact: true }).fill(name);
-    await page
-      .getByLabel("Current balance in BHD (negative for debt)")
-      .fill("100");
+    await page.getByLabel("Current balance (negative for debt)").fill("100");
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();
   }
