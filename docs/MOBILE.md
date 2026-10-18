@@ -6,7 +6,7 @@ The package and bundle ID remains `com.wacns.financialadvisor`. The native callb
 
 ## Build and run
 
-Use Node.js 24. Local Android compilation requires JDK 21, Android SDK Platform/Build Tools 37 and NDK 27.1.12297006, as required by React Native 0.88. iOS compilation needs a Mac with the Expo SDK 58 supported Xcode toolchain, CocoaPods and a signing team. EAS can build both platforms remotely after the account/project and signing credentials are configured.
+Use Node.js 24. Local Android compilation requires JDK 21, Android SDK Platform/Build Tools 37 and NDK 27.1.12297006, as required by React Native 0.88. iOS compilation needs a Mac with the Expo SDK 58 supported Xcode toolchain and CocoaPods; signed device distribution additionally needs a signing team. EAS can build both platforms remotely after the account/project and signing credentials are configured.
 
 ```sh
 npm ci
@@ -85,7 +85,7 @@ The job invokes the dispatcher hourly. The saved reminder hour defaults to 09:00
 
 The React migration is checked with shared financial-rule/entry-command tests, native callback and consent tests, secure-storage failure recovery, browser demo workflows and a mocked Google PKCE → verified workspace → save → reload → sign-out workflow. Expo dependency compatibility, Android/iOS clean prebuild, web production build and Android/iOS Hermes exports are also checked.
 
-A Hermes export validates native JavaScript resolution and compilation; it is not an installed binary test. This Linux session does not establish an iOS/Xcode build, real-device authentication, native push delivery or store publication. The earlier Capacitor APK belongs to the previous framework and is not a React Native release artifact.
+A Hermes export validates native JavaScript resolution and compilation; it is not an installed binary test. The remote macOS [unsigned Release build](https://github.com/wacns/Financial-Advisor/actions/runs/39127356895) passed on 2026-10-18, including the native iOS app and embedded Hermes bundle. Real-device authentication, native push delivery, OCR/privacy behavior and store publication remain unverified. The earlier Capacitor APK belongs to the previous framework and is not a React Native release artifact.
 
 
 ## v1.5 native verification

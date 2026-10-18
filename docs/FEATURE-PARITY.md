@@ -17,7 +17,7 @@ Reference: https://financialadvisorapp.pages.dev/. Comparison and implementation
 | Imports and categories | Category hierarchy rename/delete, full previewed restore, reference conversion and CSV duplicate handling | Unit corrupt/duplicate/reference checks; browser CSV/backup restore |
 | Preferences | Multi-currency reports, manual rates, Arabic/RTL, themes and motion | Browser Arabic/dark/currency/reload plus small-phone route checks |
 | Android widgets | Native provider, pin request, template buttons, owner-checked draft links and clearing | Android native module Kotlin/resources compilation, Expo autolinking/configuration and Hermes export; launcher/physical-device checks required |
-| Native privacy and OCR | Device unlock, background cover, capture prevention, secure preferences; ML Kit Android and Apple Vision iOS | Android local OCR module source compilation, native configuration and Hermes export; physical-device and Xcode checks required |
+| Native privacy and OCR | Device unlock, background cover, capture prevention, secure preferences; ML Kit Android and Apple Vision iOS | Android local OCR module compilation and remote unsigned iOS Release build passed; physical-device behavior checks required |
 | Native push | Opt-in registry, FCM server, reminder preferences and deduplication | Mocked registry/server/auth checks; Firebase/APNs and real-device delivery required |
 
 Automated checks exercise local demo workspaces or mocked Supabase accounts. They do not modify a live user's financial records. Existing live cloud RLS/auth architecture is preserved; no financial-record migration runs during deployment. New backup imports and record mutations happen only through user actions in the app.

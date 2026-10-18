@@ -36,6 +36,8 @@ Builder snapshots the current working tree, including uncommitted/untracked file
 
 Generated `ios/`, local `.env` files, signing keys and `GoogleService-Info.plist` are ignored and are not included in a snapshot. The macOS runner regenerates `ios/` from `app.config.js` before installing CocoaPods.
 
+The app's Expo plugin adds `$RNFirebaseDisableSPM = true` and `$RNFirebaseAsStaticFramework = true` before the generated Podfile's targets. React Native Firebase 26.4 does not support its default Swift Package Manager integration with our static frameworks; these settings select its supported CocoaPods integration, including builds without a Firebase client plist. Keep this configuration in the plugin because generated Podfiles are disposable.
+
 ## App configuration on GitHub
 
 For cloud sign-in in the installed app, set these **Actions repository variables** to the existing Supabase project's public client values:
@@ -64,4 +66,8 @@ A signed IPA and a successful compile do not complete App Store release. App Sto
 
 ## Validation
 
-The workflow passes actionlint v1.7.12 and its Builder defaults match the Expo bundle ID and generated scheme. Earlier Hermes exports and native prebuild do not establish that the iOS Swift/CocoaPods/Xcode build succeeds; the first remote run supplies that evidence. See the GitHub run result before calling the IPA built.
+The workflow passes actionlint v1.7.12 and its Builder defaults match the Expo bundle ID and generated scheme. Clean and repeated iOS prebuilds verify that the Firebase Podfile configuration is generated once before the targets.
+
+On 2026-10-18, [GitHub Actions run 39127356895](https://github.com/wacns/Financial-Advisor/actions/runs/39127356895) **succeeded** for commit `9077abd500a196dc966548e63ec559a17709847d`. It installed `FinancialAdvisorNative`, built the device target with `xcodebuild` in Release with `CODE_SIGNING_ALLOWED=NO`, compiled the embedded Hermes `main.jsbundle`, and packaged `FinancialAdvisor.app` as `fa-ios-9077abd.ipa`. Download artifact **ipa** from the run (seven-day retention; artifact ID `12136965854`). This establishes the native iOS compile/package, not installation, OCR results, authentication or push behavior on a device.
+
+The workspace's download connection returned HTTP 403 at GitHub's artifact storage host. The successful run, packaging log and artifact metadata were inspected; the IPA contents were not independently inspected locally. Download through GitHub Actions in your browser. No Apple signing credentials were supplied, and no TestFlight/App Store upload occurred.
