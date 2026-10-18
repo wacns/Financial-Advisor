@@ -109,37 +109,52 @@ test("Google PKCE redirect, callback, verified workspace, and sign-out with mock
   await expect(
     page.getByRole("heading", { name: "Cloud project", exact: true }),
   ).toBeVisible();
-  await page.getByRole('link', {name:'Accounts', exact:true}).click();
-  for (const name of ['Cloud current', 'Cloud savings']) {
-    await page.getByRole('button', {name:'Add account', exact:true}).click();
-    await page.getByLabel('Account name', {exact:true}).fill(name);
-    await page.getByLabel('Current balance in BHD (negative for debt)').fill('100');
-    await page.getByRole('button', {name:'Save', exact:true}).click();
-    await expect(page.getByRole('dialog')).not.toBeVisible();
+  await page.getByRole("link", { name: "Accounts", exact: true }).click();
+  for (const name of ["Cloud current", "Cloud savings"]) {
+    await page
+      .getByRole("button", { name: "Add account", exact: true })
+      .click();
+    await page.getByLabel("Account name", { exact: true }).fill(name);
+    await page
+      .getByLabel("Current balance in BHD (negative for debt)")
+      .fill("100");
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.getByRole("dialog")).not.toBeVisible();
   }
-  await page.getByRole('button', {name:'Record transfer', exact:true}).click();
-  await page.getByLabel('Amount (BHD)', {exact:true}).fill('0.001');
-  await page.getByRole('button', {name:'Save', exact:true}).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible();
-  expect(workspace.accounts.map(a => a.balance)).toEqual([99.999, 100.001]);
-  expect(workspace.transactions[0].type).toBe('transfer');
+  await page
+    .getByRole("button", { name: "Record transfer", exact: true })
+    .click();
+  await page.getByLabel("Amount (BHD)", { exact: true }).fill("0.001");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  expect(workspace.accounts.map((a) => a.balance)).toEqual([99.999, 100.001]);
+  expect(workspace.transactions[0].type).toBe("transfer");
   await page.reload();
-  await expect(page.locator('.account-detail').first()).toContainText('99.999');
-  await page.getByRole('link', {name:'Calendar', exact:true}).click();
-  await page.getByRole('button', {name:'New schedule', exact:true}).click();
-  await page.getByLabel('Schedule name').fill('Cloud subscription');
-  await page.getByLabel('Amount (BHD)', {exact:true}).fill('1.234');
-  const dueDate = await page.getByLabel('Next due date').inputValue();
-  await page.getByRole('button', {name:'Save', exact:true}).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible();
-  await page.locator(`[data-calendar-date="${dueDate}"]`).click();
-  await page.locator('.day-agenda').getByRole('button', {name:'Record payment', exact:true}).click();
-  await page.getByRole('button', {name:'Save', exact:true}).click();
-  await expect(page.locator('.day-agenda')).toContainText('Recorded');
+  await expect(
+    page.locator("[data-testid=account-detail]").first(),
+  ).toContainText("99.999");
+  await page.getByRole("link", { name: "Calendar", exact: true }).click();
+  await page.getByRole("button", { name: "New schedule", exact: true }).click();
+  await page.getByLabel("Schedule name").fill("Cloud subscription");
+  await page.getByLabel("Amount (BHD)", { exact: true }).fill("1.234");
+  const dueDate = await page.getByLabel("Next due date").inputValue();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await page.locator(`[data-testid="calendar-${dueDate}"]`).click();
+  await page
+    .locator("[data-testid=day-agenda]")
+    .getByRole("button", { name: "Record payment", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.locator("[data-testid=day-agenda]")).toContainText(
+    "Recorded",
+  );
   expect(workspace.accounts[0].balance).toBe(98.765);
-  expect(workspace.transactions.filter(t => t.recurringId)).toHaveLength(1);
+  expect(workspace.transactions.filter((t) => t.recurringId)).toHaveLength(1);
   await page.reload();
-  await expect(page.locator('.day-agenda')).toContainText('Recorded');
+  await expect(page.locator("[data-testid=day-agenda]")).toContainText(
+    "Recorded",
+  );
   await page.getByRole("link", { name: "Settings", exact: true }).click();
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(

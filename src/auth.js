@@ -22,6 +22,7 @@ export async function startGoogleSignIn(client, location, nativeRuntime) {
   }
 }
 
+const nativeExchanges = new WeakMap();
 export async function finishNativeAuth(client, callback) {
   const url = new URL(callback);
   const expected = new URL(NATIVE_AUTH_REDIRECT);
@@ -31,9 +32,17 @@ export async function finishNativeAuth(client, callback) {
   if (error) throw Error(error === 'access_denied' ? 'Sign-in was cancelled. You can try again.' : 'Sign-in could not be completed. Please try again.');
   const code = url.searchParams.get('code');
   if (!code || !client) throw Error('Start sign-in again from this device.');
-  const result = await client.auth.exchangeCodeForSession(code);
-  if (result.error || !result.data.session) throw Error('This sign-in link has expired. Start sign-in again from this device.');
-  return true;
+  // An Expo browser return and a Linking event can deliver the same URL at once.
+  // Both must observe one PKCE exchange rather than racing a one-use code.
+  const previous = nativeExchanges.get(client);
+  if (previous?.code === code) return previous.promise;
+  const promise = (async () => {
+    const result = await client.auth.exchangeCodeForSession(code);
+    if (result.error || !result.data.session) throw Error('This sign-in link has expired. Start sign-in again from this device.');
+    return true;
+  })();
+  nativeExchanges.set(client, {code, promise});
+  return promise;
 }
 
 export async function finishAuthRedirect(client, location, history) {

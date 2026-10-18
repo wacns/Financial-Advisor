@@ -1,30 +1,29 @@
 # Development conventions
 
-This is a single Ionic Core / Vite application with Capacitor iOS and Android projects. Install dependencies and run commands at the repository root; no workspace wrapper or monorepo tooling is needed. See [MOBILE.md](MOBILE.md) for native builds and push setup.
+FinancialAdvisor uses React 19, React Native 0.88, Expo SDK 58 and React Native Web. Install dependencies and run commands at the repository root. Vite builds the website, Metro builds native apps. Both enter the same component tree in `src/application/App.jsx`.
 
 ## Source responsibilities
 
 | Module | Responsibility |
 | --- | --- |
-| `src/main.js` | Application startup, hash routes, UI events, rendering and workspace persistence |
-| `src/auth.js` | Google sign-in and PKCE callback handling |
-| `src/finance.js` | Accounts, transactions, summaries, categories and initial state |
-| `src/planning.js` | Recurring schedules, repayments and project-budget calculations |
-| `src/planning-ui.js` | Planning views and forms |
-| `src/locale.js` | Bahrain civil dates, BHD formatting and integer-fils conversion |
-| `src/icons.js` | Explicit icon imports to keep the bundle small |
-| `src/style.css` | Shared styles and responsive layouts |
-| `src/reports.js` | Account scopes, spending totals, budget health and payment calendar projections |
-| `src/reports-ui.js` | Dashboard financial pulse, Insights and payment calendar views |
-| `src/reports.css` | Reporting and calendar styles |
-| `src/ionic.js` | Explicit Ionic component registration |
-| `src/mobile.js` | Capacitor lifecycle, system browser, secure auth storage and export sharing |
-| `src/mobile-ui.js` | Mobile tabs and notification preferences |
-| `src/notifications.js` | Push consent, device registration and notification lifecycle |
-| `supabase/functions/` | Authenticated token registration, FCM sending and protected reminder dispatch |
+| `src/main.jsx` | React DOM web entry |
+| `native-entry.js` | Expo entry, native URL and UUID polyfills |
+| `src/application/App.jsx` | Shared responsive shell, navigation and modal state |
+| `src/application/useWorkspace.js` | Verified sign-in, workspace loading/saving and device lifecycle |
+| `src/application/workspace.js` | Shared immutable entry commands and CSV formatting |
+| `src/application/forms.js` | Platform-independent form definitions and defaults |
+| `src/application/*Screens.jsx` | Shared financial and planning screens |
+| `src/application/Field.web.jsx` / `.native.jsx` | Accessible browser inputs and native inputs/pickers |
+| `src/platform/runtime.web.js` / `.native.js` | Platform storage, auth browser, lifecycle, Firebase and exports |
+| `src/platform/secure-storage.js` | Chunked Keychain/Keystore-backed Supabase sessions |
+| `src/auth.js` | Google PKCE and validated callback consumption |
+| `src/finance.js`, `planning.js`, `reports.js`, `locale.js` | Existing shared finance and Bahrain rules |
+| `src/notifications.js` | Opt-in, token registration and notification lifecycle |
+| `app.config.js`, `plugins/` | Reproducible Expo native configuration |
+| `supabase/functions/` | Existing authenticated FCM registration and reminder backend |
 
-Keep financial calculations in the pure domain modules and UI behavior in rendering/event modules. Add focused unit coverage under `tests/unit/` for financial rules and browser coverage under `tests/e2e/` for important workflows. Escape user-provided text when inserting HTML. Preserve BHD-only records and the separate demo namespace.
+Keep financial rules in pure JavaScript modules. Shared screens use React Native primitives, never HTML strings or imperative DOM mutation. Platform-specific behavior lives behind `.web` / `.native` modules; import those without the suffix so Vite/Metro choose the right implementation. Native code must not import `react-dom`, browser globals or Vite `import.meta.env`. Do not reintroduce Ionic or Capacitor.
 
-Use `public/` for assets served as-is and `docs/` for operational guides. Keep the package manifest, lockfile and build/test configurations at the root so npm, Vite, Playwright and Vercel discover them consistently. `.editorconfig` standardizes new edits without reformatting the existing application.
+Native projects are generated and ignored. Change `app.config.js` or a config plugin, then regenerate; manual changes inside `android/` or `ios/` disappear on clean prebuild. Preserve the existing `northline_workspaces` schema, BHD data and browser demo key. Installed Capacitor demo/session storage is separate from React Native storage; signed-in cloud data remains available after signing in again.
 
-Before pushing, follow [TESTING.md](TESTING.md). Read [DEPLOYMENT.md](DEPLOYMENT.md) when upgrading an existing nested checkout. A folder move does not require a Supabase migration or a Google OAuth change.
+Use public Supabase publishable keys in client environment variables, never service-role or Firebase service-account secrets. Dependencies and lockfile are pinned. See [MOBILE.md](MOBILE.md) for platform setup and [TESTING.md](TESTING.md) before pushing.

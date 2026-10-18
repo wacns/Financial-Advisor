@@ -1,0 +1,451 @@
+import React, { useEffect, useRef, useState } from "react";
+import {
+  View,
+  ScrollView,
+  ActivityIndicator,
+  useWindowDimensions,
+  BackHandler,
+  Platform,
+  KeyboardAvoidingView,
+} from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "../platform/safe-area";
+import {
+  Label,
+  Heading,
+  Muted,
+  Button,
+  NavLink,
+  Row,
+  Stack,
+  colors,
+} from "./ui.jsx";
+import Field from "./Field";
+import Login from "./Login.jsx";
+import EntryModal from "./EntryModal.jsx";
+import { useWorkspace } from "./useWorkspace.js";
+import { entryForm } from "./forms.js";
+import {
+  Overview,
+  Accounts,
+  Transactions,
+  Budgets,
+  Goals,
+} from "./FinancialScreens.jsx";
+import { Bills, Debts, Projects, Calendar } from "./PlanningScreens.jsx";
+import { Insights, Settings } from "./ReportsSettings.jsx";
+import { bahrainDate, isCivilDate } from "../locale.js";
+const pages = [
+  ["overview", "Overview", "◈"],
+  ["accounts", "Accounts", "▣"],
+  ["transactions", "Transactions", "⇄"],
+  ["budgets", "Budgets", "▥"],
+  ["goals", "Goals", "⚑"],
+  ["bills", "Bills & salary", "◷"],
+  ["calendar", "Calendar", "▦"],
+  ["debts", "Debts & loans", "◇"],
+  ["projects", "Projects", "▱"],
+  ["insights", "Insights", "◔"],
+  ["settings", "Settings", "⚙"],
+];
+const titles = {
+  accounts: "A home for your money.",
+  transactions: "Every little money moment.",
+  budgets: "A little intention goes a long way.",
+  goals: "Good things on your horizon.",
+  bills: "A rhythm for your money.",
+  calendar: "Your money, on the calendar.",
+  debts: "One step closer to lighter days.",
+  projects: "A budget for your next chapter.",
+  insights: "A little perspective.",
+  settings: "Make yourself at home.",
+};
+const actions = {
+  overview: ["Add transaction", "transaction"],
+  transactions: ["Add transaction", "transaction"],
+  budgets: ["Set a budget", "budget"],
+  goals: ["New goal", "goal"],
+  bills: ["New schedule", "recurring"],
+  calendar: ["New schedule", "recurring"],
+  debts: ["Add debt", "debt"],
+  projects: ["New project", "project"],
+};
+function MonthSelector({ month, setMonth }) {
+  const [draft, setDraft] = useState(month);
+  useEffect(() => setDraft(month), [month]);
+  return (
+    <Field
+      label="Selected month"
+      type="month"
+      value={draft}
+      onChange={(value) => {
+        setDraft(value);
+        if (/^\d{4}-\d{2}$/.test(value) && isCivilDate(`${value}-01`))
+          setMonth(value);
+      }}
+    />
+  );
+}
+function WorkspaceApp() {
+  const w = useWorkspace(),
+    wide = useWindowDimensions().width >= 1000;
+  const { navigate, demo, message, setMessage } = w;
+  const [month, setMonth] = useState(() => bahrainDate().slice(0, 7)),
+    [form, setForm] = useState(null),
+    [menu, setMenu] = useState(false);
+  const scroll = useRef(null),
+    routeRef = useRef(w.route),
+    historyRef = useRef([]);
+  const rawPage = w.route.split("/")[1],
+    page = pages.some((row) => row[0] === rawPage) ? rawPage : "overview";
+  const login = !w.route.startsWith("demo/") && !w.route.startsWith("app/");
+  useEffect(() => {
+    setMenu(false);
+    setForm(null);
+    scroll.current?.scrollTo({ y: 0, animated: false });
+    if (routeRef.current !== w.route) {
+      if (!login && routeRef.current.split("/")[0] === w.route.split("/")[0])
+        historyRef.current.push(routeRef.current.split("/")[1]);
+      else historyRef.current = [];
+      routeRef.current = w.route;
+    }
+  }, [w.route, login]);
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        if (menu) {
+          setMenu(false);
+          return true;
+        }
+        if (historyRef.current.length) {
+          const previous = historyRef.current.pop();
+          routeRef.current = `${demo ? "demo" : "app"}/${previous}`;
+          navigate(previous);
+          return true;
+        }
+        return false;
+      },
+    );
+    return () => subscription.remove();
+  }, [menu, navigate, demo]);
+  useEffect(() => {
+    if (!message || login) return;
+    const timer = setTimeout(() => setMessage(""), 5000);
+    return () => clearTimeout(timer);
+  }, [message, login, setMessage]);
+  function open(kind, id) {
+    try {
+      setForm(entryForm(kind, id, w.state));
+    } catch (error) {
+      w.setMessage(error.message);
+    }
+  }
+  const prefix = w.demo ? "demo" : "app";
+  const nav = (
+    <View accessibilityLabel="Workspace navigation" style={{ gap: 2 }}>
+      {pages.map(([id, label, symbol]) => (
+        <NavLink
+          key={id}
+          label={label}
+          href={`#/${prefix}/${id}`}
+          onPress={() => w.navigate(id)}
+          active={page === id}
+        >
+          {symbol}　{label}
+        </NavLink>
+      ))}
+    </View>
+  );
+  const screens = {
+    overview: Overview,
+    accounts: Accounts,
+    transactions: Transactions,
+    budgets: Budgets,
+    goals: Goals,
+    bills: Bills,
+    calendar: Calendar,
+    debts: Debts,
+    projects: Projects,
+    insights: Insights,
+    settings: Settings,
+  };
+  const Screen = screens[page];
+  if (login && !w.loading)
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.cream }}>
+        <Login workspace={w} />
+      </SafeAreaView>
+    );
+  return (
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: colors.cream }}
+      edges={["top", "bottom", "left", "right"]}
+    >
+      <View style={{ flex: 1, flexDirection: "row" }}>
+        {wide ? (
+          <View
+            style={{
+              width: 250,
+              padding: 23,
+              borderRightWidth: 1,
+              borderColor: colors.line,
+              backgroundColor: "#fbfcf8",
+            }}
+          >
+            <Label
+              style={{ fontSize: 22, fontWeight: "700", marginVertical: 15 }}
+            >
+              FinancialAdvisor
+            </Label>
+            <View
+              style={{
+                marginVertical: 24,
+                padding: 12,
+                borderWidth: 1,
+                borderColor: colors.line,
+                borderRadius: 10,
+              }}
+            >
+              <Label>Bahrain workspace</Label>
+              <Muted>Bahrain · BHD</Muted>
+            </View>
+            <ScrollView>{nav}</ScrollView>
+            <View style={{ paddingTop: 20, gap: 7 }}>
+              <Muted>SMALL STEPS. BRIGHTER HORIZONS.</Muted>
+              <Label>
+                {w.demo
+                  ? "Demo workspace"
+                  : w.user?.email || "Personal account"}
+              </Label>
+              <Button
+                secondary
+                label={
+                  w.demo ? "Leave demo workspace" : "Sign out of workspace"
+                }
+                onPress={w.signout}
+              >
+                {w.demo ? "Leave demo" : "Sign out"}
+              </Button>
+            </View>
+          </View>
+        ) : null}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View
+            style={{
+              paddingHorizontal: wide ? 38 : 18,
+              paddingVertical: 17,
+              backgroundColor: "#fbfcf8",
+              borderBottomWidth: 1,
+              borderColor: colors.line,
+            }}
+          >
+            <Row style={{ justifyContent: "space-between" }}>
+              {!wide ? (
+                <Button
+                  secondary
+                  label="Toggle navigation"
+                  onPress={() => setMenu(!menu)}
+                >
+                  ☰
+                </Button>
+              ) : null}
+              <Label style={{ fontWeight: "600", flex: 1 }}>
+                {wide
+                  ? `My workspace / ${pages.find((row) => row[0] === page)?.[1]}`
+                  : "FinancialAdvisor"}
+              </Label>
+              <Muted>{w.demo ? "● Demo mode" : "● Cloud workspace"}</Muted>
+            </Row>
+          </View>
+          {!wide && menu ? (
+            <ScrollView
+              style={{
+                maxHeight: 390,
+                backgroundColor: "white",
+                borderBottomWidth: 1,
+                borderColor: colors.line,
+              }}
+              contentContainerStyle={{ padding: 12 }}
+            >
+              {nav}
+            </ScrollView>
+          ) : null}
+          {w.loading ? (
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 18,
+              }}
+            >
+              <ActivityIndicator size="large" color={colors.ink} />
+              <Label>Opening your FinancialAdvisor workspace…</Label>
+            </View>
+          ) : (
+            <ScrollView
+              ref={scroll}
+              contentContainerStyle={{
+                padding: wide ? 38 : 18,
+                paddingBottom: 40,
+              }}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Stack
+                style={{
+                  width: "100%",
+                  maxWidth: 1240,
+                  alignSelf: "center",
+                  gap: 26,
+                }}
+              >
+                <Row
+                  style={{
+                    justifyContent: "space-between",
+                    alignItems: "flex-end",
+                  }}
+                >
+                  <View style={{ flex: 1, minWidth: 240, gap: 7 }}>
+                    <Muted style={{ letterSpacing: 1.4 }}>
+                      YOUR MONEY, WITH A LITTLE MORE CLARITY
+                    </Muted>
+                    <Heading level={1}>
+                      {page === "overview"
+                        ? w.demo
+                          ? "A clearer picture, Fatima."
+                          : "A clearer picture."
+                        : titles[page]}
+                    </Heading>
+                    <Muted>
+                      {page === "overview"
+                        ? "A fresh perspective on where you are, and where you’re going."
+                        : "Small steps toward a financial life that feels more like you."}
+                    </Muted>
+                  </View>
+                  <View style={{ gap: 12, minWidth: 170 }}>
+                    {[
+                      "overview",
+                      "transactions",
+                      "budgets",
+                      "calendar",
+                      "insights",
+                    ].includes(page) ? (
+                      <MonthSelector month={month} setMonth={setMonth} />
+                    ) : null}
+                    {actions[page] ? (
+                      <Button onPress={() => open(actions[page][1])}>
+                        {actions[page][0]}
+                      </Button>
+                    ) : null}
+                  </View>
+                </Row>
+                <Screen
+                  key={page}
+                  workspace={w}
+                  month={month}
+                  setMonth={setMonth}
+                  open={open}
+                />
+                <Muted style={{ textAlign: "center" }}>
+                  A little intention today. A brighter horizon
+                  tomorrow.　·　FinancialAdvisor
+                </Muted>
+              </Stack>
+            </ScrollView>
+          )}
+          {!wide && !login ? (
+            <View
+              testID="mobile-tabs"
+              style={{
+                flexDirection: "row",
+                borderTopWidth: 1,
+                borderColor: colors.line,
+                backgroundColor: "#fbfcf8",
+                paddingVertical: 7,
+              }}
+            >
+              {[
+                ["overview", "Home", "◈"],
+                ["transactions", "Activity", "⇄"],
+                ["calendar", "Calendar", "▦"],
+                ["insights", "Insights", "◔"],
+              ].map(([id, label, symbol]) => (
+                <NavLink
+                  key={id}
+                  label={label}
+                  href={`#/${prefix}/${id}`}
+                  onPress={() => w.navigate(id)}
+                  active={page === id}
+                  style={{
+                    flex: 1,
+                    paddingHorizontal: 2,
+                    alignItems: "center",
+                  }}
+                >
+                  <Label style={{ fontSize: 12 }}>
+                    {symbol}
+                    {"\n"}
+                    {label}
+                  </Label>
+                </NavLink>
+              ))}
+              <Button
+                secondary
+                label="More"
+                onPress={() => setMenu(!menu)}
+                style={{
+                  marginRight: 5,
+                  paddingHorizontal: 10,
+                  borderWidth: 0,
+                }}
+              >
+                ☰
+              </Button>
+            </View>
+          ) : null}
+        </View>
+      </View>
+      {!login && w.message ? (
+        <View
+          style={{
+            position: "absolute",
+            bottom: wide ? 20 : 88,
+            left: 18,
+            right: 18,
+            alignItems: "center",
+            pointerEvents: "box-none",
+          }}
+        >
+          <View
+            accessibilityLiveRegion="polite"
+            {...(Platform.OS === "web" ? { role: "status" } : {})}
+            style={{
+              backgroundColor: colors.ink,
+              padding: 16,
+              borderRadius: 12,
+              maxWidth: 600,
+            }}
+          >
+            <Label style={{ color: "white" }}>{w.message}</Label>
+          </View>
+        </View>
+      ) : null}
+      {form ? (
+        <EntryModal
+          key={`${form.kind}-${form.id || "new"}`}
+          form={form}
+          onClose={() => setForm(null)}
+          onSave={w.save}
+        />
+      ) : null}
+    </SafeAreaView>
+  );
+}
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <WorkspaceApp />
+    </SafeAreaProvider>
+  );
+}

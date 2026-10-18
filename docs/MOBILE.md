@@ -1,57 +1,63 @@
-# Ionic, iOS, Android and push notifications
+# React Native, Expo, iOS, Android and push notifications
 
-FinancialAdvisor now uses **Ionic Core 9** web components with Vite and **Capacitor 8**. The existing finance modules, web routes, BHD arithmetic and Supabase workspaces are shared by the web, iOS and Android apps. This is a framework-independent Ionic integration; no React or Angular rewrite is required.
+FinancialAdvisor uses React 19, React Native 0.88, Expo SDK 58 and React Native Web. Shared React components render browser DOM through Vite and native iOS/Android views through Metro/Hermes. The mobile apps do not wrap the hosted website. Financial calculations, forms, validation and Supabase workspaces are shared.
 
-Native projects are versioned in `android/` and `ios/`. The provisional bundle/package ID is `com.wacns.financialadvisor`. Confirm it before registering production Firebase apps or App Store/Play Console records; an existing store app must retain its original ID. The native app bundles `dist/` assets and does not load the hosted website through `server.url`.
+The package and bundle ID remains `com.wacns.financialadvisor`. The native callback remains `com.wacns.financialadvisor://auth/callback`. No database migration or new Supabase project is needed for this framework change.
 
 ## Build and run
 
-Use Node.js 24, JDK 21 and Android SDK Platform/Build Tools 36 for Android. iOS requires a Mac with the Xcode version supported by Capacitor 8 and a configured signing team. The generated project uses Swift Package Manager, including the Firebase package-identity workaround in `capacitor.config.json`.
+Use Node.js 24. Local Android compilation requires JDK 21, Android SDK Platform/Build Tools 37 and NDK 27.1.12297006, as required by React Native 0.88. iOS compilation needs a Mac with the Expo SDK 58 supported Xcode toolchain, CocoaPods and a signing team. EAS can build both platforms remotely after the account/project and signing credentials are configured.
 
 ```sh
 npm ci
-# Copy the public client configuration template and fill in the existing
-# Supabase project URL and publishable key. Never use a service-role key here.
-cp .env.example .env.native.local
-npm run native:sync
+cp .env.example .env.local
+# Set the existing public Supabase URL and publishable key under both prefixes:
+# VITE_SUPABASE_* for web; EXPO_PUBLIC_SUPABASE_* for native.
+npm run dev
+npm run build:native
 npm run native:android
-# On a Mac:
+# On macOS:
 npm run native:ios
+# Start Metro for an installed Expo development build:
+npm start
 ```
 
-`native:sync` builds in Vite's `native` mode and syncs both platforms. `.env.native.local` is ignored by Git and is separate from normal web development/test configuration. Build-server variables can supply the same public `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Native builds check these values before packaging. Existing public client values were used for the verified local debug build; they must be configured again on another checkout/build server.
+The demo works without backend configuration. Live native sign-in needs `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` at build time. Never use a Supabase service-role key or Firebase service account in `VITE_` / `EXPO_PUBLIC_` values. The previous `.env.native.local` was Vite/Capacitor configuration; Expo does not load that mode-specific file. Move its public values into `.env.local` with the new Expo names.
 
-Android Studio can run the app on an emulator or device. A debug APK can also be generated with `cd android && ./gradlew assembleDebug` once `ANDROID_HOME`/`JAVA_HOME` are configured. Release signing, distribution profiles, certificates and Firebase credentials are not committed. App icons and store artwork should be finalized before release.
+`app.config.js`, `firebase.json` and `plugins/` are the source of native configuration. `android/` and `ios/` are generated and ignored. Use `npm run native:prebuild -- --clean` to regenerate after configuration changes. Generated project edits are overwritten. Expo Go cannot load the native Firebase module; use a development build or a release build.
 
-The mobile shell adds Ionic bottom tabs, safe-area spacing and Android back handling. CSV and backup exports use the native share sheet. Auth sessions and PKCE verifiers use iOS Keychain / Android Keystore-backed storage; demo samples remain in their existing browser/WebView storage namespace. Native sessions and the hosted website's browser sessions are separate.
+`eas.json` provides development, internal preview (Android APK), and production profiles. After linking your own Expo/EAS project, use `eas build --profile development --platform android`, `eas build --profile preview --platform android`, or `eas build --profile production --platform all`. EAS login, store records, signing and submission are separate release steps and have not been performed here. Because local Firebase files are ignored, configure EAS file environment variables `GOOGLE_SERVICES_JSON` and `GOOGLE_SERVICE_INFO_PLIST` for remote builds; the app config reads their file paths. Supply the public `EXPO_PUBLIC_SUPABASE_*` values in the corresponding EAS build environment too.
 
-## Native sign-in: one Supabase dashboard addition
+## Shared experience and platform boundaries
 
-In [Supabase URL Configuration](https://supabase.com/dashboard/project/srwzgwodlpylezdaipce/auth/url-configuration), add this **additional Redirect URL**:
+The same screens cover overview, accounts, transactions/transfers, budgets, goals, bills/salary, calendar, debts, projects, insights and settings. Desktop uses a sidebar; phones use bottom tabs and a More menu. Native safe areas and Android back handling are built in. Browser exports download CSV/JSON; mobile exports use the native share sheet.
+
+Web sessions use the existing Supabase browser storage. Native sessions and PKCE verifiers use Expo SecureStore (iOS Keychain / Android Keystore), split into small UTF-8 chunks with atomic manifest replacement. Non-sensitive installation IDs, opt-in ownership and demo data use AsyncStorage. Browser demo data retains the `northline-bh-demo-v1` key. A previously installed Capacitor app has separate local storage: sign in again to recover cloud data; local demo edits are not automatically transferred.
+
+## Supabase native callback
+
+In [Supabase URL Configuration](https://supabase.com/dashboard/project/srwzgwodlpylezdaipce/auth/url-configuration), include this **additional Redirect URL**:
 
 ```text
 com.wacns.financialadvisor://auth/callback
 ```
 
-Keep the web Site URL as `https://financial-advisor-partner.vercel.app/`. Do not replace it with the native scheme. Google's provider callback remains `https://srwzgwodlpylezdaipce.supabase.co/auth/v1/callback`.
+Keep the Site URL `https://financial-advisor-partner.vercel.app/`. Google's provider callback remains `https://srwzgwodlpylezdaipce.supabase.co/auth/v1/callback`.
 
-On devices, Google sign-in opens the system browser and returns through the registered app scheme. Both warm and cold app launches consume PKCE codes. Email confirmations must return to the same device/app that began registration. Email/password sign-in does not need the browser callback. The native scheme is configured in Android's manifest and iOS URL types; a different bundle ID/scheme requires updating those files and `src/auth.js` / `src/mobile.js` together.
+Google opens the system auth browser and returns a PKCE code to the app. Browser and deep-link events deduplicate the same one-use code. Warm/cold links validate the exact scheme, host and callback path before exchange. Email confirmations must return to the same device that started registration. Credential-free callback tests do not establish live Google consent or device callback readiness.
 
-## Firebase and Apple setup
+## Firebase and Apple configuration
 
-Use one Firebase project for both apps:
+The existing backend sends FCM HTTP v1 messages. Both native platforms use **React Native Firebase FCM tokens**, not Expo Push tokens or raw APNs tokens. `expo-notifications` handles Android notification permission/channel configuration; it does not replace the FCM backend.
 
-1. Register Android package `com.wacns.financialadvisor`. Download its `google-services.json` to `android/app/google-services.json`.
-2. Register the iOS app with bundle ID `com.wacns.financialadvisor`. Add `GoogleService-Info.plist` to `ios/App/App/` and the **App target's resources** in Xcode.
-3. In the Apple Developer account, enable Push Notifications for the app ID. Select a signing team and matching provisioning profile in Xcode. Push entitlement, APNs delegate callbacks and remote-notification background mode are already in the source project.
-4. Upload the APNs authentication key, Apple team ID and key ID to this Firebase iOS app's Cloud Messaging settings. Keep the private `.p8` key outside Git/chat.
-5. Enable Firebase Cloud Messaging HTTP v1. Create a server service account with the Firebase Cloud Messaging API Admin role scoped to this Firebase project.
-6. In [Supabase Edge Function secrets](https://supabase.com/dashboard/project/srwzgwodlpylezdaipce/functions/secrets), set `FCM_SERVICE_ACCOUNT` to the service account JSON. Set `PUSH_CRON_SECRET` to a separate random secret of at least 32 characters if enabling scheduled reminders. Never put either value into a `VITE_` variable or the mobile app.
-7. Run `npm run native:sync` again and rebuild/install both apps.
+1. In one Firebase project, register Android package `com.wacns.financialadvisor`. Save `google-services.json` at the **repository root**.
+2. Register the corresponding iOS bundle ID and save `GoogleService-Info.plist` at the **repository root**. Both files are ignored. Configure both before prebuilding both platforms together, or prebuild only the platform whose file you have supplied.
+3. The Expo configuration enables Firebase's native plugins when a Firebase file is present. Clean prebuild copies the files, configures the native Firebase SDK and generates the Android `ic_stat_finance` notification icon. Auto-init and analytics collection are disabled; the app requests permission only after a signed-in user taps **Settings → Enable notifications**.
+4. Enable Push Notifications for the Apple app ID, configure the signing team/provisioning, and upload your APNs authentication key, team ID and key ID to Firebase Cloud Messaging. Keep the private `.p8` key outside Git/chat. Background remote-notification mode and the push entitlement are generated by Expo. Production/preview EAS profiles use production APNs; local builds default to development. Set `APP_PUSH_ENVIRONMENT=production` when generating a local release project.
+5. Enable FCM HTTP v1 and provide a server service account with Firebase Cloud Messaging API Admin privileges scoped to this project. In [Supabase Edge Function secrets](https://supabase.com/dashboard/project/srwzgwodlpylezdaipce/functions/secrets), set `FCM_SERVICE_ACCOUNT` to its JSON and `PUSH_CRON_SECRET` to an independent random secret of at least 32 characters if scheduling reminders.
+6. Rebuild/install the native apps after configuration changes. Sign in, opt in and send the in-app test. Verify foreground/background/terminated delivery, notification taps, token refresh, disable and sign-out on physical iOS and Android devices.
 
-No Firebase app configs, APNs credentials or server service-account secret have been supplied in this migration. Push delivery cannot be verified until those are configured and a physical device is registered. iOS must also be compiled and exercised on a Mac/device; the Linux environment cannot compile an iOS binary.
-
-Firebase auto-initialization is disabled in both platform manifests. The app requests permission only when a signed-in user taps **Settings → Enable notifications**. Demo users and web browsers cannot register native tokens. Android has a dedicated notification channel and monochrome status icon. iOS foreground presentation requests alerts and sound.
+No Firebase app files, APNs credentials or FCM service-account secret were supplied for this migration. Push delivery has not been verified. Store icons/artwork, signing, physical-device tests and store submission remain release tasks.
 
 ## Backend and device lifecycle
 
@@ -75,8 +81,8 @@ No reminder job is scheduled yet. After a successful device test, save the same 
 
 The job invokes the dispatcher hourly. Before 09:00 Bahrain time it does nothing; afterward it checks active expense schedules and outstanding debt payments due on or before the current Bahrain date. Paused schedules, income and fully repaid loans are excluded. A paid occurrence advances its existing schedule and therefore stops being due. Repeated hourly invocations deduplicate successful sends for that day. Disable the job with `select cron.unschedule('financial-advisor-payment-reminders');`.
 
-## Verification and release boundary
+## Verification boundary
 
-Automated checks cover native OAuth callback validation, opt-in permissions, token rotation, account changes, registration failure recovery, navigation allow lists, generic FCM payloads, scheduler authentication and Bahrain dates. Live database tests verified own-device isolation, cross-user deletion denial, anonymous denial, revoked client registration writes and delivery-claim retry/deduplication. Test fixtures were rolled back. Anonymous calls to all three functions returned 401. Edge Function TypeScript checks passed.
+The React migration is checked with shared financial-rule/entry-command tests, native callback and consent tests, secure-storage failure recovery, browser demo workflows and a mocked Google PKCE → verified workspace → save → reload → sign-out workflow. Expo dependency compatibility, Android/iOS clean prebuild, web production build and Android/iOS Hermes exports are also checked.
 
-The web build, native asset sync, 32 unit tests, 14 browser checks and Android debug APK compilation passed in this environment. The debug artifact is generated at `android/app/build/outputs/apk/debug/app-debug.apk` (and copied into ignored `artifacts/financial-advisor-debug.apk` for review). A signed iOS build, physical-device notification receipt/tap behavior, background delivery, APNs credentials, Firebase secrets, custom-scheme allowlisting and store submission require the platform setup above. This migration provides the implementation and native projects; it does not claim App Store / Play Store publication or live push delivery.
+A Hermes export validates native JavaScript resolution and compilation; it is not an installed binary test. This Linux session does not establish an iOS/Xcode build, real-device authentication, native push delivery or store publication. The earlier Capacitor APK belongs to the previous framework and is not a React Native release artifact.

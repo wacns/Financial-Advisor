@@ -18,3 +18,9 @@ GoogleService-Info.plist
 *.jks
 *.keystore
 ios/App/CapApp-SPM/symlinks/
+
+# Expo-generated native projects and local state
+.expo/
+/dist-native/
+/android/
+/ios/

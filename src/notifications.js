@@ -77,10 +77,12 @@ export function createNotifications({native, platform, preferences, getMessaging
       } finally { update({busy:false}); }
     }),
     restore: () => serialized(async () => {
-      if (!native || !getUser()) return;
-      const remembered = await preferences.get(preferenceKey);
-      if (remembered !== getUser().id) { ownerId = null; update({enabled:false}); return; }
+      const userId = getUser()?.id;
+      if (!native || !userId) return;
       try {
+        const remembered = await preferences.get(preferenceKey);
+        if (getUser()?.id !== userId) return;
+        if (remembered !== userId) { ownerId = null; update({enabled:false}); return; }
         await setup();
         const {receive} = await messaging.checkPermissions();
         update({permission:receive});

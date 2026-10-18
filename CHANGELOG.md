@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.0 — React and React Native
+
+- Replaced Ionic/Capacitor with shared React Native screens, React Native Web, and Expo.
+- Migrated accounts, transfers, transactions, budgets, goals, planning, calendar, reports, settings and entry forms to React components.
+- Retained existing Supabase workspace data, browser routes, BHD precision and domain logic.
+- Added native SecureStore session storage, Expo system-browser PKCE, share-sheet exports, safe areas and Android back navigation.
+- Adapted opt-in push to React Native Firebase while retaining the deployed FCM backend.
+- Added reproducible Expo configuration and EAS build profiles; native projects are generated instead of versioned.
+- Updated browser workflows and added shared-entry, secure-storage and duplicate callback regression coverage.
+
 ## 1.3.0 — Ionic and native mobile
 
 - Added Ionic Core components, responsive mobile tabs and native-safe layouts.
