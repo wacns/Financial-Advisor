@@ -44,3 +44,9 @@ Browser screenshots are generated in ignored `artifacts/` by the tests. Live dat
 
 
 Live HTTP and browser checks: login loads, Google button is enabled, BHD demo loads, unauthenticated private routes redirect to login. Supabase OAuth authorization redirects to accounts.google.com with the correct Supabase callback. Following the dashboard update, live cancellation checks confirmed that both the application-specific redirect and the default Supabase Site URL return to `financial-advisor-partner.vercel.app`. See [DEPLOYMENT.md](DEPLOYMENT.md). A complete Google account consent and return flow still needs a user sign-in.
+
+## Dependency audit (2026-10-18)
+
+The React migration pins transitive `@grpc/grpc-js` to 1.14.6 and Xcode tooling's `uuid` to 11.1.1 to address published advisories while retaining the supported Expo/React Native versions. Clean native prebuild checks Xcode's use of the compatible `uuid.v4()` API.
+
+Two upstream advisories remain in the latest published build-tool dependencies: [braces stack exhaustion](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) (3.0.3, used by Metro's file matching) and [node-forge certificate signature verification](https://github.com/advisories/GHSA-86w9-cpqp-85rv) (1.4.0, used by Expo CLI certificate tooling). npm reports their dependent packages too, so the advisory count is larger than two. Fixed releases were unavailable at this check. Do not run `npm audit fix --force`: its suggested downgrade to Expo 44 / React Native 0.72 would break this SDK 58 project. Use trusted project/configuration inputs for native tooling and revisit these packages when upstream publishes fixes. The deployed Vercel application serves the Vite output; it does not run Metro or Expo CLI as a public server.
