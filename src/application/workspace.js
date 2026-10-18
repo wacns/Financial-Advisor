@@ -127,8 +127,20 @@ export function transactionCSV(state, transactions) {
       .replace(/^[=+@\-\t\r]/, "'$&")
       .replaceAll('"', '""') +
     '"';
+  const currencies = [
+    ...new Set(
+      transactions.map(
+        (t) =>
+          t.currency ||
+          state.accounts.find((a) => a.id === t.accountId)?.currency ||
+          "BHD",
+      ),
+    ),
+  ];
+  const amountHeader =
+    currencies.length === 1 ? `Amount (${currencies[0]})` : "Amount";
   return [
-    "Date,Description,Category,Type,Amount (BHD),Currency,Account,To Account",
+    `Date,Description,Category,Type,${amountHeader},Currency,Account,To Account,Time,Labels,Note`,
     ...transactions.map((t) =>
       [
         t.date,
@@ -143,6 +155,9 @@ export function transactionCSV(state, transactions) {
         t.type === "transfer"
           ? state.accounts.find((a) => a.id === t.toAccountId)?.name || ""
           : "",
+        t.time || "",
+        (t.labels || []).join(", "),
+        t.note || "",
       ]
         .map(cell)
         .join(","),

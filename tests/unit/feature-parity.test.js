@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { blankState } from "../../src/finance.js";
-import { applyEntry } from "../../src/application/workspace.js";
+import { applyEntry, transactionCSV } from "../../src/application/workspace.js";
 import {
   normalizeWorkspace,
   convert,
@@ -583,4 +583,21 @@ test("updating a loan account installment updates its linked schedule without dr
   );
   assert.equal(s.recurring[0].loanInstallment, true);
   assert.equal(s.recurring[0].interest, 1);
+});
+
+test("exported income and expense CSV reimports without relabeling currencies", () => {
+  let s = save(base(), "transaction", {
+    ...expense,
+    accountId: "usd",
+    amount: 10,
+    time: "14:30",
+    labels: "weekly,food",
+    note: "Keep receipt",
+  });
+  const csv = transactionCSV(s, s.transactions);
+  assert.match(csv, /Amount \(USD\),Currency/);
+  const duplicate = importCSV(s, csv, "usd");
+  assert.equal(duplicate.added, 0);
+  assert.equal(duplicate.skipped, 1);
+  assert.throws(() => importCSV(s, csv, "bank"), /currency/);
 });

@@ -3,6 +3,7 @@ import {
   validateWorkspace,
   clone,
   defaultRates,
+  accountCurrency,
 } from "./model.js";
 import { validateCycleBudgets } from "./cycles.js";
 import { validateProjects } from "./projects.js";
@@ -204,7 +205,13 @@ export function importCSV(
 ) {
   if (content.length > 16000000) throw Error("CSV must be smaller than 16 MB.");
   const rows = parseCSV(content.replace(/^\uFEFF/, "")),
-    header = rows.shift()?.map((c) => c.trim().toLowerCase());
+    header = rows
+      .shift()
+      ?.map((c) =>
+        /^amount(?:\s*\([a-z]{3}\))?$/i.test(c.trim())
+          ? "amount"
+          : c.trim().toLowerCase(),
+      );
   if (!header || !["date", "type", "amount"].every((c) => header.includes(c)))
     throw Error(
       "CSV requires date,type,amount columns; category,name/note,time are optional.",
@@ -228,6 +235,17 @@ export function importCSV(
     if (cells.length !== header.length)
       throw Error("A CSV row has the wrong number of columns.");
     const r = Object.fromEntries(header.map((h, i) => [h, cells[i]]));
+    r.type = String(r.type || "")
+      .trim()
+      .toLowerCase();
+    r.date = String(r.date || "").trim();
+    r.currency = String(r.currency || "")
+      .trim()
+      .toUpperCase();
+    if (r.currency && r.currency !== accountCurrency(next, accountId))
+      throw Error(
+        "CSV currency must match the destination account. Choose a matching account or convert the amounts explicitly.",
+      );
     if (!["expense", "income"].includes(r.type))
       throw Error("CSV imports support income and expenses only.");
     const t = {

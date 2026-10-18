@@ -107,6 +107,8 @@ export function validateCycleBudgets(s) {
   for (const b of s.cycleBudgets || []) {
     if (!currencyCodes.includes(b.currency) || !isCivilDate(`${b.key}-01`))
       throw Error("Invalid budget currency or month.");
+    if (!Number.isInteger(b.day) || b.day < 1 || b.day > 31)
+      throw Error("Invalid stored cycle day.");
     const expected = cycleRange({ settings: { cycleStartDay: b.day } }, b.key);
     if (
       b.from !== expected.from ||

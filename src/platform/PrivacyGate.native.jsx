@@ -6,6 +6,7 @@ export default function PrivacyGate({ children }) {
   usePreventScreenCapture("financial-advisor");
   const [unlocked, setUnlocked] = useState(false),
     [covered, setCovered] = useState(true),
+    [opened, setOpened] = useState(false),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   const working = useRef(false),
@@ -20,6 +21,7 @@ export default function PrivacyGate({ children }) {
       const level = await LocalAuthentication.getEnrolledLevelAsync();
       if (level === LocalAuthentication.SecurityLevel.NONE) {
         authorized.current = true;
+        setOpened(true);
         setUnlocked(true);
         setCovered(false);
         return;
@@ -32,6 +34,7 @@ export default function PrivacyGate({ children }) {
       });
       if (result.success) {
         authorized.current = true;
+        setOpened(true);
         setUnlocked(true);
         setCovered(false);
       } else setError("Unlock with your device credentials to continue.");
@@ -66,8 +69,14 @@ export default function PrivacyGate({ children }) {
   }, [unlock]);
   return (
     <View style={{ flex: 1 }}>
-      {unlocked ? (
-        <View style={{ flex: 1, display: covered ? "none" : "flex" }}>
+      {opened ? (
+        <View
+          accessibilityElementsHidden={covered || !unlocked}
+          importantForAccessibility={
+            covered || !unlocked ? "no-hide-descendants" : "auto"
+          }
+          style={{ flex: 1, display: covered || !unlocked ? "none" : "flex" }}
+        >
           {children}
         </View>
       ) : null}
