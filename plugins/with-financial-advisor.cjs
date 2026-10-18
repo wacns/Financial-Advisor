@@ -2,11 +2,34 @@ const {
   withAndroidManifest,
   withDangerousMod,
   withPodfile,
+  withAppBuildGradle,
 } = require("expo/config-plugins");
 const { mergeContents } = require("@expo/config-plugins/build/utils/generateCode");
 const fs = require("node:fs");
 const path = require("node:path");
 module.exports = function withFinancialAdvisor(config) {
+  config = withAppBuildGradle(config, (config) => {
+    config.modResults.contents = mergeContents({
+      src: config.modResults.contents,
+      newSrc: `
+// Signing values are read only by Gradle; no credentials are written into source.
+if (System.getenv('ANDROID_RELEASE_KEYSTORE')) {
+    android.signingConfigs.create('financialAdvisorRelease') {
+        storeFile file(System.getenv('ANDROID_RELEASE_KEYSTORE'))
+        storePassword System.getenv('ANDROID_RELEASE_STORE_PASSWORD')
+        keyAlias System.getenv('ANDROID_RELEASE_KEY_ALIAS')
+        keyPassword System.getenv('ANDROID_RELEASE_KEY_PASSWORD')
+    }
+    android.buildTypes.release.signingConfig = android.signingConfigs.financialAdvisorRelease
+}
+`,
+      tag: 'financial-advisor-release-signing',
+      anchor: /^dependencies \{/m,
+      offset: 0,
+      comment: '//',
+    }).contents;
+    return config;
+  });
   config = withPodfile(config, (config) => {
     config.modResults.contents = mergeContents({
       src: config.modResults.contents,

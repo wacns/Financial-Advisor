@@ -22,6 +22,7 @@ import { exportFile, native } from "../platform/runtime";
 import { CustomReports, ExtendedSettings } from "./ManagementScreens.jsx";
 import { backupText } from "../domain/imports.js";
 import { recordValue } from "../domain/model.js";
+import AppUpdates from "./AppUpdates.jsx";
 export function Insights({ workspace: w, month, open }) {
   const { colors } = useAppearance();
   const [account, setAccount] = useState("all"),
@@ -223,6 +224,7 @@ export function Settings({ workspace: w, open }) {
           {w.demo ? "Leave demo" : "Sign out"}
         </Button>
       </Card>
+      <AppUpdates />
     </Stack>
   );
 }

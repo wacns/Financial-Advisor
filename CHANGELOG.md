@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0 — Installers and updates (2026-10-18)
+
+- Add Android APK/AAB and Windows, macOS and Linux desktop installer builds to a combined GitHub Release workflow; reuse MobAI for the unsigned iOS IPA.
+- Add Electron with bundled shared React UI, isolated/sandboxed renderer and system-browser PKCE sign-in.
+- Add Expo Updates with native fingerprint compatibility and a separate channel-based publishing workflow, plus desktop update-feed support and restart controls in Settings.
+- Keep preview signing, private download-feed limitations, production credentials and device verification explicit in `docs/RELEASES.md`.
+
 ## 1.5.0 — Reference feature expansion (2026-10-18)
 
 - Add account/transaction/goal editing and deletion, explicit balance reconciliation, transaction times/labels/templates, currency-aware transfers and account terms with linked loan installments.

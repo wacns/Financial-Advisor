@@ -1,0 +1,186 @@
+name: Application releases
+run-name: FinancialAdvisor installers — ${{ github.ref_name }}
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v[0-9]*']
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: '.nvmrc', cache: npm }
+      - run: npm ci
+        env: { ELECTRON_SKIP_BINARY_DOWNLOAD: '1' }
+      - run: npm run lint && npm test
+      - id: version
+        env: { RELEASE_REF: '${{ github.ref }}' }
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import app from './app.config.js';
+          const pkg = JSON.parse(fs.readFileSync('package.json'));
+          const desktop = JSON.parse(fs.readFileSync('desktop/package.json'));
+          if (!/^\d+\.\d+\.\d+$/.test(pkg.version) || app.expo.version !== pkg.version || desktop.version !== pkg.version) throw Error('All app versions must match');
+          if (process.env.RELEASE_REF.startsWith('refs/tags/') && process.env.RELEASE_REF !== `refs/tags/v${pkg.version}`) throw Error('Tag must match package version');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `value=${pkg.version}\n`);
+          JS
+  android:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
+      APP_UPDATE_CHANNEL: preview
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: '.nvmrc', cache: npm }
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with: { distribution: temurin, java-version: '21' }
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+      - uses: gradle/actions/setup-gradle@07d1f8453baaff67fb503883367f8b13e6158a54 # v6
+      - run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0' 'ndk;27.1.12297006'
+      - run: npm ci
+      - name: Restore optional Firebase client config
+        env: { FIREBASE_CONFIG: '${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}' }
+        shell: bash
+        run: |
+          if [ -n "$FIREBASE_CONFIG" ]; then
+            printf '%s' "$FIREBASE_CONFIG" | base64 --decode > "$RUNNER_TEMP/google-services.json"
+            jq -e . "$RUNNER_TEMP/google-services.json" > /dev/null
+            echo "GOOGLE_SERVICES_JSON=$RUNNER_TEMP/google-services.json" >> "$GITHUB_ENV"
+          fi
+      - run: npx expo prebuild --platform android --no-install
+      - name: Restore optional Android release signing
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "$KEYSTORE$STORE_PASSWORD$KEY_ALIAS$KEY_PASSWORD" ]; then
+            for value in "$KEYSTORE" "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD"; do test -n "$value"; done
+            printf '%s' "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+            echo "ANDROID_RELEASE_KEYSTORE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+            echo 'ANDROID_SIGNATURE=release' >> "$GITHUB_ENV"
+          else
+            echo '::warning::No release keystore configured. APK/AAB use the Expo testing key; do not use this key for production.'
+            echo 'ANDROID_SIGNATURE=preview' >> "$GITHUB_ENV"
+          fi
+      - name: Build APK and Play Store bundle
+        working-directory: android
+        env:
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease :app:bundleRelease --no-daemon --max-workers=2 -Dorg.gradle.jvmargs='-Xmx4g -XX:MaxMetaspaceSize=1g' -Pkotlin.compiler.execution.strategy=in-process
+      - name: Verify and collect Android installers
+        env: { APP_VERSION: '${{ needs.verify.outputs.version }}' }
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p installers
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/37.0.0/aapt" dump badging "$APK" | sed -n '1,5p'
+          cp "$APK" "installers/FinancialAdvisor-$APP_VERSION-android-$ANDROID_SIGNATURE.apk"
+          cp android/app/build/outputs/bundle/release/app-release.aab "installers/FinancialAdvisor-$APP_VERSION-android-$ANDROID_SIGNATURE.aab"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with: { name: android-installers, path: 'installers/*', retention-days: 7, if-no-files-found: error }
+  ios:
+    needs: verify
+    permissions: { contents: write }
+    uses: ./.github/workflows/ios-build.yml
+    with:
+      build_id: FinancialAdvisor-${{ needs.verify.outputs.version }}-ios-unsigned
+      configuration: Release
+      use_signing: false
+    secrets: inherit
+  desktop:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: linux, flags: '--linux --x64' }
+          - { os: windows-latest, target: windows, flags: '--win --x64' }
+          - { os: macos-latest, target: macos, flags: '--mac --x64 --arm64' }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      VITE_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      DESKTOP_UPDATE_URL: ${{ vars.DESKTOP_UPDATE_URL }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: '.nvmrc', cache: npm, cache-dependency-path: 'package-lock.json' }
+      - run: npm ci
+      - run: npm ci --prefix desktop
+      - run: npm run desktop:prepare
+      - name: Smoke-test desktop application
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npm run test:desktop
+      - name: Package desktop installers
+        env: { TARGET_FLAGS: '${{ matrix.flags }}' }
+        shell: bash
+        run: npx electron-builder --config electron-builder.config.cjs --publish never $TARGET_FLAGS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: desktop-${{ matrix.target }}
+          path: |
+            release-desktop/*.exe
+            release-desktop/*.dmg
+            release-desktop/*.zip
+            release-desktop/*.AppImage
+            release-desktop/*.deb
+            release-desktop/*.yml
+            release-desktop/*.blockmap
+            !release-desktop/builder*.yml
+          if-no-files-found: error
+          retention-days: 7
+  publish:
+    needs: [verify, android, ios, desktop]
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with: { path: installers, merge-multiple: true }
+      - name: Publish preview with checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP_VERSION: ${{ needs.verify.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd installers
+          sha256sum -- * > SHA256SUMS.txt
+          cd ..
+          TAG="v$APP_VERSION"
+          if gh release view "$TAG" --json isDraft --jq '.isDraft' > "$RUNNER_TEMP/release-draft" 2>/dev/null; then
+            test "$(cat "$RUNNER_TEMP/release-draft")" = true || { echo 'Refusing to replace a published release. Bump the app version.' >&2; exit 1; }
+          else
+            gh release create "$TAG" --target "$GITHUB_SHA" --draft --prerelease --title "FinancialAdvisor $APP_VERSION — preview" --notes-file docs/RELEASE-NOTES.md
+          fi
+          gh release upload "$TAG" installers/* --clobber
+          gh release edit "$TAG" --draft=false --prerelease --latest=false

@@ -13,6 +13,8 @@ The workflow runs manually or through Builder's `ios-build/*` tags. It does not 
 
 ## Run without installing Builder
 
+For the combined Android/iOS/desktop GitHub Release, use **Application releases** instead. It calls this workflow for the IPA and publishes installers together only after all platforms build. See [RELEASES.md](RELEASES.md).
+
 In [GitHub Actions](https://github.com/wacns/Financial-Advisor/actions/workflows/ios-build.yml), choose **Run workflow** on `main`. Supply a unique build ID, keep `ios_path=ios`, choose `FinancialAdvisor` (or allow detection), `configuration=Release`, and `use_signing=false`. After success, download artifact **ipa** and extract the IPA. An unsigned IPA is a device-target build artifact; it cannot be installed directly on a stock iPhone or uploaded to TestFlight until correctly signed.
 
 CLI equivalent using an already authorized GitHub CLI:

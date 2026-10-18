@@ -29,3 +29,6 @@ ios/App/CapApp-SPM/symlinks/
 /modules/**/android/build/
 /modules/**/android/.gradle/
 /modules/**/android/.cxx/
+/desktop/web/
+/desktop/runtime-config.json
+/release-desktop/

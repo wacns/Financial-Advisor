@@ -1,6 +1,6 @@
 # FinancialAdvisor
 
-An English/Arabic personal finance app for Bahrain, built with React, React Native, Expo, React Native Web, Vite, and Supabase. FinancialAdvisor has its own forest, ivory, and sage identity with account currencies, manual exchange rates and three-decimal precision. Shared React Native components render as React DOM on the web and native views on iOS/Android. There is no WebView wrapper.
+An English/Arabic personal finance app for Bahrain, built with React, React Native, Expo, React Native Web, Vite, and Supabase. FinancialAdvisor has its own forest, ivory, and sage identity with account currencies, manual exchange rates and three-decimal precision. Shared React Native components render as React DOM on the web and native views on iOS/Android. Electron packages the shared web interface for Windows, macOS and Linux; mobile apps use native React Native views.
 
 **Live app:** [financial-advisor-partner.vercel.app](https://financial-advisor-partner.vercel.app/)
 
@@ -60,6 +60,8 @@ Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in the root `.env.lo
 | `npm run native:android` | Build and run Android locally |
 | `npm run native:ios` | Build and run iOS on macOS |
 | `npm run build:native` | Export Hermes bundles for both mobile platforms |
+| `npm run desktop:start` | Build and open the Electron desktop app (install `desktop/` dependencies first) |
+| `npm run desktop:build` | Package desktop installers for the current OS |
 
 Install Chromium with `npx playwright install chromium` before running browser tests. See the [testing guide](docs/TESTING.md) for Linux dependencies and system-browser options.
 
@@ -71,6 +73,7 @@ Install Chromium with `npx playwright install chromium` before running browser t
 - [Google sign-in setup](docs/GOOGLE_AUTH_SETUP.md).
 - [Development conventions](docs/DEVELOPMENT.md).
 - [Remote iOS builds with MobAI Builder](docs/IOS-BUILDER.md): GitHub macOS build workflow and signing requirements.
+- [Installers, GitHub Releases and automatic updates](docs/RELEASES.md): APK/AAB, IPA, EXE, DMG/ZIP, AppImage/DEB, Expo Updates and desktop update feeds.
 - [iOS, Android and push notifications](docs/MOBILE.md): native setup, Firebase/APNs and device testing.
 - [Deployment and existing-checkout migration](docs/DEPLOYMENT.md).
 - [Release history](CHANGELOG.md).

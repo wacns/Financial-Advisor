@@ -1,7 +1,7 @@
 {
   "name": "financial-advisor",
   "private": true,
-  "version": "1.5.0",
+  "version": "1.6.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -17,7 +17,11 @@
     "build:native": "expo export --platform android --platform ios --output-dir dist-native",
     "lint": "eslint src/application src/platform src/domain src/main.jsx",
     "predev": "node scripts/prepare-ocr.mjs",
-    "prebuild": "node scripts/prepare-ocr.mjs"
+    "prebuild": "node scripts/prepare-ocr.mjs",
+    "desktop:prepare": "node scripts/prepare-desktop.mjs",
+    "desktop:start": "npm run desktop:prepare && electron desktop",
+    "desktop:build": "npm run desktop:prepare && electron-builder --config electron-builder.config.cjs --publish never",
+    "test:desktop": "node scripts/test-desktop.mjs"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -40,6 +44,7 @@
     "expo-secure-store": "58.0.2",
     "expo-sharing": "58.0.19",
     "expo-system-ui": "58.0.6",
+    "expo-updates": "58.0.17",
     "expo-web-browser": "58.0.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -52,6 +57,8 @@
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "@vitejs/plugin-react": "6.1.2",
+    "electron": "44.9.0",
+    "electron-builder": "26.15.3",
     "eslint": "10.13.0",
     "eslint-plugin-react-hooks": "7.1.1",
     "vite": "8.3.4"

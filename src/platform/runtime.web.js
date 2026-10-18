@@ -1,9 +1,11 @@
-import { finishAuthRedirect, startGoogleSignIn } from "../auth.js";
+import { finishAuthRedirect, startGoogleSignIn, NATIVE_AUTH_REDIRECT } from "../auth.js";
+const desktop = globalThis.financialAdvisorDesktop;
+import publicClient from "../public-client.json";
 export const native = false;
-export const platform = "web";
+export const platform = desktop ? "desktop" : "web";
 export const clientConfig = {
-  url: import.meta.env.VITE_SUPABASE_URL,
-  key: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  url: import.meta.env.VITE_SUPABASE_URL || publicClient.url,
+  key: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || publicClient.key,
 };
 export const authOptions = { flowType: "pkce", detectSessionInUrl: false };
 export const preferences = {
@@ -30,16 +32,22 @@ export function subscribeRoutes(callback) {
 export function subscribeActive() {
   return () => {};
 }
-export function subscribeAuthLinks() {
+export function subscribeAuthLinks(callback) {
+  if (desktop) {
+    const stop = desktop.onAuthLink(callback);
+    desktop.consumeAuthLink().then((url) => { if (url) callback(url); }).catch(() => {});
+    return stop;
+  }
   return () => {};
 }
 export function finishRedirect(client) {
   return finishAuthRedirect(client, location, history);
 }
 export function googleSignIn(client) {
-  return startGoogleSignIn(client, location);
+  return startGoogleSignIn(client, location, desktop ? { open: desktop.openAuth } : undefined);
 }
 export function emailRedirect() {
+  if (desktop) return NATIVE_AUTH_REDIRECT;
   return new URL(location.pathname, location.origin).href;
 }
 export async function getMessaging() {

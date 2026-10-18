@@ -1,0 +1,11 @@
+{
+  "name": "financial-advisor-desktop",
+  "productName": "FinancialAdvisor",
+  "desktopName": "financial-advisor.desktop",
+  "version": "1.6.0",
+  "description": "FinancialAdvisor personal finance workspace",
+  "author": "FinancialAdvisor",
+  "license": "UNLICENSED",
+  "main": "main.cjs",
+  "dependencies": { "electron-updater": "6.8.9" }
+}

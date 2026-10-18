@@ -4,6 +4,29 @@ name: iOS Build
 run-name: iOS Build ${{ inputs.build_id || github.ref_name }}
 
 on:
+  workflow_call:
+    inputs:
+      build_id:
+        required: true
+        type: string
+      ios_path:
+        type: string
+        default: 'ios'
+      scheme:
+        type: string
+        default: 'FinancialAdvisor'
+      use_signing:
+        type: boolean
+        default: false
+      configuration:
+        type: string
+        default: 'Release'
+      profile:
+        type: string
+        default: '{}'
+      build_number:
+        type: string
+        default: ''
   # Pushing a tag named ios-build/<build-id> starts the same job without the
   # GitHub API, for environments where only git access is available. A push
   # event runs the workflow file from the tagged commit, and the parameters
@@ -81,6 +104,8 @@ jobs:
     env:
       EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
       EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
+      APP_UPDATE_CHANNEL: preview
     timeout-minutes: 90 # a cold React Native/Expo build on the free runner takes 30-60 minutes
 
     steps:

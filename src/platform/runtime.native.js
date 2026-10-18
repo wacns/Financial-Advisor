@@ -7,6 +7,7 @@ import { randomUUID } from "expo-crypto";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { createSecureStorage } from "./secure-storage.js";
+import publicClient from "../public-client.json";
 import {
   startGoogleSignIn,
   finishNativeAuth,
@@ -15,8 +16,8 @@ import {
 export const native = true;
 export const platform = Platform.OS;
 export const clientConfig = {
-  url: process.env.EXPO_PUBLIC_SUPABASE_URL,
-  key: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  url: process.env.EXPO_PUBLIC_SUPABASE_URL || publicClient.url,
+  key: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || publicClient.key,
 };
 export const authOptions = {
   flowType: "pkce",

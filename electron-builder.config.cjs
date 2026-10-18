@@ -1,0 +1,15 @@
+module.exports = {
+  appId: "com.wacns.financialadvisor",
+  productName: "FinancialAdvisor",
+  icon: "desktop/assets/icon.png",
+  directories: { app: "desktop", output: "release-desktop" },
+  files: ["main.cjs", "preload.cjs", "policy.cjs", "runtime-config.json", "assets/**/*", "web/**/*", "package.json"],
+  asar: true,
+  artifactName: "FinancialAdvisor-${version}-${os}-${arch}.${ext}",
+  protocols: [{ name: "FinancialAdvisor sign-in", schemes: ["com.wacns.financialadvisor"] }],
+  publish: [{ provider: "github", owner: "wacns", repo: "Financial-Advisor" }],
+  win: { target: [{ target: "nsis", arch: ["x64"] }] },
+  nsis: { oneClick: false, allowToChangeInstallationDirectory: true, perMachine: false, deleteAppDataOnUninstall: false },
+  mac: { category: "public.app-category.finance", target: ["dmg", "zip"], hardenedRuntime: true },
+  linux: { category: "Office", target: ["AppImage", "deb"], syncDesktopName: true, maintainer: "FinancialAdvisor <43343208+wacns@users.noreply.github.com>" },
+};
