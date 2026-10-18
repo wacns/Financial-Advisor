@@ -70,6 +70,7 @@ Install Chromium with `npx playwright install chromium` before running browser t
 - [Authentication and data ownership](docs/AUTHENTICATION.md): Supabase setup, protected routes and RLS.
 - [Google sign-in setup](docs/GOOGLE_AUTH_SETUP.md).
 - [Development conventions](docs/DEVELOPMENT.md).
+- [Remote iOS builds with MobAI Builder](docs/IOS-BUILDER.md): GitHub macOS build workflow and signing requirements.
 - [iOS, Android and push notifications](docs/MOBILE.md): native setup, Firebase/APNs and device testing.
 - [Deployment and existing-checkout migration](docs/DEPLOYMENT.md).
 - [Release history](CHANGELOG.md).

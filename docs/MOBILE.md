@@ -97,3 +97,8 @@ Test on Android and iOS: fresh launch/unlock with biometric and device passcode,
 On Android additionally: enable widget consent, pin through a supported launcher (or add from the launcher widget list), tap income/expense/template buttons with the app cold/warm, review drafts before saving, change accounts and sign out, remove a template, disable widgets and confirm names disappear. Widgets never show amounts/balances. An old-owner widget must not open a different account's template. iOS widgets are not included.
 
 Use the SDK manager's `platforms;android-37.0` package (not the obsolete `platforms;android-37` identifier), Build Tools 37.0.0 and the NDK selected by Expo. A Mac/Xcode is required to compile and install iOS. Hermes export and prebuild are configuration/bundle checks, not a replacement for these binary/device checks. Never reuse the old ignored Capacitor APK as the current React Native build.
+
+
+## Remote macOS alternative
+
+The repository now includes MobAI ios-builder configuration and a manually triggered GitHub Actions iOS build workflow. It generates the managed Expo project on macOS and defaults to an unsigned Release IPA. See [IOS-BUILDER.md](IOS-BUILDER.md) for invocation, public app variables, optional Firebase configuration and the separate Apple signing/device release requirements.

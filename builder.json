@@ -1,0 +1,35 @@
+{
+  "project": "FinancialAdvisor",
+  "platform": "ios",
+  "github": {
+    "owner": "wacns",
+    "repo": "Financial-Advisor"
+  },
+  "ios": {
+    "path": "ios",
+    "scheme": "FinancialAdvisor",
+    "bundleId": "com.wacns.financialadvisor",
+    "configuration": "Release",
+    "signing": false
+  },
+  "defaultProfile": "unsigned",
+  "profiles": {
+    "unsigned": {
+      "configuration": "Release"
+    },
+    "development": {
+      "distribution": "development",
+      "configuration": "Debug",
+      "env": {
+        "APP_PUSH_ENVIRONMENT": "development"
+      }
+    },
+    "store": {
+      "distribution": "store",
+      "configuration": "Release",
+      "env": {
+        "APP_PUSH_ENVIRONMENT": "production"
+      }
+    }
+  }
+}
