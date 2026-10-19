@@ -7,7 +7,7 @@ module.exports = {
   asar: true,
   artifactName: "FinancialAdvisor-${version}-${os}-${arch}.${ext}",
   protocols: [{ name: "FinancialAdvisor sign-in", schemes: ["com.wacns.financialadvisor"] }],
-  publish: [{ provider: "github", owner: "wacns", repo: "Financial-Advisor" }],
+  publish: [{ provider: "generic", url: process.env.DESKTOP_UPDATE_URL || require("./desktop/update-feed.json").url }],
   win: { target: [{ target: "nsis", arch: ["x64"] }] },
   nsis: { oneClick: false, allowToChangeInstallationDirectory: true, perMachine: false, deleteAppDataOnUninstall: false },
   mac: { category: "public.app-category.finance", target: ["dmg", "zip"], hardenedRuntime: true },

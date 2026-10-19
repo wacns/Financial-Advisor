@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { loadEnv } from "vite";
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 execFileSync(npm, ["run", "build"], { stdio: "inherit", shell: process.platform === "win32" });
-const updateUrl = process.env.DESKTOP_UPDATE_URL || "";
+const updateUrl = process.env.DESKTOP_UPDATE_URL || JSON.parse(fs.readFileSync("desktop/update-feed.json", "utf8")).url;
 const publicEnv = loadEnv("production", process.cwd(), "VITE_");
 const publicClient = JSON.parse(fs.readFileSync("src/public-client.json", "utf8"));
 if (updateUrl && (new URL(updateUrl).protocol !== "https:" || new URL(updateUrl).username || new URL(updateUrl).password)) throw Error("DESKTOP_UPDATE_URL must be a public HTTPS URL without credentials.");

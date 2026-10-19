@@ -1,0 +1,50 @@
+name: Build desktop installers
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, target: linux, flags: '--linux --x64' }
+          - { os: windows-latest, target: windows, flags: '--win --x64' }
+          - { os: macos-latest, target: macos, flags: '--mac --x64 --arm64' }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      VITE_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      DESKTOP_UPDATE_URL: ${{ vars.DESKTOP_UPDATE_URL }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: '.nvmrc', cache: npm, cache-dependency-path: 'package-lock.json' }
+      - run: npm ci
+      - run: npm ci --prefix desktop
+      - run: npm run desktop:prepare
+      - name: Smoke-test desktop application
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npm run test:desktop
+      - name: Package desktop installers
+        env: { TARGET_FLAGS: '${{ matrix.flags }}' }
+        shell: bash
+        run: npx electron-builder --config electron-builder.config.cjs --publish never $TARGET_FLAGS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: desktop-${{ matrix.target }}
+          path: |
+            release-desktop/*.exe
+            release-desktop/*.dmg
+            release-desktop/*.zip
+            release-desktop/*.AppImage
+            release-desktop/*.deb
+            release-desktop/*.yml
+            release-desktop/*.blockmap
+            !release-desktop/builder*.yml
+          if-no-files-found: error
+          retention-days: 7

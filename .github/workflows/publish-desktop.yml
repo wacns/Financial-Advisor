@@ -1,0 +1,31 @@
+name: Publish public desktop downloads
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+    secrets:
+      RELEASES_TOKEN:
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: public-desktop-downloads
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: '.nvmrc' }
+      - run: npm ci --prefix desktop --ignore-scripts
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with: { pattern: 'desktop-*', path: installers, merge-multiple: true }
+      - name: Publish installers and update feed
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          DESKTOP_RELEASE_VERSION: ${{ inputs.version }}
+        run: node scripts/publish-desktop.mjs installers

@@ -36,11 +36,10 @@ if (!process.env.EXPO_TOKEN) {
   }
 }
 
-if (!process.env.DESKTOP_UPDATE_URL) {
-  result("Desktop", "PENDING", "DESKTOP_UPDATE_URL is not configured. Desktop automatic downloads remain disabled in builds without a feed.");
-} else {
+const desktopFeed = process.env.DESKTOP_UPDATE_URL || JSON.parse(fs.readFileSync(new URL("../desktop/update-feed.json", import.meta.url), "utf8")).url;
+{
   try {
-    const base = new URL(process.env.DESKTOP_UPDATE_URL);
+    const base = new URL(desktopFeed);
     if (base.protocol !== "https:" || base.username || base.password || base.search || base.hash) throw Error("Invalid feed");
     if (!base.pathname.endsWith("/")) base.pathname += "/";
     const files = ["latest.yml", "latest-linux.yml", "latest-mac.yml"];

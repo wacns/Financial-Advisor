@@ -35,7 +35,7 @@ try {
   if (!await settingsLink.isVisible()) await page.getByRole("button", { name: "More", exact: true }).click();
   await settingsLink.click();
   await expect(page.getByText("App updates", { exact: true })).toBeVisible();
-  await expect(page.getByText(/Automatic updates need a configured download feed/)).toBeVisible();
+  await expect(page.getByText(process.env.DESKTOP_EXECUTABLE_PATH ? /Install a newer DEB with your package manager/ : /Automatic updates need a configured download feed/)).toBeVisible();
   await page.reload();
   await expect(page.getByText("App updates", { exact: true })).toBeVisible();
   const rejected = await page.evaluate(async () => {

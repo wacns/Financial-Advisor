@@ -1,0 +1,40 @@
+name: Desktop releases
+run-name: FinancialAdvisor desktop installers
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: desktop-release
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: '.nvmrc', cache: npm }
+      - run: npm ci
+        env: { ELECTRON_SKIP_BINARY_DOWNLOAD: '1' }
+      - run: npm run lint && npm test
+      - id: version
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const {version} = JSON.parse(fs.readFileSync('desktop/package.json'));
+          if (!/^\d+\.\d+\.\d+$/.test(version)) throw Error('Invalid desktop version');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `value=${version}\n`);
+          JS
+  build:
+    needs: verify
+    uses: ./.github/workflows/build-desktop.yml
+  publish:
+    needs: [verify, build]
+    uses: ./.github/workflows/publish-desktop.yml
+    with:
+      version: ${{ needs.verify.outputs.version }}
+    secrets:
+      RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
