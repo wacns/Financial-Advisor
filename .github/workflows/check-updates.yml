@@ -1,0 +1,26 @@
+name: Check update connections
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Match the mobile publishing environment
+        type: choice
+        options: [preview, production]
+        default: preview
+permissions: { contents: read }
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    environment: mobile-${{ inputs.channel }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: '.nvmrc', package-manager-cache: false }
+      - name: Verify Expo project access and desktop feed without publishing
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
+          DESKTOP_UPDATE_URL: ${{ vars.DESKTOP_UPDATE_URL }}
+        run: node scripts/check-update-connections.mjs

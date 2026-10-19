@@ -34,6 +34,8 @@ Private-repository GitHub downloads require the user's GitHub access. No reposit
 
 ## Mobile automatic updates
 
+Use **Check update connections** in GitHub Actions to verify that `EXPO_TOKEN` can read the configured Expo project and that any configured desktop feed serves update metadata. Select the same `preview`/`production` environment as publishing. The check never prints token values or publishes an update; project-read access alone does not establish permission to publish or successful device delivery.
+
 `expo-updates` is installed and linked in app config to [`@financial-advisor/financial-advisor`](https://expo.dev/accounts/financial-advisor/projects/financial-advisor), project UUID `f6d80f34-ee40-4075-9cca-4216d9c94d7d`. **Actions secret `EXPO_TOKEN`** must be set directly in GitHub to an Expo token with permission for that project. Optional Actions variable `EAS_PROJECT_ID` can override the configured UUID for a deliberate project migration; keep the account/slug aligned too. Configure the same public client values in Expo's `preview` and `production` environments. An account/project link alone does not publish an update or authorize CI.
 
 Build and install a new binary after connecting the project. The configuration uses Expo's `fingerprint` runtime policy, the preview channel for GitHub preview builds, and `preview`/`production` channels for matching EAS profiles. A compatible update downloads on launch and applies on the next launch. Settings can check immediately, download, and let you choose **Restart and install update** after saving your work. Failed checks leave the running app usable.
