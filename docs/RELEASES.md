@@ -1,5 +1,7 @@
 # Installers and updates
 
+The [desktop v1.6.1 preview](https://github.com/wacns/financial-advisor-releases/releases/tag/v1.6.1) is public, while application source remains private. [Release run 39219635722](https://github.com/wacns/Financial-Advisor/actions/runs/39219635722) built and published all desktop formats using `RELEASES_TOKEN`; all 15 release checksums match GitHub upload digests. Windows NSIS and Linux AppImage installers include the public update feed. Install this version manually once when upgrading from desktop v1.6.0. macOS updates remain manual until signing is configured.
+
 The [v1.6.0 preview](https://github.com/wacns/Financial-Advisor/releases/tag/v1.6.0) was published on 2026-10-19 after [all release jobs passed](https://github.com/wacns/Financial-Advisor/actions/runs/39210604546) at commit `f9c4edb`. It contains all formats below, update metadata/blockmaps and `SHA256SUMS.txt`. All 18 checksummed release files match GitHub's uploaded SHA-256 digests. These are preview builds with the signing and update-service requirements described below.
 
 The shared React application has native Expo/React Native mobile builds and an Electron desktop application that bundles the React Native Web/Vite output. Desktop does not load the hosted website: its UI, demo data and browser OCR assets are packaged locally. Cloud sign-in and workspace sync still need the existing backend and network. Native biometric privacy, FCM push and Android widgets remain mobile features; they are not desktop integrations.
