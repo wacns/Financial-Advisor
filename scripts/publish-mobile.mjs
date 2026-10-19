@@ -18,7 +18,8 @@ let release = api(`repos/${repository}/releases?per_page=100`).find(r => r.tag_n
 const note = "## Mobile installers\n\nAPK and AAB are Android preview builds unless the filename says release. The iOS IPA is unsigned and requires signing before installation. Mobile version: " + version + ". Verify these files with MOBILE-SHA256SUMS.txt. Application source remains private.";
 if (!release) {
   gh("release", "create", tag, "--repo", repository, "--target", repo.default_branch, "--draft", "--prerelease", "--title", `FinancialAdvisor ${version} — preview`, "--notes", note);
-  release = api(`repos/${repository}/releases/tags/${tag}`);
+  release = api(`repos/${repository}/releases?per_page=100`).find(r => r.tag_name === tag);
+  if (!release) throw Error("Created mobile release draft was not returned by GitHub");
 }
 fs.writeFileSync(path.join(directory, "MOBILE-SHA256SUMS.txt"), checksums);
 const assets = api(`repos/${repository}/releases/${release.id}/assets?per_page=100`);
