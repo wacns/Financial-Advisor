@@ -4,6 +4,8 @@ An English/Arabic personal finance app for Bahrain, built with React, React Nati
 
 **Live app:** [financial-advisor-partner.vercel.app](https://financial-advisor-partner.vercel.app/)
 
+**Installers:** [GitHub Releases](https://github.com/wacns/Financial-Advisor/releases) — Android APK/AAB, unsigned iOS IPA, Windows EXE, macOS DMG/ZIP and Linux AppImage/DEB. Preview signing and update requirements are explained in the [release guide](docs/RELEASES.md).
+
 ## Quick start
 
 The repository root is the application root. Use Node.js 24 (`nvm use` reads `.nvmrc`).
