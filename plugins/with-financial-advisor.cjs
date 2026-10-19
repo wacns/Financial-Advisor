@@ -42,6 +42,7 @@ if (System.getenv('ANDROID_RELEASE_KEYSTORE')) {
     return config;
   });
   config = withAndroidManifest(config, (config) => {
+    config.modResults.manifest.$['xmlns:tools'] = 'http://schemas.android.com/tools';
     const application = config.modResults.manifest.application[0];
     application["meta-data"] ??= [];
     for (const [name, value] of Object.entries({
@@ -53,10 +54,16 @@ if (System.getenv('ANDROID_RELEASE_KEYSTORE')) {
       const existing = application["meta-data"].find(
         (row) => row.$["android:name"] === name,
       );
-      if (existing) existing.$["android:value"] = value;
+      if (existing) {
+        existing.$["android:value"] = value;
+        existing.$["tools:replace"] = [...new Set([
+          ...(existing.$["tools:replace"] || "").split(",").filter(Boolean),
+          "android:value",
+        ])].join(",");
+      }
       else
         application["meta-data"].push({
-          $: { "android:name": name, "android:value": value },
+          $: { "android:name": name, "android:value": value, "tools:replace": "android:value" },
         });
     }
     return config;

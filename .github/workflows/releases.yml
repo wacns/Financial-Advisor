@@ -87,13 +87,20 @@ jobs:
             echo '::warning::No release keystore configured. APK/AAB use the Expo testing key; do not use this key for production.'
             echo 'ANDROID_SIGNATURE=preview' >> "$GITHUB_ENV"
           fi
+      - name: Check Android manifest merging before native compilation
+        working-directory: android
+        env:
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: ./gradlew :app:processReleaseMainManifest --build-cache --no-daemon --max-workers=2 -Dorg.gradle.jvmargs='-Xmx4g -XX:MaxMetaspaceSize=1g' -Pkotlin.compiler.execution.strategy=in-process
       - name: Build APK and Play Store bundle
         working-directory: android
         env:
           ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
           ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
           ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
-        run: ./gradlew :app:assembleRelease :app:bundleRelease --no-daemon --max-workers=2 -Dorg.gradle.jvmargs='-Xmx4g -XX:MaxMetaspaceSize=1g' -Pkotlin.compiler.execution.strategy=in-process
+        run: ./gradlew :app:assembleRelease :app:bundleRelease --build-cache --no-daemon --max-workers=2 -Dorg.gradle.jvmargs='-Xmx4g -XX:MaxMetaspaceSize=1g' -Pkotlin.compiler.execution.strategy=in-process
       - name: Verify and collect Android installers
         env: { APP_VERSION: '${{ needs.verify.outputs.version }}' }
         shell: bash
