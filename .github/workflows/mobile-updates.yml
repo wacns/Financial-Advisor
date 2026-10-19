@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   update:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: mobile-${{ inputs.channel }}
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
