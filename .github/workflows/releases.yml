@@ -160,3 +160,10 @@ jobs:
       version: ${{ needs.verify.outputs.version }}
     secrets:
       RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+  public-mobile:
+    needs: [verify, public-desktop]
+    uses: ./.github/workflows/publish-mobile.yml
+    with:
+      version: ${{ needs.verify.outputs.version }}
+    secrets:
+      RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
