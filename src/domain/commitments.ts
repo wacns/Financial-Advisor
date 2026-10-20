@@ -160,23 +160,23 @@ export function commitmentStats(
 }
 /** Fields the plan and payment forms submit. */
 export type CommitmentInput = {
-  accountId?: string;
-  firstDue?: string;
-  frequency?: string;
+  accountId?: unknown;
+  firstDue?: unknown;
+  frequency?: unknown;
   interval?: unknown;
   name?: unknown;
   provider?: unknown;
-  category?: string;
-  payeeId?: string;
+  category?: unknown;
+  payeeId?: unknown;
   total?: unknown;
   count?: unknown;
   amount?: unknown;
-  trialEnds?: string;
+  trialEnds?: unknown;
   website?: unknown;
-  note?: string;
+  note?: unknown;
   index?: unknown;
-  date?: string;
-  method?: string;
+  date?: unknown;
+  method?: unknown;
 };
 export function commitmentCommand(
   input: unknown,

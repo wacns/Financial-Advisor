@@ -1,10 +1,11 @@
-import { useAppearance } from "./appearance.jsx";
+import { useAppearance } from "./appearance.tsx";
 import React from "react";
 import { View } from "react-native";
-import { Card, Heading, Label, Muted, Row } from "./ui.jsx";
+import { Card, Heading, Label, Muted, Row } from "./ui.tsx";
 import { monthlyTrend } from "../reports.ts";
 import { formatDate, formatMoney as money } from "../locale.ts";
-export default function TrendChart({ state, month }) {
+import type { Workspace } from "../domain/types.ts";
+export default function TrendChart({ state, month }: { state: Workspace; month: string }) {
   const { colors } = useAppearance();
   const trend = monthlyTrend(state, month),
     maximum = Math.max(

@@ -1,8 +1,12 @@
 import React from "react";
 import { View, TextInput, Platform } from "react-native";
 import { Picker } from "@react-native-picker/picker";
-import { Label, colors } from "./ui.jsx";
-import { useAppearance } from "./appearance.jsx";
+import { Label, colors } from "./ui.tsx";
+import { useAppearance } from "./appearance.tsx";
+import { must } from "../guards.ts";
+import type { FieldModule, FieldProps } from "./fieldTypes.ts";
+import type { Satisfies } from "../platform/contracts.ts";
+import type * as Self from "./Field.native.tsx";
 export default function Field({
   label,
   value,
@@ -11,7 +15,7 @@ export default function Field({
   options,
   disabled = false,
   autoComplete,
-}) {
+}: FieldProps) {
   const { colors, t, language } = useAppearance();
   label = t(label);
   return (
@@ -26,14 +30,15 @@ export default function Field({
             overflow: "hidden",
           }}
         >
-          <Picker
+          <Picker<unknown>
             accessibilityLabel={label}
             selectedValue={value}
-            onValueChange={onChange}
+            // Option values are strings, so String() changes nothing; no caller reads the index.
+            onValueChange={(item) => onChange(String(item))}
             enabled={!disabled}
             style={{ color: colors.ink }}
           >
-            {options.map((option) => {
+            {must(options, "select options").map((option) => {
               const row =
                 typeof option === "string"
                   ? { value: option, label: option }
@@ -96,3 +101,5 @@ export default function Field({
     </View>
   );
 }
+// Compile-time check that this module matches the Field contract.
+export type FieldCheck = Satisfies<FieldModule, typeof Self>;

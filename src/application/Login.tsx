@@ -1,11 +1,13 @@
-import { useAppearance } from "./appearance.jsx";
+import { useAppearance } from "./appearance.tsx";
 import React, { useEffect, useState } from "react";
 import { View, ScrollView, useWindowDimensions } from "react-native";
-import { Button, Card, Heading, Label, Muted, NavLink, Stack } from "./ui.jsx";
+import { Button, Card, Heading, Label, Muted, NavLink, Stack } from "./ui.tsx";
 import Field from "./Field";
 import * as runtime from "../platform/runtime";
 import { aiOptions } from "./assistantClient.ts";
-export default function Login({ workspace }) {
+import { errorMessage } from "../guards.ts";
+import type { WorkspaceController } from "./useWorkspace.ts";
+export default function Login({ workspace }: { workspace: WorkspaceController }) {
   const { colors } = useAppearance();
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
@@ -23,14 +25,14 @@ export default function Login({ workspace }) {
     };
   }, []);
   const wide = useWindowDimensions().width > 800;
-  async function run(action) {
+  async function run(action: () => Promise<unknown>) {
     if (busy) return;
     setBusy(true);
     workspace.setMessage("");
     try {
       await action();
     } catch (error) {
-      workspace.setMessage(error.message);
+      workspace.setMessage(errorMessage(error));
     } finally {
       setBusy(false);
     }

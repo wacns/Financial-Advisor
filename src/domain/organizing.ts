@@ -7,7 +7,8 @@ import {
   recordValue,
   currencyCodes,
 } from "./model.ts";
-import { isOneOf } from "../guards.ts";
+import { field, isOneOf, matches } from "../guards.ts";
+const isHexColor = matches(/^#[a-f0-9]{6}$/i);
 import type { RateQuote, Rates, Transaction, Workspace } from "./types.ts";
 export const accountIcons = ["▣", "▰", "◆", "◈", "●", "♧", "⌂", "✦"] as const;
 export const accountColors = [
@@ -19,15 +20,15 @@ export const accountColors = [
   "#514c83",
 ] as const;
 export type AppearanceInput = {
-  color?: string;
-  icon?: string;
+  color?: unknown;
+  icon?: unknown;
   rewardRate?: unknown;
-  includeInTotal?: boolean | string;
+  includeInTotal?: unknown;
 };
 export function accountAppearance(data: AppearanceInput) {
   const color = data.color || accountColors[0],
     icon = data.icon || accountIcons[0];
-  if (!/^#[a-f0-9]{6}$/i.test(color) || !isOneOf(accountIcons, icon))
+  if (!isHexColor(color) || !isOneOf(accountIcons, icon))
     throw Error("Choose a valid account color and icon.");
   const rewardRate = Number(data.rewardRate || 0);
   if (!Number.isFinite(rewardRate) || rewardRate < 0 || rewardRate > 100000)
@@ -42,15 +43,15 @@ export function accountAppearance(data: AppearanceInput) {
 }
 /** Fields the organizing forms submit; each command kind reads its own subset. */
 export type OrganizeInput = {
-  role?: string;
+  role?: unknown;
   name?: unknown;
   note?: unknown;
-  color?: string;
-  accountId?: string;
-  source?: string;
-  asOf?: string;
-  rates?: Partial<Rates>;
-  dateFormat?: string;
+  color?: unknown;
+  accountId?: unknown;
+  source?: unknown;
+  asOf?: unknown;
+  rates?: unknown;
+  dateFormat?: unknown;
 };
 export function organizeCommand(
   input: unknown,
@@ -105,7 +106,7 @@ export function organizeCommand(
     const old = s.tags.find((t) => t.id === id),
       name = text(data.name, "Tag", 40),
       color = data.color || accountColors[0];
-    if (!/^#[a-f0-9]{6}$/i.test(color))
+    if (!isHexColor(color))
       throw Error("Choose a six-digit tag color.");
     if (
       s.tags.some(
@@ -137,9 +138,13 @@ export function organizeCommand(
     if (!row) throw Error("Transaction not found.");
     row.pinned = !row.pinned;
   } else if (kind === "defaultAccount") {
-    if (data.accountId && !s.accounts.some((a) => a.id === data.accountId))
+    // A set id must match an account, so the matched account's id is that same string.
+    const account = data.accountId
+      ? s.accounts.find((a) => a.id === data.accountId)
+      : undefined;
+    if (data.accountId && !account)
       throw Error("Choose an existing default account.");
-    s.settings.defaultAccountId = data.accountId || "";
+    s.settings.defaultAccountId = account?.id || "";
   } else if (kind === "refreshRates") {
     const { source, asOf } = data;
     if (
@@ -150,9 +155,10 @@ export function organizeCommand(
       throw Error("Check the provider and quote date before applying rates.");
     const rates = Object.fromEntries(
       currencyCodes.map((code) => {
-        const rate = data.rates?.[code];
+        const rate = field(data.rates, code);
+        // Number.isFinite is false for anything but a number, so the typeof check adds nothing.
         if (
-          rate === undefined ||
+          typeof rate !== "number" ||
           !Number.isFinite(rate) ||
           rate <= 0 ||
           rate > 1e9 ||

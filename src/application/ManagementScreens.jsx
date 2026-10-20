@@ -12,7 +12,7 @@ import {
   Empty,
   Progress,
   Stat,
-} from "./ui.jsx";
+} from "./ui.tsx";
 import Field from "./Field";
 import { categoryPaths } from "../domain/commands.ts";
 import {

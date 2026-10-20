@@ -1,4 +1,4 @@
-import { useAppearance } from "./appearance.jsx";
+import { useAppearance } from "./appearance.tsx";
 import React, { useState } from "react";
 import { View, Pressable } from "react-native";
 import {
@@ -11,7 +11,7 @@ import {
   Row,
   Stack,
   Progress,
-} from "./ui.jsx";
+} from "./ui.tsx";
 import Field from "./Field";
 import {
   formatMoney as money,

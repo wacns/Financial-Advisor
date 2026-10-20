@@ -16,6 +16,15 @@ export const isOneOf = <T extends string>(
   options: readonly T[],
   value: unknown,
 ): value is T => options.some((option) => option === value);
+/**
+ * A type guard for a pattern check that already coerced its input with String(), as RegExp.test
+ * does. It claims `string` because every value a form submits is a string; the check itself is
+ * exactly the old one.
+ */
+export const matches =
+  (pattern: RegExp) =>
+  (value: unknown): value is string =>
+    pattern.test(String(value));
 /** A caught value's message, as error.message read it when the value was an Error. */
 export const errorMessage = (error: unknown): string | undefined => {
   const message = field(error, "message");

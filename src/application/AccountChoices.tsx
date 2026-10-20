@@ -1,12 +1,19 @@
 import React from "react";
 import { Pressable } from "react-native";
-import { Label, Muted, Row, Stack } from "./ui.jsx";
-import { useAppearance } from "./appearance.jsx";
+import { Label, Muted, Row, Stack } from "./ui.tsx";
+import { useAppearance } from "./appearance.tsx";
+import type { Workspace } from "../domain/types.ts";
 export function AccountChoices({
   state,
   selected,
   onChange,
   label = "Included accounts",
+}: {
+  state: Pick<Workspace, "accounts">;
+  /** Ids of the chosen accounts; none means all. */
+  selected: string[];
+  onChange: (selected: string[]) => void;
+  label?: string;
 }) {
   const { colors } = useAppearance();
   return (

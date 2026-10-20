@@ -1,7 +1,11 @@
 import { amount, text, date, convert, clone } from "./model.ts";
 import { toFils, bahrainDate } from "../locale.ts";
 import { saveTransaction } from "./ledger.ts";
-import { checkedLater, isOneOf, must } from "../guards.ts";
+import { checkedLater, isOneOf, matches, must } from "../guards.ts";
+import type { ProjectDocument } from "./types.ts";
+const isDocumentData = matches(
+  /^data:(application\/pdf|text\/plain|image\/(png|jpeg|webp));base64,/,
+);
 import type { Contract, Milestone, Project, Workspace } from "./types.ts";
 const sum = (rows: unknown[]): number =>
   rows.reduce<number>((n, value) => n + toFils(value), 0) / 1000;
@@ -150,27 +154,27 @@ export function validateProjects(s: Workspace): Workspace {
 }
 /** Fields the project forms submit; each command kind reads its own subset. */
 export type ProjectInput = {
-  projectId?: string;
+  projectId?: unknown;
   reserve?: unknown;
-  name?: string;
+  name?: unknown;
   budget?: unknown;
   vendor?: unknown;
-  categoryId?: string;
+  categoryId?: unknown;
   original?: unknown;
   startDate?: unknown;
   endDate?: unknown;
   notes?: unknown;
-  contractId?: string;
+  contractId?: unknown;
   amount?: unknown;
   date?: unknown;
   due?: unknown;
-  kind?: string;
-  milestoneId?: string;
-  accountId?: string;
-  transactionId?: string;
-  file?: string;
+  kind?: unknown;
+  milestoneId?: unknown;
+  accountId?: unknown;
+  transactionId?: unknown;
+  file?: unknown;
   fileName?: unknown;
-  collection?: string;
+  collection?: unknown;
 };
 export function projectCommand(
   s: Workspace,
@@ -324,23 +328,21 @@ export function projectCommand(
     delete t.milestoneId;
   } else if (kind === "projectDocument") {
     const file = data.file || "";
-    if (
-      !/^data:(application\/pdf|text\/plain|image\/(png|jpeg|webp));base64,/.test(
-        file,
-      )
-    )
+    if (!isDocumentData(file))
       throw Error("Choose a PDF, text document or receipt image.");
     if (file.length > 1500000)
       throw Error("Document must be at most 1 MB.");
-    p.documents.push({
-      id: uuid(),
-      name: text(data.name),
-      file,
-      fileName: String(data.fileName || data.name).replace(/[\\/]/g, "_"),
-      contractId: data.contractId || "",
-      transactionId: data.transactionId || "",
-      createdAt: new Date().toISOString(),
-    });
+    p.documents.push(
+      checkedLater<ProjectDocument>({
+        id: uuid(),
+        name: text(data.name),
+        file,
+        fileName: String(data.fileName || data.name).replace(/[\\/]/g, "_"),
+        contractId: data.contractId || "",
+        transactionId: data.transactionId || "",
+        createdAt: new Date().toISOString(),
+      }),
+    );
   } else if (kind === "projectDeleteItem") {
     const collection = data.collection;
     if (

@@ -1,4 +1,4 @@
-import { useAppearance } from "./appearance.jsx";
+import { useAppearance } from "./appearance.tsx";
 import React, { useState } from "react";
 import {
   Modal,
@@ -9,12 +9,26 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "../platform/safe-area";
 import Field from "./Field";
-import FileField from "./FileField.jsx";
-import { Button, Heading, Muted, Label, Row, colors } from "./ui.jsx";
-export default function EntryModal({ form, onClose, onSave }) {
+import FileField from "./FileField.tsx";
+import { Button, Heading, Muted, Label, Row, colors } from "./ui.tsx";
+import { errorMessage } from "../guards.ts";
+import type { FormSpec } from "./enhancementForms.ts";
+export default function EntryModal({
+  form,
+  onClose,
+  onSave,
+}: {
+  form: FormSpec;
+  onClose: () => void;
+  onSave: (
+    kind: string,
+    values: Record<string, unknown>,
+    id: string | null | undefined,
+  ) => Promise<unknown>;
+}) {
   const { colors, motion, language } = useAppearance();
   const [values, setValues] = useState(form.values),
-    [error, setError] = useState(""),
+    [error, setError] = useState<string | undefined>(""),
     [busy, setBusy] = useState(false);
   const insets = useSafeAreaInsets();
   async function submit() {
@@ -25,7 +39,7 @@ export default function EntryModal({ form, onClose, onSave }) {
       await onSave(form.kind, values, form.id);
       onClose();
     } catch (error) {
-      setError(error.message);
+      setError(errorMessage(error));
       setBusy(false);
     }
   }
@@ -70,14 +84,13 @@ export default function EntryModal({ form, onClose, onSave }) {
           >
             <Muted>SMALL STEPS, FORWARD</Muted>
             <Heading>{form.title}</Heading>
-            {form.fields.map((field) =>
-              React.createElement(
-                ["image", "file"].includes(field.type) ? FileField : Field,
-                {
-                  key: field.name,
-                  ...field,
-                  label: field.label.replaceAll(
-                    "BHD",
+            {form.fields.map((field) => {
+              const props = {
+                ...field,
+                label: field.label.replaceAll(
+                  "BHD",
+                  // String() is the conversion replaceAll applies to a replacement value.
+                  String(
                     values.currency ||
                       (form.fields.some((f) => f.name === "accountId")
                         ? form.accounts?.find(
@@ -89,17 +102,20 @@ export default function EntryModal({ form, onClose, onSave }) {
                       form.reportingCurrency ||
                       "BHD",
                   ),
-                  value: values[field.name],
-                  disabled: busy,
-                  onChange: (value, fileName) =>
-                    setValues((previous) => ({
-                      ...previous,
-                      [field.name]: value,
-                      ...(fileName ? { fileName } : {}),
-                    })),
-                },
-              ),
-            )}
+                ),
+                value: values[field.name],
+                disabled: busy,
+                onChange: (value: string, fileName?: string) =>
+                  setValues((previous) => ({
+                    ...previous,
+                    [field.name]: value,
+                    ...(fileName ? { fileName } : {}),
+                  })),
+              };
+              return ["image", "file"].includes(field.type)
+                ? React.createElement(FileField, { key: field.name, ...props })
+                : React.createElement(Field, { key: field.name, ...props });
+            })}
             {form.note ? <Muted>{form.note}</Muted> : null}
             {error ? (
               <Label accessibilityRole="alert" style={{ color: colors.danger }}>

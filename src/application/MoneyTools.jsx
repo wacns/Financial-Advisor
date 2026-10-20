@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Button, Card, Heading, Label, Muted, Row, Stack } from "./ui.jsx";
+import { Button, Card, Heading, Label, Muted, Row, Stack } from "./ui.tsx";
 import Field from "./Field";
 import { parseTransactionText } from "../domain/capture.ts";
 import {
@@ -14,7 +14,7 @@ import {
   speechSupported,
   stopSpeech,
 } from "../platform/speech";
-import AssistantFunding from "./AssistantFunding.jsx";
+import AssistantFunding from "./AssistantFunding.tsx";
 import {
   aiOptions,
   assistantRequest,

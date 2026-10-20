@@ -1,4 +1,4 @@
-import { useAppearance } from "./appearance.jsx";
+import { useAppearance } from "./appearance.tsx";
 import React, { useState } from "react";
 import { View } from "react-native";
 import {
@@ -12,9 +12,9 @@ import {
   Button,
   Progress,
   Empty,
-} from "./ui.jsx";
+} from "./ui.tsx";
 import Field from "./Field";
-import { AccountChoices } from "./AccountChoices.jsx";
+import { AccountChoices } from "./AccountChoices.tsx";
 import {
   totalBalance,
   summary,
@@ -24,7 +24,7 @@ import {
 import { formatMoney as money, formatDate, toFils } from "../locale.ts";
 import { upcomingPayments, dueStatus } from "../planning.ts";
 import { budgetHealth, shiftMonth } from "../reports.ts";
-import TrendChart from "./TrendChart.jsx";
+import TrendChart from "./TrendChart.tsx";
 import { transactionCSV } from "./workspace.ts";
 import { exportFile } from "../platform/runtime";
 import { accountDetails, basicBudgetStats } from "../domain/reports.ts";

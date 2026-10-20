@@ -22,7 +22,8 @@ import {
 import type { TransactionInput } from "./ledger.ts";
 import { bahrainDate, toFils } from "../locale.ts";
 import { categories } from "../finance.ts";
-import { checkedLater, isOneOf, must } from "../guards.ts";
+import { checkedLater, isOneOf, matches, must } from "../guards.ts";
+const isSalaryMonth = matches(/^\d{4}-(0[1-9]|1[0-2])$/);
 import type {
   CurrencyCode,
   CycleBudget,
@@ -86,18 +87,18 @@ export type FeatureInput = TransactionInput &
     motion?: unknown;
     parent?: unknown;
     parentId?: unknown;
-    categoryMode?: string;
+    categoryMode?: unknown;
     include?: unknown;
     exclude?: unknown;
-    key?: string;
-    salaryMonth?: string;
+    key?: unknown;
+    salaryMonth?: unknown;
     purchased?: unknown;
     expires?: unknown;
     brand?: unknown;
     serial?: unknown;
     retailer?: unknown;
     notes?: unknown;
-    receipt?: string;
+    receipt?: unknown;
   };
 export function featureCommand(
   input: unknown,
@@ -464,15 +465,16 @@ export function featureCommand(
     const t = row(s.transactions);
     if (t.type !== "income")
       throw Error("Only recorded income can be assigned to a salary month.");
-    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(data.salaryMonth)))
+    const salaryMonth = data.salaryMonth;
+    if (!isSalaryMonth(salaryMonth))
       throw Error("Choose a valid salary month.");
-    t.salaryMonth = data.salaryMonth;
+    t.salaryMonth = salaryMonth;
   } else if (kind === "warranty") {
     const purchased = date(data.purchased),
       expires = date(data.expires);
     if (expires <= purchased)
       throw Error("Expiry must be after the purchase date.");
-    const record: Warranty = {
+    const record = checkedLater<Warranty>({
       id: id || uuid(),
       name: text(data.name),
       category: String(data.category || "Other"),
@@ -483,7 +485,7 @@ export function featureCommand(
       expires,
       notes: String(data.notes || "").slice(0, 1000),
       receipt: data.receipt || "",
-    };
+    });
     if (
       record.receipt &&
       !/^data:image\/(png|jpeg|webp);base64,/.test(record.receipt)

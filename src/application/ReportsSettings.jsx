@@ -1,4 +1,4 @@
-import { useAppearance } from "./appearance.jsx";
+import { useAppearance } from "./appearance.tsx";
 import React, { useState } from "react";
 import { View } from "react-native";
 import {
@@ -12,9 +12,9 @@ import {
   Button,
   Progress,
   Empty,
-} from "./ui.jsx";
+} from "./ui.tsx";
 import Field from "./Field";
-import TrendChart from "./TrendChart.jsx";
+import TrendChart from "./TrendChart.tsx";
 import { accountReport, shiftMonth, spendingBreakdown } from "../reports.ts";
 import { summary, monthTransactions } from "../finance.ts";
 import { formatMoney as money, formatDate, toFils } from "../locale.ts";
@@ -22,7 +22,7 @@ import { exportFile, native } from "../platform/runtime";
 import { CustomReports, ExtendedSettings } from "./ManagementScreens.jsx";
 import { backupText } from "../domain/imports.ts";
 import { recordValue } from "../domain/model.ts";
-import AppUpdates from "./AppUpdates.jsx";
+import AppUpdates from "./AppUpdates.tsx";
 export function Insights({ workspace: w, month, open }) {
   const { colors } = useAppearance();
   const [account, setAccount] = useState("all"),

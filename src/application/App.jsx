@@ -1,4 +1,4 @@
-import { useAppearance, AppearanceProvider } from "./appearance.jsx";
+import { useAppearance, AppearanceProvider } from "./appearance.tsx";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
@@ -10,11 +10,11 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "../platform/safe-area";
-import { Label, Heading, Muted, Button, NavLink, Row, Stack } from "./ui.jsx";
+import { Label, Heading, Muted, Button, NavLink, Row, Stack } from "./ui.tsx";
 import Field from "./Field";
 import PrivacyGate from "../platform/PrivacyGate";
-import Login from "./Login.jsx";
-import EntryModal from "./EntryModal.jsx";
+import Login from "./Login.tsx";
+import EntryModal from "./EntryModal.tsx";
 import { useWorkspace } from "./useWorkspace.ts";
 import { entryForm } from "./forms.ts";
 import {

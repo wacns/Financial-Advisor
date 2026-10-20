@@ -1,5 +1,11 @@
 import React, { useId } from "react";
-import { useAppearance } from "./appearance.jsx";
+import { useAppearance } from "./appearance.tsx";
+import { must } from "../guards.ts";
+import type { FieldModule, FieldProps } from "./fieldTypes.ts";
+import type { Satisfies } from "../platform/contracts.ts";
+import type * as Self from "./Field.web.tsx";
+// React stringifies a controlled value itself; null and undefined leave the control uncontrolled.
+const domValue = (value: unknown) => (value == null ? undefined : String(value));
 export default function Field({
   label,
   name,
@@ -9,7 +15,7 @@ export default function Field({
   options,
   disabled = false,
   autoComplete,
-}) {
+}: FieldProps) {
   const id = useId();
   const { colors, t, language } = useAppearance();
   label = t(label);
@@ -33,7 +39,7 @@ export default function Field({
           id={id}
           aria-label={label}
           name={name}
-          value={value}
+          value={domValue(value)}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
           style={{
@@ -45,7 +51,7 @@ export default function Field({
             border: `1px solid ${colors.line}`,
           }}
         >
-          {options.map((option) => {
+          {must(options, "select options").map((option) => {
             const row =
               typeof option === "string"
                 ? { value: option, label: option }
@@ -62,7 +68,7 @@ export default function Field({
           id={id}
           aria-label={label}
           name={name}
-          value={value}
+          value={domValue(value)}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
           rows={8}
@@ -81,7 +87,7 @@ export default function Field({
           id={id}
           aria-label={label}
           name={name}
-          value={value}
+          value={domValue(value)}
           dir={
             type === "number" || type === "date" || type === "month"
               ? "ltr"
@@ -110,3 +116,5 @@ export default function Field({
     </label>
   );
 }
+// Compile-time check that this module matches the Field contract.
+export type FieldCheck = Satisfies<FieldModule, typeof Self>;

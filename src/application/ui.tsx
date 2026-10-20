@@ -1,12 +1,14 @@
 import React from "react";
+import type { ReactNode } from "react";
 import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
+import type { StyleProp, TextProps, TextStyle, ViewStyle } from "react-native";
 import {
   useAppearance,
   lightColors,
   translatedChildren,
-} from "./appearance.jsx";
+} from "./appearance.tsx";
 export const colors = lightColors;
-export function Label({ children, style, ...props }) {
+export function Label({ children, style, ...props }: TextProps) {
   const { colors, language, t } = useAppearance();
   if (Platform.OS !== "web" && props.accessibilityRole === "status") {
     delete props.accessibilityRole;
@@ -25,7 +27,15 @@ export function Label({ children, style, ...props }) {
     </Text>
   );
 }
-export function Heading({ children, level = 2, style }) {
+export function Heading({
+  children,
+  level = 2,
+  style,
+}: {
+  children?: ReactNode;
+  level?: number;
+  style?: StyleProp<TextStyle>;
+}) {
   const { colors, language, t } = useAppearance();
   return (
     <Text
@@ -49,6 +59,14 @@ export function Button({
   label,
   style,
   testID,
+}: {
+  children?: ReactNode;
+  onPress?: () => void;
+  secondary?: boolean;
+  disabled?: boolean;
+  label?: string;
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
 }) {
   const { colors, t } = useAppearance();
   return (
@@ -87,6 +105,14 @@ export function NavLink({
   href,
   style,
   label,
+}: {
+  children?: ReactNode;
+  onPress: () => void;
+  active?: boolean;
+  /** Link target for the web, where the item renders as an anchor. */
+  href?: string;
+  style?: StyleProp<ViewStyle>;
+  label?: string;
 }) {
   const { colors, t } = useAppearance();
   return (
@@ -118,7 +144,12 @@ export function NavLink({
     </Pressable>
   );
 }
-export function Card({ children, style, testID }) {
+type BoxProps = {
+  children?: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
+};
+export function Card({ children, style, testID }: BoxProps) {
   const { colors, language, t } = useAppearance();
   return (
     <View
@@ -133,7 +164,7 @@ export function Card({ children, style, testID }) {
     </View>
   );
 }
-export function Row({ children, style, testID }) {
+export function Row({ children, style, testID }: BoxProps) {
   const { colors, language, t } = useAppearance();
   return (
     <View
@@ -148,10 +179,10 @@ export function Row({ children, style, testID }) {
     </View>
   );
 }
-export function Stack({ children, style }) {
+export function Stack({ children, style }: BoxProps) {
   return <View style={[styles.stack, style]}>{children}</View>;
 }
-export function Muted({ children, style, ...props }) {
+export function Muted({ children, style, ...props }: TextProps) {
   const { colors, language, t } = useAppearance();
   return (
     <Label
@@ -164,10 +195,12 @@ export function Muted({ children, style, ...props }) {
 }
 export function Empty({
   children = "Nothing here yet. Add your first entry to get started.",
+}: {
+  children?: ReactNode;
 }) {
   return <Muted style={{ paddingVertical: 20 }}>{children}</Muted>;
 }
-export function Progress({ value }) {
+export function Progress({ value }: { value?: number }) {
   const { colors, language, t } = useAppearance();
   return (
     <View
@@ -184,14 +217,27 @@ export function Progress({ value }) {
           styles.fill,
           {
             width: `${Math.max(0, Math.min(100, value || 0))}%`,
-            backgroundColor: value > 100 ? colors.danger : colors.accent,
+            // A missing value compares like 0, as undefined > 100 did.
+            backgroundColor: (value ?? 0) > 100 ? colors.danger : colors.accent,
           },
         ]}
       />
     </View>
   );
 }
-export function Stat({ title, value, note, dark = false, testID }) {
+export function Stat({
+  title,
+  value,
+  note,
+  dark = false,
+  testID,
+}: {
+  title?: ReactNode;
+  value?: ReactNode;
+  note?: ReactNode;
+  dark?: boolean;
+  testID?: string;
+}) {
   const { colors, language, t } = useAppearance();
   return (
     <Card

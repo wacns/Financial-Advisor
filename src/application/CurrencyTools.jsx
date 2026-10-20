@@ -2,7 +2,7 @@ import { requestJSON } from "../platform/http.ts";
 import React, { useState } from "react";
 import { Linking } from "react-native";
 import Field from "./Field";
-import { Button, Card, Heading, Label, Muted, Row, Stack } from "./ui.jsx";
+import { Button, Card, Heading, Label, Muted, Row, Stack } from "./ui.tsx";
 import { currencyCodes, convert } from "../domain/model.ts";
 import { exchangeSnapshot } from "../domain/currency-tools.ts";
 import { formatMoney as money, bahrainDate } from "../locale.ts";

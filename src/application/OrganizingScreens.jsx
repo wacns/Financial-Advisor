@@ -12,8 +12,8 @@ import {
   Stack,
   Progress,
   Stat,
-} from "./ui.jsx";
-import { useAppearance } from "./appearance.jsx";
+} from "./ui.tsx";
+import { useAppearance } from "./appearance.tsx";
 import { formatMoney as money, formatDate, bahrainDate } from "../locale.ts";
 import { convert } from "../domain/model.ts";
 import { contactSummary } from "../domain/organizing.ts";
@@ -24,7 +24,7 @@ import {
   installmentAmount,
 } from "../domain/commitments.ts";
 import { TransactionList } from "./FinancialScreens.jsx";
-export { AccountChoices } from "./AccountChoices.jsx";
+export { AccountChoices } from "./AccountChoices.tsx";
 export function Contacts({ workspace: w, open }) {
   const [search, setSearch] = useState(""),
     [role, setRole] = useState("all"),

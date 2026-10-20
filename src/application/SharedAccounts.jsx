@@ -17,9 +17,9 @@ import {
   Muted,
   Row,
   Stack,
-} from "./ui.jsx";
+} from "./ui.tsx";
 import Field from "./Field";
-import EntryModal from "./EntryModal.jsx";
+import EntryModal from "./EntryModal.tsx";
 import { bahrainDate, formatMoney as money } from "../locale.ts";
 import { currencyCodes } from "../domain/model.ts";
 import { exportFile } from "../platform/runtime";

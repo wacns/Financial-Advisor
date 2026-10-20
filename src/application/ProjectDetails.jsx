@@ -9,7 +9,7 @@ import {
   Muted,
   Button,
   Progress,
-} from "./ui.jsx";
+} from "./ui.tsx";
 import {
   projectTotals,
   milestonePaid,

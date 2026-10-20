@@ -5,7 +5,7 @@ export type TermInput = {
   maturity?: unknown;
   installment?: unknown;
   loanOriginal?: unknown;
-  type?: string;
+  type?: unknown;
   balance?: unknown;
 };
 export function termDetails(data: TermInput) {

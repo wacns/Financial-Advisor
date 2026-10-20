@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { useColorScheme } from "react-native";
 export const lightColors = {
   ink: "#193b35",
@@ -18,7 +19,8 @@ export const lightColors = {
   primary: "#193b35",
   onPrimary: "#fff",
 };
-const darkColors = {
+export type Colors = typeof lightColors;
+const darkColors: Colors = {
   ink: "#e5eee8",
   muted: "#aabeb4",
   accent: "#e2aa7f",
@@ -30,7 +32,7 @@ const darkColors = {
   primary: "#386c54",
   onPrimary: "#fff",
 };
-const ar = {
+const ar: Record<string, string> = {
   Overview: "نظرة عامة",
   Accounts: "الحسابات",
   Transactions: "الحركات",
@@ -501,9 +503,12 @@ Object.assign(ar, {
   "Widgets show quick-entry buttons and up to four saved template names. Balances and amounts stay inside the app. Widget actions open a draft after verifying your account.":
     "تعرض الأدوات أزرار الإدخال السريع وأسماء أربعة قوالب كحد أقصى. تبقى الأرصدة والمبالغ داخل التطبيق. تفتح الأداة مسودة بعد التحقق من حسابك.",
 });
-export function translate(value, language = "en") {
+export function translate(value: string, language?: string): string;
+export function translate<T>(value: T, language?: string): T | string;
+export function translate(value: unknown, language = "en"): unknown {
   if (language !== "ar" || typeof value !== "string") return value;
-  if (ar[value]) return ar[value];
+  const known = ar[value];
+  if (known) return known;
   if (value.startsWith("My workspace / "))
     return `مساحة عملي / ${translate(value.slice(15), language)}`;
   const week = value.match(/^Week (\d+) allocation \(optional\)$/);
@@ -512,28 +517,45 @@ export function translate(value, language = "en") {
   if (rate) return `دينار بحريني لكل 1 ${rate[1]}`;
   return value;
 }
-const Context = createContext({
+/** Translates interface text; values that are not strings pass through unchanged. */
+export interface Translate {
+  (value: string): string;
+  <T>(value: T): T | string;
+}
+export type AppearancePreferences = {
+  theme?: string;
+  language?: string;
+  motion?: boolean;
+};
+export type Appearance = {
+  colors: Colors;
+  language: string;
+  motion: boolean;
+  t: Translate;
+  setPreferences: Dispatch<SetStateAction<AppearancePreferences>>;
+};
+const Context = createContext<Appearance>({
   colors: lightColors,
   language: "en",
   motion: true,
-  t: (value) => value,
+  t: <T,>(value: T) => value,
   setPreferences: () => {},
 });
-export function useAppearance() {
+export function useAppearance(): Appearance {
   return useContext(Context);
 }
-export function AppearanceProvider({ children }) {
-  const [preferences, setPreferences] = useState({}),
+export function AppearanceProvider({ children }: { children?: ReactNode }) {
+  const [preferences, setPreferences] = useState<AppearancePreferences>({}),
     system = useColorScheme();
   const dark =
     preferences.theme === "dark" ||
     (preferences.theme === "system" && system === "dark");
   const value = useMemo(
-    () => ({
+    (): Appearance => ({
       colors: dark ? darkColors : lightColors,
       language: preferences.language || "en",
       motion: preferences.motion !== false,
-      t: (value) => translate(value, preferences.language),
+      t: <T,>(value: T) => translate(value, preferences.language),
       setPreferences,
     }),
     [dark, preferences.language, preferences.motion],
@@ -547,7 +569,7 @@ export function AppearanceProvider({ children }) {
   }, [value, dark]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
-export function translatedChildren(children, t) {
+export function translatedChildren(children: ReactNode, t: Translate) {
   return React.Children.map(children, (child) =>
     typeof child === "string" ? t(child) : child,
   );

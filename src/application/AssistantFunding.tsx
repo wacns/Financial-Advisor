@@ -1,9 +1,28 @@
 import React from "react";
 import { Linking } from "react-native";
-import { Button, Label, Muted, NavLink, Stack } from "./ui.jsx";
+import { Button, Label, Muted, NavLink, Stack } from "./ui.tsx";
 import Field from "./Field";
-const openLink = (url) => Linking.openURL(url).catch(() => {});
+import type { AIOptions } from "./assistantClient.ts";
+const openLink = (url: string) => Linking.openURL(url).catch(() => {});
 
+export type AssistantFundingProps = {
+  /** local, chatgpt, hosted or byok. */
+  mode: string;
+  options: AIOptions;
+  provider: string;
+  setProvider: (provider: string) => void;
+  apiKey: string;
+  setApiKey: (apiKey: string) => void;
+  model: string;
+  setModel: (model: string) => void;
+  /** "yes" once the person accepts the selected AI charges. */
+  pricingConsent: string;
+  setPricingConsent: (consent: string) => void;
+  busy: boolean;
+  refresh: () => unknown;
+  statusError: string;
+  linkIdentity: () => unknown;
+};
 export default function AssistantFunding({
   mode,
   options,
@@ -19,7 +38,7 @@ export default function AssistantFunding({
   refresh,
   statusError,
   linkIdentity,
-}) {
+}: AssistantFundingProps) {
   if (mode === "local") return null;
   return (
     <Stack>

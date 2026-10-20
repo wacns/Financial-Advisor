@@ -149,11 +149,11 @@ export function saveRecurring(
 }
 /** Values the "record payment" form submits for a schedule occurrence. */
 export type OccurrenceInput = {
-  scheduledFor?: string;
-  accountId?: string;
+  scheduledFor?: unknown;
+  accountId?: unknown;
   amount?: unknown;
   received?: unknown;
-  salaryMonth?: string;
+  salaryMonth?: unknown;
   date?: unknown;
 };
 export function recordRecurring(
@@ -259,8 +259,8 @@ export function addDebt(
 }
 /** Values the repayment form submits. */
 export type RepaymentInput = {
-  scheduledFor?: string;
-  accountId?: string;
+  scheduledFor?: unknown;
+  accountId?: unknown;
   amount?: unknown;
   principal?: unknown;
   date?: unknown;

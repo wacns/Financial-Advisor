@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Card, Heading, Muted, Button, Row } from "./ui.jsx";
+import { Card, Heading, Muted, Button, Row } from "./ui.tsx";
 import { updateStatus, checkUpdate, installUpdate, subscribeUpdates } from "../platform/updates";
+import type { UpdateStatus } from "../platform/contracts.ts";
 export default function AppUpdates() {
-  const [status, setStatus] = useState({ state: "loading", message: "Reading update status…" });
+  const [status, setStatus] = useState<UpdateStatus>({ state: "loading", message: "Reading update status…" });
   useEffect(() => {
     let active = true;
     updateStatus().then((value) => { if (active) setStatus(value); }).catch(() => {
