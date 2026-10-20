@@ -25,8 +25,10 @@ jobs:
         run: |
           node --input-type=module <<'JS'
           import fs from 'node:fs';
+          import {releaseNotes} from './scripts/release-notes.mjs';
           const {version} = JSON.parse(fs.readFileSync('desktop/package.json'));
           if (!/^\d+\.\d+\.\d+$/.test(version)) throw Error('Invalid desktop version');
+          releaseNotes(version);
           const mobile = JSON.parse(fs.readFileSync('package.json')).version;
           if (!/^\d+\.\d+\.\d+$/.test(mobile)) throw Error('Invalid mobile version');
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `value=${version}\nmobile=${mobile}\n`);

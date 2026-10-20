@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.1 — Public downloads and unified releases (2026-10-20)
+
+- Connect Windows NSIS and Linux AppImage installers to a public update feed without exposing repository credentials.
+- Publish APK/AAB, unsigned IPA and desktop installers in one public release, retaining actual binary versions and separate checksum lists.
+- Verify mobile downloads against the private originals and public upload digests; preserve the private source repository.
+- Attach existing mobile builds to desktop releases automatically and support a separate destination release version.
+- Add versioned public release notes, a public changelog and an Actions workflow to refresh descriptions without rebuilding installers.
+
 ## 1.6.0 — Installers and updates (2026-10-18)
 
 - Add Android APK/AAB and Windows, macOS and Linux desktop installer builds to a combined GitHub Release workflow; reuse MobAI for the unsigned iOS IPA.

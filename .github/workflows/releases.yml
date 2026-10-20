@@ -27,11 +27,13 @@ jobs:
         run: |
           node --input-type=module <<'JS'
           import fs from 'node:fs';
+          import {releaseNotes} from './scripts/release-notes.mjs';
           import app from './app.config.js';
           const pkg = JSON.parse(fs.readFileSync('package.json'));
           const desktop = JSON.parse(fs.readFileSync('desktop/package.json'));
           if (!/^\d+\.\d+\.\d+$/.test(pkg.version) || app.expo.version !== pkg.version || desktop.version !== pkg.version) throw Error('All app versions must match');
           if (process.env.RELEASE_REF.startsWith('refs/tags/') && process.env.RELEASE_REF !== `refs/tags/v${pkg.version}`) throw Error('Tag must match package version');
+          releaseNotes(pkg.version);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `value=${pkg.version}\n`);
           JS
   android:
@@ -145,11 +147,16 @@ jobs:
           cd installers
           sha256sum -- * > SHA256SUMS.txt
           cd ..
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {releaseNotes} from './scripts/release-notes.mjs';
+          fs.writeFileSync(`${process.env.RUNNER_TEMP}/release-notes.md`, releaseNotes(process.env.APP_VERSION));
+          JS
           TAG="v$APP_VERSION"
           if gh release view "$TAG" --json isDraft --jq '.isDraft' > "$RUNNER_TEMP/release-draft" 2>/dev/null; then
             test "$(cat "$RUNNER_TEMP/release-draft")" = true || { echo 'Refusing to replace a published release. Bump the app version.' >&2; exit 1; }
           else
-            gh release create "$TAG" --target "$GITHUB_SHA" --draft --prerelease --title "FinancialAdvisor $APP_VERSION — preview" --notes-file docs/RELEASE-NOTES.md
+            gh release create "$TAG" --target "$GITHUB_SHA" --draft --prerelease --title "FinancialAdvisor $APP_VERSION — preview" --notes-file "$RUNNER_TEMP/release-notes.md"
           fi
           gh release upload "$TAG" installers/* --clobber
           gh release edit "$TAG" --draft=false --prerelease --latest=false

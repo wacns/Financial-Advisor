@@ -1,12 +1,9 @@
-FinancialAdvisor now packages the shared React application for Android, iOS, Windows, macOS and Linux.
+# Authoring release notes
 
-- Android: APK for direct installation and AAB for later Play Store distribution. Files marked `preview` use the Expo testing key, not a production signing identity. Do not submit those AABs to the Play Store.
-- iOS: unsigned Release IPA with embedded JavaScript. It requires signing before installation; it is not a TestFlight download.
-- Windows: x64 EXE installer.
-- macOS: DMG and ZIP for Apple Silicon and Intel Macs. Current preview builds are not Developer ID signed/notarized; Gatekeeper may block them.
-- Linux: x64 AppImage and DEB. Make an AppImage executable before opening; some distributions need FUSE compatibility support.
-- `SHA256SUMS.txt` contains checksums for the release files.
+Write each release's public notes in `docs/releases/X.Y.Z.md` before starting a release. Include `## What's Changed` and concrete changes, followed by relevant download versions, upgrade instructions and known limitations. Keep mobile build versions accurate when attaching an existing APK/IPA to a newer desktop release.
 
-Mobile compatible JavaScript/assets updates use Expo Updates when this build has a configured EAS project. Native SDK, permissions or module changes require a new binary. Desktop background downloads require a configured reachable HTTPS update feed; they never embed a GitHub access token. Settings reports whether updates are connected and asks you to restart before installing a downloaded update.
+The publishing scripts use the versioned file as the release description and add a public **Full Changelog** link. Only versioned release notes and their generated changelog are copied into the public downloads repository; application source remains private. A missing notes file stops release verification before platform builds start.
 
-This is a preview release. Signing, store distribution and physical-device checks are separate from successful packaging. See `docs/RELEASES.md` in the repository for setup, supported architectures and update requirements. Your signed-in financial workspace syncs through the existing backend; demo data remains local to each installation.
+Use **Update release notes** in GitHub Actions to refresh an existing public release after editing its versioned notes. This updates descriptions and public Markdown only; it does not replace installers or modify the update feed.
+
+Add a Contributors or PR list only when contributions can be verified and the linked material is accessible to download users. Do not invent contributors or expose private source links in public release notes.

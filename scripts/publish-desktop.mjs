@@ -3,11 +3,13 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { prepareFeed } from "./desktop-feed.mjs";
+import { releaseNotes } from "./release-notes.mjs";
 
 if (!process.env.GH_TOKEN) throw Error("Save RELEASES_TOKEN in the private repository's Actions secrets. It needs Contents: read/write only for wacns/financial-advisor-releases.");
 const { repository } = JSON.parse(fs.readFileSync(new URL("../desktop/update-feed.json", import.meta.url), "utf8"));
 if (repository !== "wacns/financial-advisor-releases") throw Error("Unexpected downloads repository");
 const version = process.env.DESKTOP_RELEASE_VERSION;
+const notes = releaseNotes(version);
 const directory = path.resolve(process.argv[2] || "installers");
 const { names, feeds, checksums } = prepareFeed(directory, version, repository);
 const gh = (...args) => execFileSync("gh", args, { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
@@ -25,7 +27,7 @@ if (existing && !existing.draft) {
     if (assets.find(a => a.name === name)?.digest !== digest) throw Error(`Published release differs: ${name}. Increment the desktop version.`);
   }
 } else {
-  if (!existing) gh("release", "create", tag, "--repo", repository, "--target", repo.default_branch, "--draft", "--prerelease", "--title", `FinancialAdvisor ${version} — preview`, "--notes", "Desktop preview installers with a public automatic-update feed. Windows and macOS builds are unsigned; macOS updates require manual installation. AppImage and Windows NSIS support automatic updates. DEB updates use the newer package. Source code remains private. Verify downloads with SHA256SUMS.txt.");
+  if (!existing) gh("release", "create", tag, "--repo", repository, "--target", repo.default_branch, "--draft", "--prerelease", "--title", `FinancialAdvisor ${version} — preview`, "--notes", notes);
   gh("release", "upload", tag, "--repo", repository, "--clobber", ...assetNames.map(n => path.join(directory, n)));
   gh("release", "edit", tag, "--repo", repository, "--draft=false", "--prerelease", "--latest=false");
 }

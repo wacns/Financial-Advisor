@@ -29,3 +29,8 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           DESKTOP_RELEASE_VERSION: ${{ inputs.version }}
         run: node scripts/publish-desktop.mjs installers
+      - name: Publish changelog and release notes
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          RELEASE_NOTES_VERSION: ${{ inputs.version }}
+        run: node scripts/publish-release-notes.mjs
