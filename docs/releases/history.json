@@ -1,0 +1,7 @@
+{
+  "1.6.1": {
+    "baseRef": "v1.6.0",
+    "headRef": "desktop-v1.6.1",
+    "headSha": "ef59f9ba542b5febcfa36bbc4cdbcee3db055433"
+  }
+}

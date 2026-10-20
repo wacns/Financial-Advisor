@@ -5,7 +5,9 @@ import { releaseNotes, publicChangelog } from "./release-notes.mjs";
 if (!process.env.GH_TOKEN) throw Error("RELEASES_TOKEN is required to publish release notes");
 const repository = "wacns/financial-advisor-releases";
 const version = process.env.RELEASE_NOTES_VERSION || JSON.parse(fs.readFileSync(new URL("../desktop/package.json", import.meta.url), "utf8")).version;
-const body = releaseNotes(version);
+if (!process.env.RELEASE_HISTORY_FILE) throw Error("Generate source release history before publishing notes");
+const history = JSON.parse(fs.readFileSync(process.env.RELEASE_HISTORY_FILE, "utf8"));
+const body = releaseNotes(version, history);
 const gh = (...args) => execFileSync("gh", args, { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
 const api = (endpoint, data) => JSON.parse(data ? execFileSync("gh", ["api", endpoint, "--method", "POST", "--input", "-"], { input: JSON.stringify(data), encoding: "utf8" }) : gh("api", endpoint));
 const repo = api(`repos/${repository}`);
@@ -20,7 +22,14 @@ const latestVersion = releases.filter(item => !item.draft || item.tag_name === `
   const left = a.split(".").map(Number), right = b.split(".").map(Number);
   return right[0] - left[0] || right[1] - left[1] || right[2] - left[2];
 })[0];
-const entries = [{ path: "CHANGELOG.md", content: publicChangelog(latestVersion) }, { path: `release-notes/${version}.md`, content: body }];
+const histories = {};
+for (const entry of current.tree.filter(item => /^release-history\/\d+\.\d+\.\d+\.json$/.test(item.path))) {
+  const blob = api(`repos/${repository}/git/blobs/${entry.sha}`);
+  const saved = JSON.parse(Buffer.from(blob.content, "base64"));
+  histories[saved.version] = saved;
+}
+histories[version] = history;
+const entries = [{ path: "CHANGELOG.md", content: publicChangelog(latestVersion, histories) }, { path: `release-notes/${version}.md`, content: body }, { path: `release-history/${version}.json`, content: JSON.stringify(history, null, 2) + "\n" }];
 const changed = entries.filter(({ path, content }) => {
   const bytes = Buffer.from(content);
   const sha = crypto.createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");

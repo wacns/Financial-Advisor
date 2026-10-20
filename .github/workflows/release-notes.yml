@@ -9,17 +9,25 @@ on:
         type: string
 permissions:
   contents: read
+  pull-requests: read
 concurrency:
   group: public-release-notes
   cancel-in-progress: false
 jobs:
   notes:
+    env:
+      RELEASE_HISTORY_FILE: /tmp/financial-advisor-release-history.json
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { persist-credentials: false }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with: { node-version-file: '.nvmrc', package-manager-cache: false }
+      - name: Generate changelog from source commits and merged pull requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_NOTES_VERSION: ${{ inputs.version }}
+        run: node scripts/generate-release-history.mjs
       - name: Publish public changelog and update existing release notes
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}

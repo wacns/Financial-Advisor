@@ -7,6 +7,7 @@
 - Verify mobile downloads against the private originals and public upload digests; preserve the private source repository.
 - Attach existing mobile builds to desktop releases automatically and support a separate destination release version.
 - Add versioned public release notes, a public changelog and an Actions workflow to refresh descriptions without rebuilding installers.
+- Generate verified merged-PR/direct-commit entries with author links and a real private source comparison, retaining immutable release history checkpoints.
 
 ## 1.6.0 — Installers and updates (2026-10-18)
 

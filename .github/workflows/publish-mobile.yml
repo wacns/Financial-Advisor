@@ -24,11 +24,14 @@ on:
         required: true
 permissions:
   contents: read
+  pull-requests: read
 concurrency:
   group: public-mobile-downloads
   cancel-in-progress: false
 jobs:
   publish:
+    env:
+      RELEASE_HISTORY_FILE: /tmp/financial-advisor-release-history.json
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -42,6 +45,11 @@ jobs:
         run: |
           node --input-type=module -e 'if (!/^\d+\.\d+\.\d+$/.test(process.env.MOBILE_RELEASE_VERSION)) process.exit(1)'
           gh release download "v$MOBILE_RELEASE_VERSION" --repo "$GITHUB_REPOSITORY" --dir mobile-installers --pattern '*.apk' --pattern '*.aab' --pattern '*.ipa' --pattern SHA256SUMS.txt
+      - name: Generate changelog from source commits and merged pull requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_NOTES_VERSION: ${{ inputs.release_version }}
+        run: node scripts/generate-release-history.mjs
       - name: Publish verified mobile installers to public repository
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
