@@ -1,15 +1,21 @@
-const {
+import {
   withAndroidManifest,
   withDangerousMod,
   withPodfile,
   withAppBuildGradle,
   withXcodeProject,
   IOSConfig,
-} = require("expo/config-plugins");
-const { mergeContents } = require("@expo/config-plugins/build/utils/generateCode");
-const fs = require("node:fs");
-const path = require("node:path");
-module.exports = function withFinancialAdvisor(config) {
+} from "expo/config-plugins";
+import type { AndroidConfig, ConfigPlugin } from "expo/config-plugins";
+/** Android manifest meta-data, plus the tools:replace attribute this plugin sets. */
+type MetaData = {
+  $: AndroidConfig.Manifest.ManifestMetaData["$"] & { "tools:replace"?: string };
+};
+import { mergeContents } from "@expo/config-plugins/build/utils/generateCode.js";
+import fs from "node:fs";
+import path from "node:path";
+// Expo loads this file itself and uses its default export.
+const withFinancialAdvisor: ConfigPlugin = (config) => {
   config = withDangerousMod(config, ["ios", async config => {
     const projectName = IOSConfig.XcodeUtils.getProjectName(config.modRequest.projectRoot);
     const directory = path.join(config.modRequest.platformProjectRoot, projectName);
@@ -23,7 +29,8 @@ module.exports = function withFinancialAdvisor(config) {
     // node-xcode's pbxFile includes an unset explicitFileType; omit it so
     // Xcode uses the sourcecode.swift type instead of a literal "undefined".
     for (const file of Object.values(config.modResults.pbxFileReferenceSection()))
-      if (typeof file === "object" && String(file.path).replaceAll('"','').endsWith("/FinancialAdvisorIntents.swift")) delete file.explicitFileType;
+      // pbxproj entries are loosely typed objects; Reflect reads and deletes exactly as before.
+      if (typeof file === "object" && file !== null && String(Reflect.get(file, "path")).replaceAll('"','').endsWith("/FinancialAdvisorIntents.swift")) Reflect.deleteProperty(file, "explicitFileType");
     return config;
   });
   config = withAppBuildGradle(config, (config) => {
@@ -61,15 +68,17 @@ if (System.getenv('ANDROID_RELEASE_KEYSTORE')) {
   });
   config = withAndroidManifest(config, (config) => {
     config.modResults.manifest.$['xmlns:tools'] = 'http://schemas.android.com/tools';
-    const application = config.modResults.manifest.application[0];
-    application["meta-data"] ??= [];
+    const application = config.modResults.manifest.application?.[0];
+    if (!application) throw Error("Missing Android application element.");
+    // The same array as application["meta-data"], typed to allow tools:replace.
+    const metaData: MetaData[] = (application["meta-data"] ??= []);
     for (const [name, value] of Object.entries({
       firebase_messaging_auto_init_enabled: "false",
       firebase_analytics_collection_enabled: "false",
       "com.google.firebase.messaging.default_notification_channel_id":
         "payment-reminders",
     })) {
-      const existing = application["meta-data"].find(
+      const existing = metaData.find(
         (row) => row.$["android:name"] === name,
       );
       if (existing) {
@@ -80,7 +89,7 @@ if (System.getenv('ANDROID_RELEASE_KEYSTORE')) {
         ])].join(",");
       }
       else
-        application["meta-data"].push({
+        metaData.push({
           $: { "android:name": name, "android:value": value, "tools:replace": "android:value" },
         });
     }
@@ -103,3 +112,4 @@ if (System.getenv('ANDROID_RELEASE_KEYSTORE')) {
   ]);
   return config;
 };
+export default withFinancialAdvisor;

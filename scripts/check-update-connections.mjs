@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import config from "../app.config.js";
+import config from "../app.config.ts";
 
 const results = [];
 let failed = false;

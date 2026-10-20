@@ -29,7 +29,7 @@ jobs:
           node --input-type=module <<'JS'
           import fs from 'node:fs';
           import {releaseNotes} from './scripts/release-notes.mjs';
-          import app from './app.config.js';
+          import app from './app.config.ts';
           const pkg = JSON.parse(fs.readFileSync('package.json'));
           const desktop = JSON.parse(fs.readFileSync('desktop/package.json'));
           if (!/^\d+\.\d+\.\d+$/.test(pkg.version) || app.expo.version !== pkg.version || desktop.version !== pkg.version) throw Error('All app versions must match');

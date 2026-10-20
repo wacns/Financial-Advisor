@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import type { ExpoConfig } from "expo/config";
 const androidFirebaseFile =
   process.env.GOOGLE_SERVICES_JSON || "./google-services.json";
 const iosFirebaseFile =
@@ -11,10 +12,10 @@ if (easProjectId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 }
 const pushEnvironment =
   process.env.APP_PUSH_ENVIRONMENT ||
-  (["production", "preview"].includes(process.env.EAS_BUILD_PROFILE)
+  (["production", "preview"].some((profile) => profile === process.env.EAS_BUILD_PROFILE)
     ? "production"
     : "development");
-export default {
+const config: { expo: ExpoConfig } = {
   expo: {
     name: "FinancialAdvisor",
     owner: "financial-advisor",
@@ -81,10 +82,11 @@ export default {
       ],
       "expo-system-ui",
       ["expo-build-properties", { ios: { useFrameworks: "static" } }],
-      "./plugins/with-financial-advisor.cjs",
+      "./plugins/with-financial-advisor.ts",
       ...(androidFirebase || iosFirebase
         ? ["@react-native-firebase/app", "@react-native-firebase/messaging"]
         : []),
     ],
   },
 };
+export default config;

@@ -20,6 +20,12 @@ clean `npm ci` and `npm ci --prefix desktop`.
   than their display names". On Windows the paths it builds use `\`, but the
   test expects `/`. This is a platform issue in the test or script, unrelated to
   the conversion, and it passes on Linux CI. It must not get worse.
+- `npm run test:oauth` (not in the original baseline list; checked on commit
+  `59406c1` during Task 12): 1 of 2 pass. "Google PKCE redirect, callback,
+  verified workspace, and sign-out with mocked Supabase" fails because the mock
+  Supabase server in `tests/e2e/oauth.spec` rejects the login screen's
+  `/functions/v1/financial-assistant` status call. The result is the same before
+  and after the conversion.
 
 ## Output snapshots (in `.baseline/`, gitignored)
 

@@ -33,7 +33,7 @@ jobs:
       - name: Package desktop installers
         env: { TARGET_FLAGS: '${{ matrix.flags }}' }
         shell: bash
-        run: npx electron-builder --config electron-builder.config.cjs --publish never $TARGET_FLAGS
+        run: npx electron-builder --config electron-builder.config.ts --publish never $TARGET_FLAGS
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: desktop-${{ matrix.target }}
