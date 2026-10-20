@@ -1,0 +1,7 @@
+{
+  // Only the navigation policy, which has no dependencies: unit tests load the compiled
+  // policy.cjs, and the CI test jobs do not install the desktop app's own packages.
+  "extends": "./tsconfig.json",
+  "include": [],
+  "files": ["src/policy.cts"]
+}

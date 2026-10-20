@@ -13,6 +13,7 @@ export default [
       "desktop/web/**",
       "desktop/node_modules/**",
       "desktop/*.cjs",
+      "desktop/*.d.cts",
       "release-desktop/**",
       ".baseline/**",
       ".superpowers/**",

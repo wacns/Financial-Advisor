@@ -7,6 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
+    "pretest": "tsc -p desktop/tsconfig.policy.json",
     "test": "node --test \"tests/unit/**/*.test.{js,ts}\"",
     "test:e2e": "playwright test",
     "test:oauth": "playwright test --config playwright.auth.config.js",
@@ -19,10 +20,11 @@
     "predev": "node scripts/prepare-ocr.mjs",
     "prebuild": "node scripts/prepare-ocr.mjs",
     "desktop:prepare": "node scripts/prepare-desktop.mjs",
+    "desktop:compile": "tsc -p desktop/tsconfig.json",
     "desktop:start": "npm run desktop:prepare && electron desktop",
     "desktop:build": "npm run desktop:prepare && electron-builder --config electron-builder.config.cjs --publish never",
     "test:desktop": "node scripts/test-desktop.mjs",
-    "typecheck": "tsc -p tsconfig.web.json && tsc -p tsconfig.native.json && tsc -p tsconfig.node.json"
+    "typecheck": "tsc -p desktop/tsconfig.policy.json && tsc -p tsconfig.web.json && tsc -p tsconfig.native.json && tsc -p tsconfig.node.json"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

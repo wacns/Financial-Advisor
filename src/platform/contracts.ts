@@ -2,6 +2,8 @@
 // check themselves against the same contract, so the two cannot drift apart.
 import type { SupabaseClient, SupabaseClientOptions } from "@supabase/supabase-js";
 import type { Messaging, Preferences } from "../notifications.ts";
+import type { DesktopBridge, UpdateStatus } from "./desktop-bridge.js";
+export type { DesktopBridge, UpdateStatus } from "./desktop-bridge.js";
 
 /** Fails to compile unless T fits Contract; used as `export type Check = Satisfies<Contract, typeof Self>`. */
 export type Satisfies<Contract, T extends Contract> = T;
@@ -28,17 +30,6 @@ export interface Runtime {
   getMessaging(): Promise<Messaging>;
   exportFile(content: string, type: string, name: string): Promise<void>;
   confirmReset(): Promise<boolean>;
-}
-
-/** What the Electron preload script exposes to the page as window.financialAdvisorDesktop. */
-export interface DesktopBridge {
-  openAuth(url: string): Promise<unknown>;
-  consumeAuthLink(): Promise<string | null | undefined>;
-  onAuthLink(callback: (url: string) => void): () => void;
-  updateStatus(): Promise<UpdateStatus>;
-  checkUpdate(): Promise<UpdateStatus>;
-  installUpdate(): Promise<unknown>;
-  onUpdate(callback: (status: UpdateStatus) => void): () => void;
 }
 
 declare global {
@@ -94,8 +85,6 @@ export interface Speech {
   stopSpeech(): Promise<void>;
 }
 
-/** What the update panel shows about app updates on this platform. */
-export type UpdateStatus = { state: string; message: string; version?: string };
 export interface Updates {
   updateStatus(): Promise<UpdateStatus>;
   checkUpdate(): Promise<UpdateStatus>;

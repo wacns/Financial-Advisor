@@ -2,6 +2,8 @@ import fs from "node:fs";
 import { execFileSync } from "node:child_process";
 import { loadEnv } from "vite";
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+// Compile the Electron main, preload and policy sources to the CommonJS files Electron loads.
+execFileSync(npm, ["run", "desktop:compile"], { stdio: "inherit", shell: process.platform === "win32" });
 execFileSync(npm, ["run", "build"], { stdio: "inherit", shell: process.platform === "win32" });
 const updateUrl = process.env.DESKTOP_UPDATE_URL || JSON.parse(fs.readFileSync("desktop/update-feed.json", "utf8")).url;
 const publicEnv = loadEnv("production", process.cwd(), "VITE_");

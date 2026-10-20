@@ -35,3 +35,6 @@ ios/App/CapApp-SPM/symlinks/
 
 /.baseline/
 /.superpowers/
+
+/desktop/*.cjs
+/desktop/*.d.cts
