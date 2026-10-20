@@ -4,7 +4,9 @@ An English/Arabic personal finance app for Bahrain, built with React, React Nati
 
 **Live app:** [financial-advisor-partner.vercel.app](https://financial-advisor-partner.vercel.app/)
 
-**Installers:** [Unified public release](https://github.com/wacns/financial-advisor-releases/releases/tag/v1.6.1) — Android APK/AAB, unsigned iOS IPA, Windows EXE, macOS DMG/ZIP and Linux AppImage/DEB. Desktop builds are v1.6.1; mobile builds retain their actual v1.6.0 filenames. Preview signing and update requirements are explained in the [release guide](docs/RELEASES.md).
+**Installers:** [Public releases](https://github.com/wacns/financial-advisor-releases/releases) — Android APK/AAB, unsigned iOS IPA, Windows EXE, macOS DMG/ZIP and Linux AppImage/DEB. Assets retain their actual embedded versions. Preview signing and update requirements are explained in the [release guide](docs/RELEASES.md).
+
+**New in 1.7.0:** shared accounts, subscription/installment trackers, payees/payers, custom tags/accounts/categories, advanced search/reports, budget pace, reviewed text/voice capture, local insights, currency tools and optional cloud AI. See [Walletry-inspired coverage and platform limits](docs/WALLETRY-PARITY.md).
 
 ## Quick start
 
@@ -68,6 +70,9 @@ Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in the root `.env.lo
 Install Chromium with `npx playwright install chromium` before running browser tests. See the [testing guide](docs/TESTING.md) for Linux dependencies and system-browser options.
 
 ## Documentation
+
+- [Walletry-inspired features, verification and platform limits](docs/WALLETRY-PARITY.md).
+- [Capture, Shortcuts and optional cloud assistant setup](docs/ASSISTANT.md).
 
 - [Reference feature coverage and verification](docs/FEATURE-PARITY.md).
 - [Features and Bahrain conventions](docs/FEATURES.md): accounts, transactions, budgets, goals, bills, salary, debts, project planning, payment calendars, transfers and account-specific reports.
