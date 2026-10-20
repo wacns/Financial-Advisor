@@ -14,7 +14,12 @@ import {
   speechSupported,
   stopSpeech,
 } from "../platform/speech";
-import { client } from "./client.js";
+import AssistantFunding from "./AssistantFunding.jsx";
+import {
+  aiOptions,
+  assistantRequest,
+  unavailableAI,
+} from "./assistantClient.js";
 
 export function reviewCapture(w, open, draft) {
   const account = captureAccount(w.state, draft.currency);
@@ -43,6 +48,7 @@ export default function MoneyTools({
   capture,
   onCaptureConsumed,
 }) {
+  const userId = w.user?.id;
   const [text, setText] = useState(""),
     [currency, setCurrency] = useState("BHD"),
     [drafts, setDrafts] = useState([]),
@@ -55,6 +61,39 @@ export default function MoneyTools({
     [shareSummary, setShareSummary] = useState("no"),
     [consent, setConsent] = useState("no"),
     [busy, setBusy] = useState(false);
+  const [options, setOptions] = useState(unavailableAI),
+    [statusError, setStatusError] = useState(""),
+    [provider, setProvider] = useState("openai"),
+    [apiKey, setApiKey] = useState(""),
+    [model, setModel] = useState(""),
+    [pricingConsent, setPricingConsent] = useState("no");
+  useEffect(() => {
+    let active = true;
+    setApiKey("");
+    setOptions(unavailableAI);
+    aiOptions(!w.demo && !!userId)
+      .then((value) => {
+        if (active) setOptions(value);
+      })
+      .catch(() => {
+        if (active)
+          setStatusError(
+            "AI connection status could not be loaded. Try refreshing.",
+          );
+      });
+    return () => {
+      active = false;
+    };
+  }, [w.demo, userId]);
+  useEffect(() => {
+    setPricingConsent("no");
+  }, [
+    provider,
+    model,
+    apiKey,
+    options.hosted.priceCredits,
+    options.hosted.pricingVersion,
+  ]);
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -130,35 +169,32 @@ export default function MoneyTools({
           throw Error(
             "Choose permission to send this question before using cloud AI.",
           );
-        const { data, error: failure } = await client.functions.invoke(
-          "financial-assistant",
-          {
-            body: {
-              question: prompt,
-              consent: true,
-              ...(shareSummary === "yes"
-                ? { summary: assistantSummary(w.state, month) }
-                : {}),
-            },
-          },
-        );
-        if (failure) {
-          let detail;
-          try {
-            detail = await failure.context?.json();
-          } catch {
-            /* Non-JSON gateway error. */
-          }
-          throw Error(
-            detail?.error ||
-              "The cloud assistant is unavailable. Local insights and text capture remain available.",
-          );
-        }
+        if (pricingConsent !== "yes")
+          throw Error("Accept the selected AI usage charges before sending.");
+        const data = await assistantRequest({
+          action: "ask",
+          mode,
+          question: prompt,
+          consent: true,
+          pricingConsent: true,
+          ...(mode === "byok"
+            ? { provider, apiKey, model }
+            : {
+                requestId: crypto.randomUUID(),
+                priceCredits: options.hosted.priceCredits,
+                pricingVersion: options.hosted.pricingVersion,
+              }),
+          ...(shareSummary === "yes"
+            ? { summary: assistantSummary(w.state, month) }
+            : {}),
+        });
         if (typeof data?.answer !== "string" || !Array.isArray(data?.drafts))
           throw Error("The assistant returned an invalid response.");
         answer = data.answer;
         proposals = data.drafts;
+        if (mode === "hosted") await refreshAI();
       }
+      if (!alive.current) return;
       setMessages((previous) =>
         [...previous, { question: prompt, answer, mode }].slice(-12),
       );
@@ -175,8 +211,21 @@ export default function MoneyTools({
       setQuestion("");
     } catch (e) {
       setError(e.message);
+      if (mode === "hosted") await refreshAI();
     } finally {
       setBusy(false);
+    }
+  }
+  async function refreshAI() {
+    setStatusError("");
+    try {
+      const value = await aiOptions(!w.demo && !!w.user);
+      if (alive.current) setOptions(value);
+    } catch {
+      if (alive.current)
+        setStatusError(
+          "AI connection status could not be loaded. No question was sent by this check.",
+        );
     }
   }
   return (
@@ -292,18 +341,44 @@ export default function MoneyTools({
           onChange={(value) => {
             setMode(value);
             setConsent("no");
+            setPricingConsent("no");
+            setApiKey("");
           }}
+          disabled={busy}
           options={[
             { value: "local", label: "Local insights" },
-            { value: "cloud", label: "Cloud AI (optional)" },
+            {
+              value: "chatgpt",
+              label: "My ChatGPT subscription (setup pending)",
+            },
+            { value: "hosted", label: "FinancialAdvisor AI · prepaid credits" },
+            { value: "byok", label: "My own API key · provider charges" },
           ]}
         />
         <Muted>
           {mode === "local"
             ? `Local insights use your saved records for ${month} without sending them to an AI provider. Ask about spending, income, balances, categories, subscriptions or installments.`
-            : "Cloud AI sends each question to the configured AI provider through your signed-in account. It can suggest entries for review and cannot save or change your records. Requires the server's AI service to be configured."}
+            : "Cloud AI sends your question to the selected service with permission. It can suggest entries for review and cannot save or change records. Funding options are separate and never switch automatically."}
         </Muted>
-        {mode === "cloud" ? (
+        <AssistantFunding
+          mode={mode}
+          options={options}
+          provider={provider}
+          setProvider={setProvider}
+          apiKey={apiKey}
+          setApiKey={setApiKey}
+          model={model}
+          setModel={setModel}
+          pricingConsent={pricingConsent}
+          setPricingConsent={setPricingConsent}
+          busy={busy}
+          refresh={refreshAI}
+          statusError={statusError}
+          linkIdentity={() =>
+            w.chatgptSignIn(true).catch((e) => setError(e.message))
+          }
+        />
+        {mode === "hosted" || mode === "byok" ? (
           <Stack>
             <Field
               label="Include this month's aggregate summary"
@@ -341,7 +416,17 @@ export default function MoneyTools({
           disabled={busy}
         />
         <Row>
-          <Button disabled={!question.trim() || busy} onPress={ask}>
+          <Button
+            disabled={
+              !question.trim() ||
+              busy ||
+              mode === "chatgpt" ||
+              (mode === "hosted" && !options.hosted.configured) ||
+              (mode === "byok" &&
+                (!options.byok.configured || !apiKey || !model))
+            }
+            onPress={ask}
+          >
             {busy ? "Thinking…" : "Ask assistant"}
           </Button>
           <Button
@@ -359,7 +444,11 @@ export default function MoneyTools({
           <Card key={i}>
             <Label>{message.question}</Label>
             <Muted>
-              {message.mode === "local" ? "Local insights" : "Cloud AI"}
+              {message.mode === "local"
+                ? "Local insights"
+                : message.mode === "byok"
+                  ? "Your API key"
+                  : "Hosted AI credits"}
             </Muted>
             <Label>{message.answer}</Label>
           </Card>

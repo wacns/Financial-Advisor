@@ -12,6 +12,16 @@ test("desktop deep links accept only app callback codes/errors", () => {
   assert.equal(policy.authCallback(`${policy.CALLBACK}?error=access_denied`), true);
   for (const target of ["https://example.com/auth/callback?code=bad", `${policy.CALLBACK}#access_token=token`, "com.wacns.financialadvisor://auth/other?code=bad", "com.wacns.financialadvisor://attacker@auth/callback?code=bad"]) assert.equal(policy.authCallback(target), false);
 });
+test("desktop ChatGPT linking accepts only PKCE authorization for this project's callback", () => {
+  const origin = "https://project.supabase.co";
+  const url = new URL("https://auth.openai.com/api/accounts/authorize");
+  url.search = new URLSearchParams({ client_id: "oaiapp_registered", redirect_uri: `${origin}/auth/v1/callback`, state: "one-use-state", nonce: "one-use-nonce", code_challenge_method: "S256", code_challenge: "a".repeat(43) }).toString();
+  assert.equal(policy.authTarget(url.href, origin), true);
+  for (const [name,value] of [["redirect_uri","https://attacker.test"],["code_challenge_method","plain"],["nonce",""],["client_id","dynamic_agent_client"]]) {
+    const invalid = new URL(url); invalid.searchParams.set(name,value);
+    assert.equal(policy.authTarget(invalid.href, origin), false);
+  }
+});
 test("desktop asset handler confines encoded paths to the bundled application", () => {
   const root = path.resolve("desktop/web");
   assert.equal(policy.assetPath("financialadvisor://app/assets/app.js", root), path.join(root, "assets/app.js"));

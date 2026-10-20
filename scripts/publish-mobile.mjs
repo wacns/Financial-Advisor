@@ -20,7 +20,7 @@ const tag = `v${releaseVersion}`;
 let release = api(`repos/${repository}/releases?per_page=100`).find(r => r.tag_name === tag);
 const notes = releaseNotes(releaseVersion);
 if (!release) {
-  gh("release", "create", tag, "--repo", repository, "--target", repo.default_branch, "--draft", "--prerelease", "--title", `FinancialAdvisor ${releaseVersion} — preview`, "--notes", notes);
+  gh("release", "create", tag, "--repo", repository, "--target", repo.default_branch, "--draft", "--prerelease", "--title", tag, "--notes", notes);
   release = api(`repos/${repository}/releases?per_page=100`).find(r => r.tag_name === tag);
   if (!release) throw Error("Created mobile release draft was not returned by GitHub");
 }
@@ -39,5 +39,5 @@ for (const name of names) {
   const expected = "sha256:" + crypto.createHash("sha256").update(fs.readFileSync(path.join(directory, name))).digest("hex");
   if (uploaded.find(a => a.name === name)?.digest !== expected) throw Error(`Public upload checksum mismatch: ${name}`);
 }
-if (release.draft) gh("release", "edit", tag, "--repo", repository, "--draft=false", "--prerelease", "--latest=false");
+if (release.draft) gh("release", "edit", tag, "--repo", repository, "--draft=false", "--prerelease", "--latest=false", "--title", tag);
 console.log(`Published mobile installers: https://github.com/${repository}/releases/tag/${tag}`);

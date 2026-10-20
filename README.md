@@ -8,6 +8,8 @@ An English/Arabic personal finance app for Bahrain, built with React, React Nati
 
 **New in 1.7.0:** shared accounts, subscription/installment trackers, payees/payers, custom tags/accounts/categories, advanced search/reports, budget pace, reviewed text/voice capture, local insights, currency tools and optional cloud AI. See [Walletry-inspired coverage and platform limits](docs/WALLETRY-PARITY.md).
 
+**New in 1.7.1:** separate session-only BYOK and hosted prepaid AI funding, approval-gated ChatGPT identity foundations, version-tag release titles, and the [Budget Tracker feature audit](docs/BUDGET-FEATURE-AUDIT.md). Hosted purchases/pricing and ChatGPT subscription inference remain pending setup; see [AI funding and setup](docs/ASSISTANT.md).
+
 ## Quick start
 
 The repository root is the application root. Use Node.js 24 (`nvm use` reads `.nvmrc`).

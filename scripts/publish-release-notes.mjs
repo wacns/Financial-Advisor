@@ -40,5 +40,5 @@ if (changed.length) {
   const commit = api(`repos/${repository}/git/commits`, { message: `Document FinancialAdvisor ${version} release changes`, tree: tree.sha, parents: [ref.object.sha] });
   execFileSync("gh", ["api", `repos/${repository}/git/refs/heads/${repo.default_branch}`, "--method", "PATCH", "--input", "-"], { input: JSON.stringify({ sha: commit.sha, force: false }), stdio: ["pipe", "ignore", "pipe"] });
 }
-if (release.body !== body) execFileSync("gh", ["api", `repos/${repository}/releases/${release.id}`, "--method", "PATCH", "--input", "-"], { input: JSON.stringify({ body }), stdio: ["pipe", "ignore", "pipe"] });
+if (release.body !== body || release.name !== release.tag_name) execFileSync("gh", ["api", `repos/${repository}/releases/${release.id}`, "--method", "PATCH", "--input", "-"], { input: JSON.stringify({ body, name: release.tag_name }), stdio: ["pipe", "ignore", "pipe"] });
 console.log(`Release changelog published: https://github.com/${repository}/releases/tag/v${version}`);

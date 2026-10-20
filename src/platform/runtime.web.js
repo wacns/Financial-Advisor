@@ -1,4 +1,4 @@
-import { finishAuthRedirect, startGoogleSignIn, NATIVE_AUTH_REDIRECT } from "../auth.js";
+import { finishAuthRedirect, startGoogleSignIn, startChatGPTSignIn, NATIVE_AUTH_REDIRECT } from "../auth.js";
 const desktop = globalThis.financialAdvisorDesktop;
 import publicClient from "../public-client.json";
 export const native = false;
@@ -45,6 +45,9 @@ export function finishRedirect(client) {
 }
 export function googleSignIn(client) {
   return startGoogleSignIn(client, location, desktop ? { open: desktop.openAuth } : undefined);
+}
+export function chatgptSignIn(client, enabled, link = false) {
+  return startChatGPTSignIn(client, location, desktop ? { open: desktop.openAuth } : undefined, enabled, link);
 }
 export function emailRedirect() {
   if (desktop) return NATIVE_AUTH_REDIRECT;

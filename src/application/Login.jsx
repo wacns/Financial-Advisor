@@ -1,14 +1,27 @@
 import { useAppearance } from "./appearance.jsx";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, ScrollView, useWindowDimensions } from "react-native";
 import { Button, Card, Heading, Label, Muted, NavLink, Stack } from "./ui.jsx";
 import Field from "./Field";
 import * as runtime from "../platform/runtime";
+import { aiOptions } from "./assistantClient.js";
 export default function Login({ workspace }) {
   const { colors } = useAppearance();
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
     [busy, setBusy] = useState(false);
+  const [chatgptReady, setChatgptReady] = useState(false);
+  useEffect(() => {
+    let active = true;
+    aiOptions()
+      .then((options) => {
+        if (active) setChatgptReady(options.chatgpt.signInConfigured);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
   const wide = useWindowDimensions().width > 800;
   async function run(action) {
     if (busy) return;
@@ -89,6 +102,19 @@ export default function Login({ workspace }) {
             >
               Continue with Google
             </Button>
+            <Button
+              secondary
+              disabled={busy || !chatgptReady}
+              onPress={() => run(() => workspace.chatgptSignIn())}
+            >
+              Continue with ChatGPT
+            </Button>
+            {!chatgptReady ? (
+              <Muted>
+                ChatGPT sign-in is awaiting OpenAI approval and setup. Google
+                and email are available.
+              </Muted>
+            ) : null}
             <Muted style={{ textAlign: "center" }}>
               OR CONTINUE WITH EMAIL
             </Muted>

@@ -1,6 +1,7 @@
 {
   "version": "5",
   "specifiers": {
+    "npm:@ai-sdk/openai@4.0.96": "4.0.96_zod@4.6.7",
     "npm:@supabase/supabase-js@2.118.0": "2.118.0",
     "npm:ai@7.0.140": "7.0.140_zod@4.6.7"
   },
@@ -8,16 +9,35 @@
     "@ai-sdk/gateway@4.0.113_zod@4.6.7": {
       "integrity": "sha512-fYov5+sH1A20/eN1PaL5z8bZ9RUq0CcL9yAsAhCHz/qUCKliDOg9HXjNYzOUlH6o21lIrp/aKQc8QLGkEEZGlQ==",
       "dependencies": [
-        "@ai-sdk/provider",
-        "@ai-sdk/provider-utils",
+        "@ai-sdk/provider@4.0.27",
+        "@ai-sdk/provider-utils@5.0.59_zod@4.6.7",
         "@vercel/oidc",
+        "zod"
+      ]
+    },
+    "@ai-sdk/openai@4.0.96_zod@4.6.7": {
+      "integrity": "sha512-tCFB99pvAs5MAEVVT2RhtUUa5KsWcQMrdTZNfmW1cKeHQzNvUVlkMAAcWiR/PYOg2NuCvc5TDNBW/7tGK6spJw==",
+      "dependencies": [
+        "@ai-sdk/provider@4.0.29",
+        "@ai-sdk/provider-utils@5.0.62_zod@4.6.7",
         "zod"
       ]
     },
     "@ai-sdk/provider-utils@5.0.59_zod@4.6.7": {
       "integrity": "sha512-eaXBTkguxBFzS+KvxGRsbdkX9A7+R1g/C4jWx9mup0oSs3Cx5Mb427/byGpD2XL8SnMYT9O8LmXBmrgo+N3TJw==",
       "dependencies": [
-        "@ai-sdk/provider",
+        "@ai-sdk/provider@4.0.27",
+        "@standard-schema/spec",
+        "@workflow/serde",
+        "eventsource-parser",
+        "undici",
+        "zod"
+      ]
+    },
+    "@ai-sdk/provider-utils@5.0.62_zod@4.6.7": {
+      "integrity": "sha512-//6sHa6QNQdM2KHOg5pxp1UMFQB4U8cqdw/kSm9BMr0DLeaFgG3TXZfxhpwRZmxgBpOrzMVZ/gwLXH309+Ortw==",
+      "dependencies": [
+        "@ai-sdk/provider@4.0.29",
         "@standard-schema/spec",
         "@workflow/serde",
         "eventsource-parser",
@@ -27,6 +47,12 @@
     },
     "@ai-sdk/provider@4.0.27": {
       "integrity": "sha512-TtWwm6SxFiPomlMIbTQa+yhJte+w4/oCsW+wJrJzMC3MqHpAY9e5dJF1Y4HxyKt3W2Csac0KiI76Ckio11TFYw==",
+      "dependencies": [
+        "json-schema"
+      ]
+    },
+    "@ai-sdk/provider@4.0.29": {
+      "integrity": "sha512-nV7UpLADtKn9f0xfnxVZAeFEKuNkScJv5rOpHL7qeWe2EwEEBa3pd6P0QVK6D6coCJ0E8FyCgoM50AffTYrzDQ==",
       "dependencies": [
         "json-schema"
       ]
@@ -89,8 +115,8 @@
       "integrity": "sha512-GHWqpUcY7EsRHc7jC99SqzpgabExb9w7anxDYa5N79AIVsGavIZFxZKhVQ/SORkuXFkPO4FG8cCSweaGutvwSw==",
       "dependencies": [
         "@ai-sdk/gateway",
-        "@ai-sdk/provider",
-        "@ai-sdk/provider-utils",
+        "@ai-sdk/provider@4.0.27",
+        "@ai-sdk/provider-utils@5.0.59_zod@4.6.7",
         "zod"
       ]
     },
@@ -116,6 +142,7 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
+        "npm:@ai-sdk/openai@4.0.96",
         "npm:ai@7.0.140"
       ]
     }

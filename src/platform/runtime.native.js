@@ -10,6 +10,7 @@ import { createSecureStorage } from "./secure-storage.js";
 import publicClient from "../public-client.json";
 import {
   startGoogleSignIn,
+  startChatGPTSignIn,
   finishNativeAuth,
   NATIVE_AUTH_REDIRECT,
 } from "../auth.js";
@@ -83,7 +84,13 @@ export async function finishRedirect(client) {
   return false;
 }
 export async function googleSignIn(client) {
-  await startGoogleSignIn(client, null, {
+  return providerSignIn(client, startGoogleSignIn);
+}
+export async function chatgptSignIn(client, enabled, link = false) {
+  return providerSignIn(client, (c, location, runtime) => startChatGPTSignIn(c, location, runtime, enabled, link));
+}
+async function providerSignIn(client, start) {
+  await start(client, null, {
     open: async (url) => {
       if (new URL(url).protocol !== "https:")
         throw Error("Sign-in requires a secure connection.");

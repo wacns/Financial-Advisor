@@ -1,3 +1,4 @@
+import { fundingRequest } from "./funding.js";
 const currencies = [
   "BHD",
   "USD",
@@ -131,7 +132,10 @@ export function validateAssistantOutput(output) {
 
 export function assistantHandler({
   authenticate,
-  configured,
+  capabilities,
+  balance,
+  reserve,
+  settle,
   quota,
   generate,
   json,
@@ -140,6 +144,20 @@ export function assistantHandler({
     if (request.method === "OPTIONS") return json(request, {}, 200);
     if (request.method !== "POST")
       return json(request, { error: "Method not allowed." }, 405);
+    let body;
+    try {
+      if (Number(request.headers.get("content-length")) > 20000)
+        throw Error("Request is too large.");
+      const text = await request.text();
+      if (text.length > 20000) throw Error("Request is too large.");
+      body = JSON.parse(text);
+      if (!body || typeof body !== "object" || Array.isArray(body))
+        throw Error("Invalid request.");
+    } catch (e) {
+      return json(request, { error: e.message || "Invalid request." }, 400);
+    }
+    const options = capabilities();
+    if (body.action === "capabilities") return json(request, options, 200);
     const user = await authenticate(request).catch(() => null);
     if (!user)
       return json(
@@ -147,26 +165,34 @@ export function assistantHandler({
         { error: "Sign in to use the cloud assistant." },
         401,
       );
-    let input;
-    try {
-      if (Number(request.headers.get("content-length")) > 20000)
-        throw Error("Request is too large.");
-      const text = await request.text();
-      if (text.length > 20000) throw Error("Request is too large.");
-      input = validateAssistantInput(JSON.parse(text));
-    } catch (e) {
-      return json(request, { error: e.message || "Invalid request." }, 400);
+    if (body.action === "status") {
+      try {
+        return json(
+          request,
+          { ...options, ...(await balance(request, user)) },
+          200,
+        );
+      } catch {
+        return json(
+          request,
+          { error: "AI credit status is unavailable. No request was sent." },
+          503,
+        );
+      }
     }
-    if (!configured())
+    let input, funding;
+    try {
+      if (body.action && body.action !== "ask") throw Error("Invalid action.");
+      input = validateAssistantInput(body);
+      funding = fundingRequest(body, options);
+    } catch (e) {
       return json(
         request,
-        {
-          error:
-            "Cloud AI is not configured yet. Local insights and text capture are available.",
-          configured: false,
-        },
-        503,
+        { error: e.message, configured: options.hosted.configured },
+        e.status || 400,
       );
+    }
+    let reserved = false;
     try {
       if (!(await quota(request)))
         return json(
@@ -177,14 +203,70 @@ export function assistantHandler({
           },
           429,
         );
-      const output = validateAssistantOutput(await generate(input));
-      return json(request, output, 200);
+      if (funding.mode === "hosted") {
+        const reservation = await reserve(user, funding);
+        if (reservation.insufficient)
+          return json(
+            request,
+            {
+              error:
+                "Insufficient prepaid AI credits. Purchases are not available yet.",
+              balance: reservation.balance,
+            },
+            402,
+          );
+        if (reservation.duplicate)
+          return json(
+            request,
+            {
+              error:
+                "This request was already submitted. Check its status before starting another question.",
+              status: reservation.status,
+            },
+            409,
+          );
+        reserved = true;
+      }
+      // Funding credentials are never included in the model's input.
+      const result = await generate(input, funding);
+      const output = validateAssistantOutput(result.output);
+      if (reserved) {
+        const paid = await settle(user, funding, "complete", result.usage);
+        // A failed database response after completion is ambiguous: do not run
+        // inference again or refund a completed request. Settlement is idempotent.
+        if (paid.status !== "completed")
+          throw Error("Settlement not completed");
+        return json(
+          request,
+          {
+            ...output,
+            funding: {
+              mode: "hosted",
+              chargedCredits: funding.priceCredits,
+              balance: paid.balance,
+            },
+          },
+          200,
+        );
+      }
+      return json(
+        request,
+        { ...output, funding: { mode: "byok", chargedCredits: 0 } },
+        200,
+      );
     } catch {
+      if (reserved) {
+        try {
+          await settle(user, funding, "refund", {});
+        } catch {
+          /* Reservation can be reconciled by its request ID. */
+        }
+      }
       return json(
         request,
         {
           error:
-            "The AI service could not complete this question. Try local insights or retry later.",
+            "The AI service could not complete this question. Hosted reservations are refunded when possible; check your credit balance before retrying. Your own provider may charge failed requests. No other funding option was used.",
         },
         503,
       );

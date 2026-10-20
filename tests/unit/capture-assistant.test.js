@@ -201,16 +201,19 @@ test("cloud handler enforces authentication, consent, configuration, quota and r
   const handler = assistantHandler({
     json,
     authenticate: async () => (authenticated ? { id: "a" } : null),
-    configured: () => enabled,
+    capabilities: () => ({ hosted: { configured: enabled, priceCredits: 2, pricingVersion: "test-v1" } }),
+    balance: async () => ({ balance: 10 }),
+    reserve: async () => ({ status: "reserved", balance: 8 }),
+    settle: async (_, funding, action) => ({ status: action === "complete" ? "completed" : "refunded", balance: 8 }),
     quota: async () => {
       quotas++;
       return allowed;
     },
     generate: async () => {
       calls++;
-      return bad
+      return { output: bad
         ? { answer: "Bad", drafts: [{ ownerId: "forged" }] }
-        : { answer: "Review this in the app.", drafts: [] };
+        : { answer: "Review this in the app.", drafts: [] } };
     },
   });
   const request = (body) =>
@@ -220,7 +223,7 @@ test("cloud handler enforces authentication, consent, configuration, quota and r
         "Content-Type": "application/json",
         Origin: "https://financial-advisor-partner.vercel.app",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ mode: "hosted", pricingConsent: true, priceCredits: 2, pricingVersion: "test-v1", requestId: "22222222-2222-4222-8222-222222222222", ...body }),
     });
   assert.equal(
     (await handler(request({ consent: true, question: "Hi" }))).status,

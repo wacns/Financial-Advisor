@@ -122,3 +122,11 @@ The iOS build verifies actual Xcode source paths and type-checks the Shortcuts S
 All three desktop update feeds report 1.7.0. Public release notes contain all 15 verified source commit entries, with the real comparison `desktop-v1.6.1...v1.7.0`. The metadata-only history records the expected base `ef59f9b` and build head `cb4e94e`. The application repository remains private. Earlier failed/cancelled attempts were superseded by this successful run; they did not publish a 1.7.0 release.
 
 Unauthenticated download HEAD requests returned HTTP 200 for an asset in each of the eight installer formats. This confirms public download access, without executing installers or changing a user's records.
+
+## AI funding and Budget Tracker audit (2026-10-20)
+
+The 1.7.1 implementation passed 98 unit tests and 30 browser tests, including funding consent, quote changes, ephemeral keys, absence of financial writes, and the unavailable ChatGPT foundation. Web build, Android/iOS Hermes exports, desktop smoke checks, workflow actionlint and Edge Function Deno type-check passed. OpenAI provider APIs were verified against installed version-matched SDK documentation. No real paid provider request or OpenAI OAuth session was attempted.
+
+The prepaid-credit SQL regression passed locally and on the hosted database. It verifies service-only grants, idempotent payment references, owner-only status, nonnegative balances, request replay protection, completion/refund transitions and metadata minimization. A concurrent local test submitted two seven-credit reservations against a ten-credit wallet: one reserved and one failed for insufficient funds, leaving three credits. Hosted synthetic users were rolled back; a follow-up count was zero. No real user credit or financial balance was changed.
+
+The deployed assistant v3 returned public capabilities with BYOK enabled, hosted pricing/purchases disabled and ChatGPT identity/plan access disabled. Anonymous status and inference requests returned 401. The four existing private/public release titles were renamed to their exact version tags, with asset IDs, sizes, digests, descriptions and prerelease flags verified unchanged. The Budget Tracker document is an audit and roadmap, not a claim that its missing features were added.

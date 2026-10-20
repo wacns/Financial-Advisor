@@ -6,18 +6,28 @@ export function authRedirectUrl(location, native = false) {
 }
 
 export async function startGoogleSignIn(client, location, nativeRuntime) {
+  return startProviderSignIn(client, 'google', location, nativeRuntime);
+}
+
+export async function startChatGPTSignIn(client, location, nativeRuntime, enabled = false, link = false) {
+  if (!enabled) throw Error('Continue with ChatGPT is awaiting OpenAI approval and provider setup.');
+  return startProviderSignIn(client, 'custom:chatgpt', location, nativeRuntime, link);
+}
+
+async function startProviderSignIn(client, provider, location, nativeRuntime, link = false) {
   if (!client) throw Error('Live sign-in is pending Supabase setup.');
-  const {data, error} = await client.auth.signInWithOAuth({
-    provider: 'google',
+  const method = link ? 'linkIdentity' : 'signInWithOAuth';
+  const {data, error} = await client.auth[method]({
+    provider,
     options: {
       redirectTo: authRedirectUrl(location, !!nativeRuntime),
       ...(nativeRuntime ? {skipBrowserRedirect:true} : {}),
-      queryParams: {prompt: 'select_account'},
+      ...(provider === 'google' ? { queryParams: {prompt: 'select_account'} } : { scopes: 'openid profile email' }),
     },
   });
   if (error) throw error;
   if (nativeRuntime) {
-    if (!data?.url) throw Error('Could not open Google sign-in. Please try again.');
+    if (!data?.url) throw Error('Could not open sign-in. Please try again.');
     await nativeRuntime.open(data.url);
   }
 }

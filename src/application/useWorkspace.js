@@ -11,6 +11,7 @@ import { DEMO_STORAGE_KEY, requireBahrainWorkspace } from "../locale.js";
 import { createNotifications } from "../notifications.js";
 import { finishNativeAuth } from "../auth.js";
 import { applyEntry, togglePlan } from "./workspace.js";
+import { aiOptions } from "./assistantClient.js";
 export function useWorkspace() {
   const [route, setRoute] = useState(runtime.currentRoute),
     [ready, setReady] = useState(false),
@@ -286,5 +287,9 @@ export function useWorkspace() {
     replace,
     clientConfigured: !!client,
     googleSignIn: () => runtime.googleSignIn(client),
+    chatgptSignIn: async (link = false) => {
+      const options = await aiOptions();
+      return runtime.chatgptSignIn(client, options.chatgpt.signInConfigured, link);
+    },
   };
 }

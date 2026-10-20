@@ -157,10 +157,10 @@ jobs:
           if gh release view "$TAG" --json isDraft --jq '.isDraft' > "$RUNNER_TEMP/release-draft" 2>/dev/null; then
             test "$(cat "$RUNNER_TEMP/release-draft")" = true || { echo 'Refusing to replace a published release. Bump the app version.' >&2; exit 1; }
           else
-            gh release create "$TAG" --target "$GITHUB_SHA" --draft --prerelease --title "FinancialAdvisor $APP_VERSION — preview" --notes-file "$RUNNER_TEMP/release-notes.md"
+            gh release create "$TAG" --target "$GITHUB_SHA" --draft --prerelease --title "$TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
           fi
           gh release upload "$TAG" installers/* --clobber
-          gh release edit "$TAG" --draft=false --prerelease --latest=false
+          gh release edit "$TAG" --draft=false --prerelease --latest=false --title "$TAG"
   public-desktop:
     needs: [verify, publish]
     uses: ./.github/workflows/publish-desktop.yml

@@ -20,7 +20,7 @@ export default {
     owner: "financial-advisor",
     icon: "./assets/app-icon.png",
     slug: "financial-advisor",
-    version: "1.7.0",
+    version: "1.7.1",
     runtimeVersion: { policy: "fingerprint" },
     updates: easProjectId
       ? {
@@ -37,7 +37,7 @@ export default {
     userInterfaceStyle: "automatic",
     ios: {
       bundleIdentifier: "com.wacns.financialadvisor",
-      buildNumber: "5",
+      buildNumber: "6",
       supportsTablet: true,
       ...(iosFirebase ? { googleServicesFile: iosFirebaseFile } : {}),
       infoPlist: {
@@ -49,7 +49,7 @@ export default {
     },
     android: {
       package: "com.wacns.financialadvisor",
-      versionCode: 5,
+      versionCode: 6,
       ...(androidFirebase ? { googleServicesFile: androidFirebaseFile } : {}),
       permissions: ["POST_NOTIFICATIONS", "RECORD_AUDIO"],
       allowBackup: false,

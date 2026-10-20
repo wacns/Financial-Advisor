@@ -27,9 +27,9 @@ if (existing && !existing.draft) {
     if (assets.find(a => a.name === name)?.digest !== digest) throw Error(`Published release differs: ${name}. Increment the desktop version.`);
   }
 } else {
-  if (!existing) gh("release", "create", tag, "--repo", repository, "--target", repo.default_branch, "--draft", "--prerelease", "--title", `FinancialAdvisor ${version} — preview`, "--notes", notes);
+  if (!existing) gh("release", "create", tag, "--repo", repository, "--target", repo.default_branch, "--draft", "--prerelease", "--title", tag, "--notes", notes);
   gh("release", "upload", tag, "--repo", repository, "--clobber", ...assetNames.map(n => path.join(directory, n)));
-  gh("release", "edit", tag, "--repo", repository, "--draft=false", "--prerelease", "--latest=false");
+  gh("release", "edit", tag, "--repo", repository, "--draft=false", "--prerelease", "--latest=false", "--title", tag);
 }
 // Publish all platform metadata in one commit after installer assets are available.
 const ref = api(`repos/${repository}/git/ref/heads/${repo.default_branch}`);
