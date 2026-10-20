@@ -31,6 +31,31 @@ test("old workspaces normalize new feature collections without posting records",
   assert.deepEqual(s.transactions, old.transactions);
   assert.deepEqual(s.accounts, old.accounts);
 });
+test("recorded bill expenses earn the selected account's future reward points", () => {
+  const { apply, account, state } = setup();
+  let s = apply(state, "recurring", {
+    name: "Storage",
+    type: "expense",
+    amount: 1.001,
+    category: "Utilities",
+    accountId: account,
+    nextDue: "2026-10-01",
+    frequency: "monthly",
+  });
+  s = apply(
+    s,
+    "record",
+    {
+      date: "2026-10-01",
+      scheduledFor: "2026-10-01",
+      accountId: account,
+      amount: 1.001,
+    },
+    s.recurring[0].id,
+  );
+  assert.equal(s.transactions[0].rewardPoints, 2.002);
+  assert.equal(s.accounts[0].balance, 8.999);
+});
 test("installments preserve the last fils, month ends, manual payments and reversals", () => {
   const { apply, account, state } = setup();
   let s = apply(state, "installment", {

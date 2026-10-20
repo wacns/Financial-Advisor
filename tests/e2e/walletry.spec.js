@@ -1,14 +1,51 @@
 import { test, expect } from "@playwright/test";
 import { demoState } from "../../src/finance.js";
 import { normalizeWorkspace } from "../../src/domain/model.js";
-async function seedDemo(page) {
-  const state = normalizeWorkspace(demoState());
+async function seedDemo(page, input = demoState()) {
+  const state = normalizeWorkspace(input);
   await page.addInitScript((value) => {
     if (!localStorage.getItem("northline-bh-demo-v1"))
       localStorage.setItem("northline-bh-demo-v1", JSON.stringify(value));
   }, state);
 }
 const modal = (p) => p.getByTestId("entry-dialog");
+test("captured foreign-currency amounts follow the reviewed account currency", async ({
+  page: p,
+}) => {
+  const input = demoState();
+  input.accounts.push({
+    id: "capture-usd",
+    name: "Dollar cash",
+    type: "Cash",
+    currency: "USD",
+    balance: 10,
+  });
+  await seedDemo(p, input);
+  await p.goto("/#/demo/capture");
+  await p
+    .getByLabel("Payment messages or spoken text")
+    .fill("Paid USD 1.001 at Cafe on 2026-10-19");
+  await p.getByRole("button", { name: "Prepare drafts", exact: true }).click();
+  await p.getByRole("button", { name: "Review entry 1", exact: true }).click();
+  await expect(p.getByLabel("Account", { exact: true })).toHaveValue(
+    "capture-usd",
+  );
+  await expect(p.getByLabel("Amount (USD)", { exact: true })).toHaveValue(
+    "1.001",
+  );
+  await p.getByLabel("Account", { exact: true }).selectOption("current");
+  await expect(p.getByLabel("Amount (BHD)", { exact: true })).toHaveValue(
+    "1.001",
+  );
+  await modal(p).getByRole("button", { name: "Cancel", exact: true }).click();
+  await p.reload();
+  const unchanged = await p.evaluate(() =>
+    JSON.parse(localStorage.getItem("northline-bh-demo-v1")),
+  );
+  expect(unchanged.accounts.find((a) => a.id === "capture-usd").balance).toBe(
+    10,
+  );
+});
 test("text capture requires review, preserves precision and blocks duplicate saves", async ({
   page: p,
 }) => {

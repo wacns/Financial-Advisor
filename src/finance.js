@@ -91,7 +91,13 @@ export function addTransaction(state, transaction) {
   account.balance =
     (toFils(account.balance) + (transaction.type === "income" ? fils : -fils)) /
     1000;
-  state.transactions.unshift({ ...transaction, amount });
+  const rewardPoints =
+    transaction.rewardPoints == null || transaction.rewardPoints === ""
+      ? transaction.type === "expense"
+        ? Math.round(amount * (account.rewardRate || 0) * 1000) / 1000
+        : 0
+      : transaction.rewardPoints;
+  state.transactions.unshift({ ...transaction, amount, rewardPoints });
   return state;
 }
 // A transfer is one ledger record with two account effects. It is neither

@@ -21,9 +21,13 @@ export function reviewCapture(w, open, draft) {
   if (!account)
     throw Error(`Add a ${draft.currency} account before reviewing this entry.`);
   const categories = categoryPaths(w.state);
+  // The captured currency selects the initial matching account. After that,
+  // let the form derive its label from the account the user is reviewing.
+  const entry = { ...draft };
+  delete entry.currency;
   open("transaction", undefined, {
     draft: {
-      ...draft,
+      ...entry,
       accountId: account.id,
       category: categories.includes(draft.category)
         ? draft.category
