@@ -1,4 +1,4 @@
-import { must } from './guards.ts';
+import { field, must } from './guards.ts';
 const preferenceKey = 'financial-advisor-push-v1';
 const installationKey = 'financial-advisor-installation-v1';
 const routes = new Set(['overview', 'transactions', 'calendar', 'bills', 'goals', 'subscriptions', 'installments']);
@@ -9,10 +9,6 @@ export function notificationRoute(notification: NotificationLike): string {
   return typeof route === 'string' && routes.has(route) ? route : 'overview';
 }
 
-/** Reads a field of a thrown value the way `error.field` did, without assuming it is an Error. */
-const field = (value: unknown, key: string): unknown =>
-  typeof value === 'object' && value !== null ? Reflect.get(value, key) : undefined;
-
 export type NotificationStatus = {
   supported: boolean;
   enabled: boolean;
@@ -22,12 +18,11 @@ export type NotificationStatus = {
 };
 /** The push-messaging bridge each platform provides. */
 export interface Messaging {
-  addListener(event: 'tokenReceived', listener: (event: {token: string}) => void): Promise<unknown>;
+  /** Events: tokenReceived ({token}), notificationActionPerformed ({notification}), notificationReceived. */
   addListener(
-    event: 'notificationActionPerformed',
-    listener: (event: {notification: NotificationLike}) => void,
-  ): Promise<unknown>;
-  addListener(event: 'notificationReceived', listener: () => void): Promise<unknown>;
+    event: 'tokenReceived' | 'notificationActionPerformed' | 'notificationReceived',
+    listener: (event: {token?: string; notification?: NotificationLike}) => void,
+  ): unknown;
   createChannel(channel: {id: string; name: string; importance: number; visibility: number}): Promise<unknown>;
   getToken(): Promise<{token: string}>;
   requestPermissions(): Promise<{receive: string}>;

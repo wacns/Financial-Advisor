@@ -15,8 +15,8 @@ import Field from "./Field";
 import PrivacyGate from "../platform/PrivacyGate";
 import Login from "./Login.jsx";
 import EntryModal from "./EntryModal.jsx";
-import { useWorkspace } from "./useWorkspace.js";
-import { entryForm } from "./forms.js";
+import { useWorkspace } from "./useWorkspace.ts";
+import { entryForm } from "./forms.ts";
 import {
   Overview,
   Accounts,

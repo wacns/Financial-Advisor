@@ -4,10 +4,10 @@ import {
   applyEntry,
   togglePlan,
   transactionCSV,
-} from "../../src/application/workspace.js";
-import { entryForm } from "../../src/application/forms.js";
+} from "../../src/application/workspace.ts";
+import { entryForm } from "../../src/application/forms.ts";
 import { blankState } from "../../src/finance.ts";
-import { createSecureStorage } from "../../src/platform/secure-storage.js";
+import { createSecureStorage } from "../../src/platform/secure-storage.ts";
 const fixture = () => ({
   ...blankState(),
   accounts: [

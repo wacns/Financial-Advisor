@@ -4,7 +4,7 @@ import { View, ScrollView, useWindowDimensions } from "react-native";
 import { Button, Card, Heading, Label, Muted, NavLink, Stack } from "./ui.jsx";
 import Field from "./Field";
 import * as runtime from "../platform/runtime";
-import { aiOptions } from "./assistantClient.js";
+import { aiOptions } from "./assistantClient.ts";
 export default function Login({ workspace }) {
   const { colors } = useAppearance();
   const [email, setEmail] = useState(""),

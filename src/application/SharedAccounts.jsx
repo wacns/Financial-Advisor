@@ -6,8 +6,8 @@ import React, {
   useState,
 } from "react";
 import { View } from "react-native";
-import { client } from "./client.js";
-import { sharedAccountService } from "./sharedAccounts.js";
+import { client } from "./client.ts";
+import { sharedAccountService } from "./sharedAccounts.ts";
 import {
   Button,
   Card,

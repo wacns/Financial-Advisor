@@ -103,7 +103,7 @@ export function featureCommand(
   input: unknown,
   kind: string,
   data: FeatureInput,
-  id?: string,
+  id?: string | null,
   uuid: () => string = () => crypto.randomUUID(),
 ): Workspace | null {
   const s = normalizeWorkspace(input),

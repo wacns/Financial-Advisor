@@ -56,7 +56,7 @@ export function organizeCommand(
   input: unknown,
   kind: string,
   data: OrganizeInput,
-  id: string | undefined,
+  id: string | null | undefined,
   uuid: () => string,
 ): Workspace | null {
   const supported = [

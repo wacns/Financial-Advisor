@@ -1,4 +1,4 @@
-import { must } from "./guards.ts";
+import { field, must } from "./guards.ts";
 import type { Settings } from "./domain/types.ts";
 export const REGION = "BH";
 export const CURRENCY = "BHD";
@@ -102,10 +102,8 @@ export function toFils(value: unknown): number {
   return fils;
 }
 
-export function requireBahrainWorkspace<T extends { currency: string }>(
-  state: T,
-): T {
-  if (state.currency !== CURRENCY) {
+export function requireBahrainWorkspace<T>(state: T): T {
+  if (field(state, "currency") !== CURRENCY) {
     throw Error(
       "This workspace uses another currency. Its records have been preserved; currency conversion is required before opening it in FinancialAdvisor.",
     );

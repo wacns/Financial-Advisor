@@ -3,35 +3,43 @@ import { validateCycleBudgets } from "../domain/cycles.ts";
 import { validateProjects } from "../domain/projects.ts";
 import { syncWidgets } from "../platform/files";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { client } from "./client.js";
+import { client } from "./client.ts";
+import type { User } from "@supabase/supabase-js";
+import type { NotificationStatus } from "../notifications.ts";
+import type { Workspace } from "../domain/types.ts";
+import type { EntryInput } from "./workspace.ts";
+import { errorMessage } from "../guards.ts";
 import * as runtime from "../platform/runtime";
 import { blankState, demoState } from "../finance.ts";
 import { normalizePlanning } from "../planning.ts";
 import { DEMO_STORAGE_KEY, requireBahrainWorkspace } from "../locale.ts";
 import { createNotifications } from "../notifications.ts";
 import { finishNativeAuth } from "../auth.ts";
-import { applyEntry, togglePlan } from "./workspace.js";
-import { aiOptions } from "./assistantClient.js";
+import { applyEntry, togglePlan } from "./workspace.ts";
+import { aiOptions } from "./assistantClient.ts";
+type PushState = Pick<NotificationStatus, "supported" | "enabled" | "busy"> &
+  Partial<NotificationStatus>;
+export type WorkspaceController = ReturnType<typeof useWorkspace>;
 export function useWorkspace() {
   const [route, setRoute] = useState(runtime.currentRoute),
     [ready, setReady] = useState(false),
     [loading, setLoading] = useState(true);
   // Screens can render once more while navigation is pending after sign-out.
   const [state, setState] = useState(() => normalizeWorkspace(blankState())),
-    [user, setUser] = useState(null),
-    [message, setMessage] = useState(""),
+    [user, setUser] = useState<User | null>(null),
+    [message, setMessage] = useState<string | undefined>(""),
     [saving, setSaving] = useState(false);
-  const [push, setPush] = useState({
+  const [push, setPush] = useState<PushState>({
     supported: runtime.native,
     enabled: false,
     busy: false,
   });
-  const identity = useRef(null),
+  const identity = useRef<User | null>(null),
     stateRef = useRef(state),
     writeLock = useRef(false),
     generation = useRef(0);
   const demo = route.startsWith("demo/");
-  const notifyRef = useRef(null);
+  const notifyRef = useRef<ReturnType<typeof createNotifications> | null>(null);
   if (!notifyRef.current)
     notifyRef.current = createNotifications({
       native: runtime.native,
@@ -46,7 +54,7 @@ export function useWorkspace() {
     });
   const notifications = notifyRef.current;
   const navigate = useCallback(
-    (page) => runtime.navigate(`${demo ? "demo" : "app"}/${page}`),
+    (page: string) => runtime.navigate(`${demo ? "demo" : "app"}/${page}`),
     [demo],
   );
   useEffect(
@@ -57,8 +65,8 @@ export function useWorkspace() {
     let active = true;
     runtime
       .finishRedirect(client)
-      .catch((error) => {
-        if (active) setMessage(error.message);
+      .catch((error: unknown) => {
+        if (active) setMessage(errorMessage(error));
       })
       .finally(() => {
         if (active) {
@@ -78,7 +86,7 @@ export function useWorkspace() {
         await finishNativeAuth(client, url);
         runtime.navigate("app/overview");
       } catch (error) {
-        if (active) setMessage(error.message);
+        if (active) setMessage(errorMessage(error));
       }
     });
     const subscription = client?.auth.onAuthStateChange((event) => {
@@ -112,9 +120,12 @@ export function useWorkspace() {
           identity.current = null;
           setUser(null);
           notifications.reset();
-          let saved;
+          let saved: unknown;
           try {
-            saved = JSON.parse(await runtime.preferences.get(DEMO_STORAGE_KEY));
+            // String() is the same conversion JSON.parse applies to a stored null.
+            saved = JSON.parse(
+              String(await runtime.preferences.get(DEMO_STORAGE_KEY)),
+            );
           } catch {
             saved = null;
           }
@@ -146,8 +157,9 @@ export function useWorkspace() {
             .maybeSingle();
           if (result.error) throw result.error;
           if (!active || attempt !== generation.current) return;
+          const stored: unknown = result.data?.data;
           const next = normalizeWorkspace(
-            requireBahrainWorkspace(result.data?.data || blankState()),
+            requireBahrainWorkspace(stored || blankState()),
           );
           identity.current = verifiedUser;
           setUser(verifiedUser);
@@ -162,7 +174,7 @@ export function useWorkspace() {
         }
       } catch (error) {
         if (active) {
-          setMessage(`Unable to load your workspace: ${error.message}`);
+          setMessage(`Unable to load your workspace: ${errorMessage(error)}`);
           runtime.navigate("login");
         }
       } finally {
@@ -175,7 +187,7 @@ export function useWorkspace() {
     };
   }, [route, ready, notifications]);
   const persist = useCallback(
-    async (next) => {
+    async (next: Workspace) => {
       requireBahrainWorkspace(next);
       validateWorkspace(next);
       validateCycleBudgets(next);
@@ -209,23 +221,23 @@ export function useWorkspace() {
   useEffect(() => {
     syncWidgets(state, !demo ? user?.id : null).catch(() => {});
   }, [state, user?.id, demo]);
-  async function replace(next) {
+  async function replace(next: unknown) {
     await persist(normalizeWorkspace(next));
     setMessage("Workspace restored. Check your balances.");
   }
-  async function save(kind, data, id) {
+  async function save(kind: string, data: EntryInput, id?: string | null) {
     await persist(applyEntry(stateRef.current, kind, data, id));
     setMessage("Saved. A little step forward.");
   }
-  async function toggle(kind, id) {
+  async function toggle(kind: string, id: string | null | undefined) {
     try {
       await persist(togglePlan(stateRef.current, kind, id));
       setMessage("Plan updated. Your transaction history is preserved.");
     } catch (error) {
-      setMessage(error.message);
+      setMessage(errorMessage(error));
     }
   }
-  async function authenticate(email, password, signup = false) {
+  async function authenticate(email: string, password: string, signup = false) {
     if (!client) throw Error("Live sign-in is pending Supabase setup.");
     if (!email || password.length < 8)
       throw Error("Enter your email and a password of at least 8 characters.");
@@ -257,7 +269,7 @@ export function useWorkspace() {
       notifications.reset();
       runtime.navigate("login");
     } catch (error) {
-      setMessage(error.message);
+      setMessage(errorMessage(error));
     }
   }
   async function reset() {
@@ -266,7 +278,7 @@ export function useWorkspace() {
         await persist(normalizeWorkspace(demoState()));
         setMessage("Sample data restored.");
       } catch (error) {
-        setMessage(error.message);
+        setMessage(errorMessage(error));
       }
     }
   }

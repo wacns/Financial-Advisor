@@ -6,7 +6,22 @@ import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import * as Linking from "expo-linking";
 import { captureURL } from "../domain/capture.ts";
-export async function pickFile({ image = false, camera = false } = {}) {
+import { must } from "../guards.ts";
+import type {
+  CaptureRequest,
+  FinancialAdvisorNative,
+  Files,
+  PickedFile,
+  QuickEntry,
+  Satisfies,
+} from "./contracts.ts";
+import type * as Self from "./files.native.ts";
+const nativeModule = () =>
+  requireNativeModule<FinancialAdvisorNative>("FinancialAdvisorNative");
+export async function pickFile({
+  image = false,
+  camera = false,
+}: { image?: boolean; camera?: boolean } = {}): Promise<PickedFile | null> {
   if (image) {
     if (camera && !(await ImagePicker.requestCameraPermissionsAsync()).granted)
       throw Error("Allow camera access to scan a receipt.");
@@ -16,20 +31,21 @@ export async function pickFile({ image = false, camera = false } = {}) {
         : ImagePicker.launchImageLibraryAsync
     )({ mediaTypes: ["images"], quality: 0.4, base64: true });
     if (response.canceled) return null;
-    const a = response.assets[0];
+    // A picker result that was not cancelled has at least one asset.
+    const a = must(response.assets[0], "picked image");
     return {
       name: a.fileName || "receipt.jpg",
       mime: a.mimeType || "image/jpeg",
       data: `data:${a.mimeType || "image/jpeg"};base64,${a.base64}`,
       uri: a.uri,
-      size: a.fileSize || a.base64.length * 0.75,
+      size: a.fileSize || must(a.base64, "image data").length * 0.75,
     };
   }
   const response = await DocumentPicker.getDocumentAsync({
     copyToCacheDirectory: true,
   });
   if (response.canceled) return null;
-  const a = response.assets[0],
+  const a = must(response.assets[0], "picked document"),
     file = new File(a.uri);
   if (file.size > 16000000) throw Error("File must be smaller than 16 MB.");
   return {
@@ -41,21 +57,25 @@ export async function pickFile({ image = false, camera = false } = {}) {
     size: file.size,
   };
 }
-export async function scanReceipt(camera = false) {
+export async function scanReceipt(camera = false): Promise<string | null> {
   const file = await pickFile({ image: true, camera });
   if (!file) return null;
-  return await requireNativeModule("FinancialAdvisorNative").recognize(
-    file.uri,
-  );
+  return await nativeModule().recognize(file.uri);
 }
-export async function downloadAttachment(data, name) {
+export async function downloadAttachment(data: string, name: string): Promise<void> {
   const file = new File(Paths.cache, name.replace(/[\\/]/g, "_"));
-  file.write(Uint8Array.from(atob(data.split(",")[1]), (c) => c.charCodeAt(0)));
+  file.write(
+    // atob(undefined) decodes the text "undefined", as before, when data has no comma.
+    Uint8Array.from(atob(String(data.split(",")[1])), (c) => c.charCodeAt(0)),
+  );
   await Sharing.shareAsync(file.uri);
 }
-export async function syncWidgets(workspace, owner) {
+export async function syncWidgets(
+  workspace: Parameters<Files["syncWidgets"]>[0],
+  owner: string | null | undefined,
+): Promise<void> {
   if (Platform.OS === "android")
-    await requireNativeModule("FinancialAdvisorNative").updateWidgets(
+    await nativeModule().updateWidgets(
       JSON.stringify({
         owner: owner && workspace?.settings?.widgetsEnabled ? owner || "" : "",
         templates:
@@ -67,8 +87,8 @@ export async function syncWidgets(workspace, owner) {
       }),
     );
 }
-export function subscribeQuickEntry(callback) {
-  const handle = (url) => {
+export function subscribeQuickEntry(callback: (entry: QuickEntry) => void): () => void {
+  const handle = (url: string | null) => {
     if (!url?.startsWith("com.wacns.financialadvisor://quick/")) return;
     const value = new URL(url);
     callback({
@@ -83,9 +103,10 @@ export function subscribeQuickEntry(callback) {
     .catch(() => {});
   return () => sub.remove();
 }
-export function subscribeCapture(callback) {
-  const handle = (url) => {
-    const capture = captureURL(url);
+export function subscribeCapture(callback: (capture: CaptureRequest) => void): () => void {
+  const handle = (url: string | null) => {
+    // captureURL rejects a missing URL itself, so String() keeps that outcome.
+    const capture = captureURL(String(url));
     if (capture) callback(capture);
   };
   const sub = Linking.addEventListener("url", ({ url }) => handle(url));
@@ -95,8 +116,10 @@ export function subscribeCapture(callback) {
   return () => sub.remove();
 }
 
-export async function requestWidget() {
+export async function requestWidget(): Promise<boolean> {
   return Platform.OS === "android"
-    ? requireNativeModule("FinancialAdvisorNative").requestWidget()
+    ? nativeModule().requestWidget()
     : false;
 }
+// Compile-time check that this module matches the files contract.
+export type FilesCheck = Satisfies<Files, typeof Self>;

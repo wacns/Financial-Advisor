@@ -176,7 +176,7 @@ export function projectCommand(
   s: Workspace,
   kind: string,
   data: ProjectInput,
-  id?: string,
+  id?: string | null,
   uuid: () => string = () => crypto.randomUUID(),
 ): Workspace | null {
   const p = s.projects.find((p) => p.id === data.projectId);

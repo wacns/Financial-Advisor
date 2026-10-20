@@ -1,35 +1,55 @@
-import { accountAppearanceFields, contactFields } from "./enhancementForms.js";
-import { featureForm } from "./featureForms.js";
+import { accountAppearanceFields, contactFields } from "./enhancementForms.ts";
+import type {
+  FieldOption,
+  FormContext,
+  FormField,
+  FormSpec,
+} from "./enhancementForms.ts";
+import { featureForm } from "./featureForms.ts";
 import { categoryPaths } from "../domain/commands.ts";
 import { normalizeWorkspace, currencyCodes } from "../domain/model.ts";
 import { categories } from "../finance.ts";
 import { bahrainDate } from "../locale.ts";
 import { frequencies } from "../planning.ts";
-const field = (label, name, type = "text", value = "", options) => ({
+import { must } from "../guards.ts";
+export type { FormField, FormSpec } from "./enhancementForms.ts";
+const field = (
+  label: string,
+  name: string,
+  type = "text",
+  value: unknown = "",
+  options?: readonly FieldOption[],
+): FormField => ({
   label,
   name,
   type,
   value,
   options,
 });
-const amount = (label, name, value = "") => field(label, name, "number", value);
-export function entryForm(kind, id, state, context = {}) {
-  state = normalizeWorkspace(state);
+const amount = (label: string, name: string, value: unknown = "") =>
+  field(label, name, "number", value);
+export function entryForm(
+  kind: string,
+  id: string | null | undefined,
+  input: unknown,
+  context: FormContext = {},
+): FormSpec {
+  const state = normalizeWorkspace(input);
   const feature = featureForm(kind, id, state, context);
   if (feature) return feature;
   const accounts = state.accounts.map((a) => ({ value: a.id, label: a.name }));
   const account = (
     label = "Account",
     name = "accountId",
-    value = state.settings.defaultAccountId || accounts[0]?.value || "",
+    value: unknown = state.settings.defaultAccountId || accounts[0]?.value || "",
   ) => field(label, name, "select", value, accounts);
   const category = () =>
     field("Category", "category", "select", "Shopping", categoryPaths(state));
   const date = (label = "Date", name = "date", value = bahrainDate()) =>
     field(label, name, "date", value);
   let title = "",
-    fields = [],
-    values = {},
+    fields: FormField[] = [],
+    values: Record<string, unknown> = {},
     note = "";
   if (
     ["transaction", "transfer", "recurring", "record", "repayment"].includes(
@@ -66,7 +86,8 @@ export function entryForm(kind, id, state, context = {}) {
     title = "Give your money a new home";
     fields = [
       account("From account"),
-      account("To account", "toAccountId", accounts[1].value),
+      // The check above guarantees two accounts.
+      account("To account", "toAccountId", must(accounts[1], "account").value),
       amount("Amount (BHD)", "amount"),
       date(),
       field("Description", "name", "text", "Account transfer"),
@@ -164,33 +185,39 @@ export function entryForm(kind, id, state, context = {}) {
     note =
       "Schedules are reminders. Record each payment after it happens; future payments do not change your balance.";
   } else if (kind === "record" || kind === "repayment") {
-    const row = (kind === "record" ? state.recurring : state.debts).find(
-      (r) => r.id === id,
-    );
+    // A record is a schedule occurrence; a repayment pays a debt.
+    const schedule =
+        kind === "record"
+          ? state.recurring.find((r) => r.id === id)
+          : undefined,
+      debt =
+        kind === "record" ? undefined : state.debts.find((r) => r.id === id),
+      row = schedule || debt;
     if (!row) throw Error("This schedule no longer exists.");
-    title =
-      kind === "record"
-        ? `Record ${row.type === "income" ? "income" : "payment"}`
-        : "Record repayment";
+    title = schedule
+      ? `Record ${schedule.type === "income" ? "income" : "payment"}`
+      : "Record repayment";
     fields = [
       account(
         "Pay from account",
         "accountId",
-        row.accountId || accounts[0].value,
+        // Debts have no account of their own; `in` reads it exactly as row.accountId did.
+        ("accountId" in row ? row.accountId : undefined) ||
+          must(accounts[0], "account").value,
       ),
       amount(
-        kind === "record" ? "Actual amount (BHD)" : "Total payment (BHD)",
+        schedule ? "Actual amount (BHD)" : "Total payment (BHD)",
         "amount",
-        kind === "record" ? row.amount : row.installment,
+        schedule ? schedule.amount : debt?.installment,
       ),
       date("Payment date"),
     ];
-    if (kind === "repayment")
+    if (debt)
       fields.push(
         amount(
           "Principal portion (BHD)",
           "principal",
-          Math.min(row.installment, row.balance),
+          Math.min(debt.installment, debt.balance),
         ),
       );
     values = { scheduledFor: row.nextDue };

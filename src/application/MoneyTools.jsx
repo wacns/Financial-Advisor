@@ -19,7 +19,7 @@ import {
   aiOptions,
   assistantRequest,
   unavailableAI,
-} from "./assistantClient.js";
+} from "./assistantClient.ts";
 
 export function reviewCapture(w, open, draft) {
   const account = captureAccount(w.state, draft.currency);

@@ -2,27 +2,52 @@ import {
   enhancementForm,
   accountAppearanceFields,
   contactFields,
-} from "./enhancementForms.js";
+} from "./enhancementForms.ts";
+import type {
+  FieldOption,
+  FormContext,
+  FormField,
+  FormSpec,
+} from "./enhancementForms.ts";
 import { currencyCodes } from "../domain/model.ts";
 import { categoryPaths } from "../domain/commands.ts";
 import { cycleKey, splitWeeks } from "../domain/cycles.ts";
 import { bahrainDate } from "../locale.ts";
-export const f = (label, name, value = "", type = "text", options) => ({
+import { must } from "../guards.ts";
+import type { Workspace } from "../domain/types.ts";
+export const f = (
+  label: string,
+  name: string,
+  value: unknown = "",
+  type = "text",
+  options?: readonly FieldOption[],
+): FormField => ({
   label,
   name,
   value,
   type,
   options,
 });
-const n = (label, name, value = "") => f(label, name, value, "number");
-const d = (label, name, value = bahrainDate()) => f(label, name, value, "date");
+const n = (label: string, name: string, value: unknown = "") =>
+  f(label, name, value, "number");
+const d = (label: string, name: string, value: unknown = bahrainDate()) =>
+  f(label, name, value, "date");
+const firstValue = (options: readonly FieldOption[]) => {
+  const first = options[0];
+  return typeof first === "string" ? first : first?.value || "";
+};
 const select = (
-  label,
-  name,
-  options,
-  value = typeof options[0] === "string" ? options[0] : options[0]?.value || "",
+  label: string,
+  name: string,
+  options: readonly FieldOption[],
+  value: unknown = firstValue(options),
 ) => f(label, name, value, "select", options);
-export function featureForm(kind, id, s, context = {}) {
+export function featureForm(
+  kind: string,
+  id: string | null | undefined,
+  s: Workspace,
+  context: FormContext = {},
+): FormSpec | null {
   const enhanced = enhancementForm(kind, id, s, context);
   if (enhanced) return enhanced;
   const accountOptions = s.accounts.map((a) => ({
@@ -31,10 +56,12 @@ export function featureForm(kind, id, s, context = {}) {
     })),
     categoryOptions = categoryPaths(s),
     project = s.projects.find((p) => p.id === context.projectId);
-  let fields = [],
+  // A form for a project item fails clearly when its project is gone, where it used to crash.
+  const projectFor = () => must(project, "project");
+  let fields: FormField[] = [],
     title = "",
     note = "",
-    values = {};
+    values: object | undefined = {};
   const account = () => select("Account", "accountId", accountOptions),
     category = () => select("Category", "category", categoryOptions);
   if (kind.startsWith("delete") || kind === "projectDeleteItem") {
@@ -84,7 +111,10 @@ export function featureForm(kind, id, s, context = {}) {
     note =
       "Changing the balance creates one visible adjustment. Currency cannot change after transactions exist.";
   } else if (kind === "loanInstallment") {
-    const loan = s.accounts.find((a) => a.id === context.loanId),
+    const loan = must(
+        s.accounts.find((a) => a.id === context.loanId),
+        "loan account",
+      ),
       r = s.recurring.find(
         (r) => r.loanInstallment && r.toAccountId === loan.id,
       );
@@ -96,7 +126,10 @@ export function featureForm(kind, id, s, context = {}) {
         accountOptions.filter(
           (a) =>
             a.value !== loan.id &&
-            s.accounts.find((x) => x.id === a.value).currency === loan.currency,
+            must(
+              s.accounts.find((x) => x.id === a.value),
+              "account",
+            ).currency === loan.currency,
         ),
       ),
       n("Principal transfer amount", "amount", loan.installment || ""),
@@ -112,14 +145,20 @@ export function featureForm(kind, id, s, context = {}) {
       n(
         "Final signed account balance",
         "balance",
-        s.accounts.find((a) => a.id === id).balance,
+        must(
+          s.accounts.find((a) => a.id === id),
+          "account",
+        ).balance,
       ),
       d("Adjustment date", "date"),
     ];
     note =
       "The difference is recorded once as an adjustment. A negative value represents debt.";
   } else if (kind === "editTransaction") {
-    const t = s.transactions.find((t) => t.id === id);
+    const t = must(
+      s.transactions.find((t) => t.id === id),
+      "transaction",
+    );
     title = "Edit transaction";
     fields = [
       select("Type", "type", ["expense", "income", "transfer", "adjustment"]),
@@ -184,7 +223,7 @@ export function featureForm(kind, id, s, context = {}) {
         ["daily", "weekly"],
         r.frequency,
       ),
-      ...["expenses", "salary", "advice"].map((key) =>
+      ...(["expenses", "salary", "advice"] as const).map((key) =>
         select(
           {
             expenses: "Payment reminders",
@@ -328,11 +367,11 @@ export function featureForm(kind, id, s, context = {}) {
     values = s.warranties.find((w) => w.id === id) || {};
   } else if (kind === "projectReserve") {
     title = "Project contingency";
-    fields = [n("Contingency reserve", "reserve", project.reserve)];
+    fields = [n("Contingency reserve", "reserve", projectFor().reserve)];
   } else if (kind === "projectCategory") {
     title = "Project category allocation";
     fields = [f("Category name", "name"), n("Allocated budget", "budget")];
-    values = project.categories.find((c) => c.id === id) || {};
+    values = projectFor().categories.find((c) => c.id === id) || {};
   } else if (kind === "projectContract") {
     title = "Vendor agreement";
     fields = [
@@ -341,14 +380,14 @@ export function featureForm(kind, id, s, context = {}) {
       select(
         "Project category",
         "categoryId",
-        project.categories.map((c) => ({ value: c.id, label: c.name })),
+        projectFor().categories.map((c) => ({ value: c.id, label: c.name })),
       ),
       n("Original contract value", "original"),
       d("Start date (optional)", "startDate", ""),
       d("End date (optional)", "endDate", ""),
       f("Notes (optional)", "notes"),
     ];
-    values = project.contracts.find((c) => c.id === id) || {};
+    values = projectFor().contracts.find((c) => c.id === id) || {};
   } else if (kind === "projectVariation") {
     title = "Contract variation";
     fields = [
@@ -363,15 +402,18 @@ export function featureForm(kind, id, s, context = {}) {
       select(
         "Agreement",
         "contractId",
-        project.contracts.map((c) => ({ value: c.id, label: c.name })),
+        projectFor().contracts.map((c) => ({ value: c.id, label: c.name })),
       ),
       n("Milestone amount", "amount"),
       select("Payment kind", "kind", ["Milestone", "Advance", "Retention"]),
       d("Due date", "due"),
     ];
-    values = project.milestones.find((m) => m.id === id) || {};
+    values = projectFor().milestones.find((m) => m.id === id) || {};
   } else if (kind === "projectPayment") {
-    const m = project.milestones.find((m) => m.id === context.milestoneId);
+    const m = must(
+      projectFor().milestones.find((m) => m.id === context.milestoneId),
+      "milestone",
+    );
     title = "Record project payment";
     fields = [
       f("Description", "name", m.name),
@@ -389,7 +431,7 @@ export function featureForm(kind, id, s, context = {}) {
           .filter(
             (t) =>
               t.type === "expense" &&
-              (!t.projectId || t.projectId === project.id),
+              (!t.projectId || t.projectId === projectFor().id),
           )
           .map((t) => ({
             value: t.id,
@@ -399,7 +441,7 @@ export function featureForm(kind, id, s, context = {}) {
       select(
         "Milestone",
         "milestoneId",
-        project.milestones.map((m) => ({ value: m.id, label: m.name })),
+        projectFor().milestones.map((m) => ({ value: m.id, label: m.name })),
       ),
     ];
   } else if (kind === "projectDocument") {
@@ -409,7 +451,7 @@ export function featureForm(kind, id, s, context = {}) {
       f("Document file", "file", "", "file"),
       select("Agreement (optional)", "contractId", [
         { value: "", label: "None" },
-        ...project.contracts.map((c) => ({ value: c.id, label: c.name })),
+        ...projectFor().contracts.map((c) => ({ value: c.id, label: c.name })),
       ]),
     ];
     note =

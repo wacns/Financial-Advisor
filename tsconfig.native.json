@@ -1,10 +1,27 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["es2023", "dom", "dom.iterable"],
-    "moduleSuffixes": [".native", ""],
-    "customConditions": ["react-native"],
-    "types": []
+    "lib": [
+      "es2023",
+      "dom",
+      "dom.iterable"
+    ],
+    "moduleSuffixes": [
+      ".native",
+      ""
+    ],
+    "customConditions": [
+      "react-native"
+    ],
+    "types": [
+      "expo/types"
+    ]
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "native-entry.*"
+  ],
+  "exclude": [
+    "src/**/*.web.*"
+  ]
 }

@@ -6,7 +6,8 @@ import * as Linking from "expo-linking";
 import { randomUUID } from "expo-crypto";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import { createSecureStorage } from "./secure-storage.js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createSecureStorage } from "./secure-storage.ts";
 import publicClient from "../public-client.json";
 import {
   startGoogleSignIn,
@@ -14,13 +15,17 @@ import {
   finishNativeAuth,
   NATIVE_AUTH_REDIRECT,
 } from "../auth.ts";
+import type { NativeAuthRuntime } from "../auth.ts";
+import type { Messaging, NotificationLike, Preferences } from "../notifications.ts";
+import type { Runtime, Satisfies } from "./contracts.ts";
+import type * as Self from "./runtime.native.ts";
 export const native = true;
-export const platform = Platform.OS;
+export const platform: string = Platform.OS;
 export const clientConfig = {
   url: process.env.EXPO_PUBLIC_SUPABASE_URL || publicClient.url,
   key: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || publicClient.key,
 };
-export const authOptions = {
+export const authOptions: Runtime["authOptions"] = {
   flowType: "pkce",
   detectSessionInUrl: false,
   persistSession: true,
@@ -28,7 +33,7 @@ export const authOptions = {
   storage: createSecureStorage(SecureStore, randomUUID),
 };
 const privatePreferences = createSecureStorage(SecureStore, randomUUID);
-export const preferences = {
+export const preferences: Preferences = {
   async get(key) {
     const current = await privatePreferences.getItem(key);
     if (current !== null) return current;
@@ -46,27 +51,27 @@ export const preferences = {
   },
 };
 let route = "login";
-const listeners = new Set();
-export function currentRoute() {
+const listeners = new Set<() => void>();
+export function currentRoute(): string {
   return route;
 }
-export function navigate(next) {
+export function navigate(next: string): void {
   route = next;
   listeners.forEach((callback) => callback());
 }
-export function subscribeRoutes(callback) {
+export function subscribeRoutes(callback: () => void): () => void {
   listeners.add(callback);
   return () => listeners.delete(callback);
 }
-export function subscribeActive(callback) {
+export function subscribeActive(callback: (active: boolean) => void): () => void {
   callback(AppState.currentState === "active");
   const subscription = AppState.addEventListener("change", (state) =>
     callback(state === "active"),
   );
   return () => subscription.remove();
 }
-export function subscribeAuthLinks(callback) {
-  const accepted = (url) => {
+export function subscribeAuthLinks(callback: (url: string) => void): () => void {
+  const accepted = (url: string | null) => {
     if (url?.startsWith("com.wacns.financialadvisor://auth/callback"))
       callback(url);
   };
@@ -76,20 +81,29 @@ export function subscribeAuthLinks(callback) {
     .catch(() => {});
   return () => sub.remove();
 }
-export async function finishRedirect(client) {
+export async function finishRedirect(client: SupabaseClient | null): Promise<boolean> {
   if (client) {
     const { data } = await client.auth.getSession();
     if (data.session) navigate("app/overview");
   }
   return false;
 }
-export async function googleSignIn(client) {
+export async function googleSignIn(client: SupabaseClient | null): Promise<void> {
   return providerSignIn(client, startGoogleSignIn);
 }
-export async function chatgptSignIn(client, enabled, link = false) {
+export async function chatgptSignIn(
+  client: SupabaseClient | null,
+  enabled: boolean,
+  link = false,
+): Promise<void> {
   return providerSignIn(client, (c, location, runtime) => startChatGPTSignIn(c, location, runtime, enabled, link));
 }
-async function providerSignIn(client, start) {
+type StartSignIn = (
+  client: SupabaseClient | null,
+  location: null,
+  runtime: NativeAuthRuntime,
+) => Promise<void>;
+async function providerSignIn(client: SupabaseClient | null, start: StartSignIn): Promise<void> {
   await start(client, null, {
     open: async (url) => {
       if (new URL(url).protocol !== "https:")
@@ -104,10 +118,11 @@ async function providerSignIn(client, start) {
   });
   navigate("app/overview");
 }
-export function emailRedirect() {
+export function emailRedirect(): string {
   return NATIVE_AUTH_REDIRECT;
 }
-export async function getMessaging() {
+type ListenerEvent = { token?: string; notification?: NotificationLike };
+export async function getMessaging(): Promise<Messaging> {
   // Native Firebase is loaded only after explicit opt-in. Expo Go does not
   // contain this module; use an Expo development build or a release build.
   const [firebase, api, notifications] = await Promise.all([
@@ -116,7 +131,7 @@ export async function getMessaging() {
     import("expo-notifications"),
   ]);
   const messaging = api.getMessaging(firebase.getApp());
-  const permission = (status) => ({
+  const permission = (status: number) => ({
     receive:
       status === api.AuthorizationStatus.AUTHORIZED ||
       status === api.AuthorizationStatus.PROVISIONAL
@@ -151,7 +166,7 @@ export async function getMessaging() {
         name: options.name,
         importance: notifications.AndroidImportance.DEFAULT,
       }),
-    addListener(event, callback) {
+    addListener(event: string, callback: (event: ListenerEvent) => void) {
       let remove = () => {};
       if (event === "tokenReceived")
         remove = api.onTokenRefresh(messaging, (token) => callback({ token }));
@@ -174,7 +189,7 @@ export async function getMessaging() {
     },
   };
 }
-export async function exportFile(content, type, name) {
+export async function exportFile(content: string, type: string, name: string): Promise<void> {
   if (!(await Sharing.isAvailableAsync()))
     throw Error("Sharing is unavailable on this device.");
   const file = new File(Paths.cache, name);
@@ -184,7 +199,7 @@ export async function exportFile(content, type, name) {
     dialogTitle: "Export FinancialAdvisor data",
   });
 }
-export function confirmReset() {
+export function confirmReset(): Promise<boolean> {
   return new Promise((resolve) =>
     Alert.alert(
       "Reset demo?",
@@ -197,3 +212,5 @@ export function confirmReset() {
     ),
   );
 }
+// Compile-time check that this module matches the runtime contract.
+export type RuntimeCheck = Satisfies<Runtime, typeof Self>;

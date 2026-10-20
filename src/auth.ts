@@ -29,16 +29,18 @@ export interface NativeAuthRuntime {
   open(url: string): Promise<unknown>;
 }
 export function authRedirectUrl(
-  location: PageLocation,
+  location: PageLocation | null,
   native = false,
 ): string {
   if (native) return NATIVE_AUTH_REDIRECT;
-  return new URL(location.pathname, location.origin).href;
+  // Only native sign-in passes no location, and it returned above.
+  const page = must(location, "page location");
+  return new URL(page.pathname, page.origin).href;
 }
 
 export async function startGoogleSignIn(
   client: AuthClient | null | undefined,
-  location: PageLocation,
+  location: PageLocation | null,
   nativeRuntime?: NativeAuthRuntime | null,
 ): Promise<void> {
   return startProviderSignIn(client, 'google', location, nativeRuntime);
@@ -46,7 +48,7 @@ export async function startGoogleSignIn(
 
 export async function startChatGPTSignIn(
   client: AuthClient | null | undefined,
-  location: PageLocation,
+  location: PageLocation | null,
   nativeRuntime?: NativeAuthRuntime | null,
   enabled = false,
   link = false,
@@ -58,7 +60,7 @@ export async function startChatGPTSignIn(
 async function startProviderSignIn(
   client: AuthClient | null | undefined,
   provider: Provider,
-  location: PageLocation,
+  location: PageLocation | null,
   nativeRuntime?: NativeAuthRuntime | null,
   link = false,
 ): Promise<void> {

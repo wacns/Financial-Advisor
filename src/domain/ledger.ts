@@ -50,7 +50,7 @@ export function applyEffect(
 export function saveTransaction(
   s: Workspace,
   data: TransactionInput,
-  id?: string,
+  id?: string | null,
   uuid: () => string = () => crypto.randomUUID(),
 ): Transaction {
   const old = s.transactions.find((t) => t.id === id);
@@ -115,7 +115,10 @@ export function saveTransaction(
   s.transactions.unshift(t);
   return t;
 }
-export function deleteTransaction(s: Workspace, id: string | undefined): void {
+export function deleteTransaction(
+  s: Workspace,
+  id: string | null | undefined,
+): void {
   const t = s.transactions.find((t) => t.id === id);
   if (!t) throw Error("Transaction not found.");
   applyEffect(s, t, -1);

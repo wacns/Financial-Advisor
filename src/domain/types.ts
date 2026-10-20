@@ -312,7 +312,7 @@ export interface Settings {
   rateHistory?: RateQuote[];
   categoryStyles?: CategoryStyle[];
   /** Deleting a category with no id hides `undefined`, as it always has; see typescript-findings.md. */
-  hiddenCategories?: (string | undefined)[];
+  hiddenCategories?: (string | null | undefined)[];
   widgetsEnabled?: boolean;
   ratesAsOf?: string;
   ratesSource?: string;

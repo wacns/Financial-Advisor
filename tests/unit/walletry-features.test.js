@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyEntry } from "../../src/application/workspace.js";
+import { applyEntry } from "../../src/application/workspace.ts";
 import { blankState, totalBalance } from "../../src/finance.ts";
 import { normalizeWorkspace } from "../../src/domain/model.ts";
 import {
@@ -10,7 +10,7 @@ import {
 } from "../../src/domain/commitments.ts";
 import { filterTransactions } from "../../src/domain/organizing.ts";
 import { backupText, parseBackup } from "../../src/domain/imports.ts";
-import { entryForm } from "../../src/application/forms.js";
+import { entryForm } from "../../src/application/forms.ts";
 const setup = () => {
   let i = 0;
   const apply = (s, kind, data = {}, id) =>

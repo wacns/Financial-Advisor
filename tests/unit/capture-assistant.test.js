@@ -8,7 +8,7 @@ import {
 } from "../../src/domain/assistant.ts";
 import { exchangeSnapshot } from "../../src/domain/currency-tools.ts";
 import { blankState } from "../../src/finance.ts";
-import { applyEntry } from "../../src/application/workspace.js";
+import { applyEntry } from "../../src/application/workspace.ts";
 import {
   normalizeWorkspace,
   validateWorkspace,

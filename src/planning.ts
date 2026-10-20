@@ -158,7 +158,7 @@ export type OccurrenceInput = {
 };
 export function recordRecurring(
   state: Workspace,
-  id: string,
+  id: string | null | undefined,
   data: OccurrenceInput,
   transactionId: string = crypto.randomUUID(),
 ): void {
@@ -267,7 +267,7 @@ export type RepaymentInput = {
 };
 export function recordRepayment(
   state: Workspace,
-  id: string,
+  id: string | null | undefined,
   data: RepaymentInput,
   transactionId: string = crypto.randomUUID(),
 ): void {

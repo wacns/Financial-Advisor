@@ -2,24 +2,65 @@ import { accountColors, accountIcons } from "../domain/organizing.ts";
 import { commitmentStats, paymentDraft } from "../domain/commitments.ts";
 import { categoryPaths } from "../domain/commands.ts";
 import { bahrainDate } from "../locale.ts";
-const f = (label, name, value = "", type = "text", options) => ({
+import { must } from "../guards.ts";
+import type { Account, CurrencyCode, Workspace } from "../domain/types.ts";
+/** A choice in a select field: a plain value, or a value with its own label. */
+export type FieldOption = string | { value: string; label: string };
+/** One input in an entry form. */
+export type FormField = {
+  label: string;
+  name: string;
+  value: unknown;
+  type: string;
+  options?: readonly FieldOption[];
+};
+/** Everything the entry modal needs to show and submit a form. */
+export type FormSpec = {
+  kind: string;
+  id: string | null | undefined;
+  title: string;
+  fields: FormField[];
+  note: string;
+  values: Record<string, unknown>;
+  submitLabel?: string;
+  accounts?: Pick<Account, "id" | "currency">[];
+  reportingCurrency?: CurrencyCode;
+};
+/** Extra values a screen passes when opening a form. */
+export type FormContext = Record<string, unknown> & {
+  draft?: Record<string, unknown>;
+};
+const f = (
+  label: string,
+  name: string,
+  value: unknown = "",
+  type = "text",
+  options?: readonly FieldOption[],
+): FormField => ({
   label,
   name,
   value,
   type,
   options,
 });
-const n = (label, name, value = "") => f(label, name, value, "number");
-const select = (label, name, options, value) =>
-  f(
+const n = (label: string, name: string, value: unknown = "") =>
+  f(label, name, value, "number");
+const select = (
+  label: string,
+  name: string,
+  options: readonly FieldOption[],
+  value?: unknown,
+) => {
+  const first = options[0];
+  return f(
     label,
     name,
-    value ??
-      ((typeof options[0] === "string" ? options[0] : options[0]?.value) || ""),
+    value ?? ((typeof first === "string" ? first : first?.value) || ""),
     "select",
     options,
   );
-export function accountAppearanceFields() {
+};
+export function accountAppearanceFields(): FormField[] {
   return [
     select("Account color", "color", accountColors),
     select("Account icon", "icon", accountIcons),
@@ -27,7 +68,7 @@ export function accountAppearanceFields() {
     n("Reward points per currency unit (optional)", "rewardRate", 0),
   ];
 }
-export function contactFields(s) {
+export function contactFields(s: Workspace): FormField[] {
   return [
     select(
       "Payee / payer (optional)",
@@ -43,20 +84,26 @@ export function contactFields(s) {
     f("Receipt attachment (optional)", "receipt", "", "file"),
   ];
 }
-export function enhancementForm(kind, id, s, context = {}) {
-  let fields = [],
+export function enhancementForm(
+  kind: string,
+  id: string | null | undefined,
+  s: Workspace,
+  context: FormContext = {},
+): FormSpec | null {
+  let fields: FormField[] = [],
     title = "",
-    values = {},
-    note = "",
-    submitLabel = "Save";
+    values: object = {},
+    note = "";
+  const submitLabel = "Save";
   const accounts = s.accounts.map((a) => ({
     value: a.id,
     label: `${a.name} · ${a.currency}`,
   }));
   if (["payee", "tag"].includes(kind)) {
-    const row = s[kind === "payee" ? "payees" : "tags"].find(
-      (p) => p.id === id,
-    );
+    const row =
+      kind === "payee"
+        ? s.payees.find((p) => p.id === id)
+        : s.tags.find((p) => p.id === id);
     title =
       kind === "payee"
         ? row
@@ -112,9 +159,10 @@ export function enhancementForm(kind, id, s, context = {}) {
     ];
   } else if (kind === "subscription" || kind === "installment") {
     if (!accounts.length) throw Error("Add a payment account first.");
-    const row = s[
-      kind === "subscription" ? "subscriptions" : "installments"
-    ].find((p) => p.id === id);
+    const row =
+      kind === "subscription"
+        ? s.subscriptions.find((p) => p.id === id)
+        : s.installments.find((p) => p.id === id);
     title = (row ? "Edit " : "New ") + kind;
     fields = [
       f(
@@ -126,7 +174,8 @@ export function enhancementForm(kind, id, s, context = {}) {
         "Payment account",
         "accountId",
         accounts,
-        s.settings.defaultAccountId || accounts[0].value,
+        // The check above guarantees at least one account.
+        s.settings.defaultAccountId || must(accounts[0], "account").value,
       ),
       select(
         "Category",
@@ -172,9 +221,9 @@ export function enhancementForm(kind, id, s, context = {}) {
         : "Track renewals and trials. No payment is posted until you confirm it. The frequency and interval support plans such as every 3 or 6 months.";
   } else if (kind === "subscriptionPayment" || kind === "installmentPayment") {
     const isInstallment = kind === "installmentPayment",
-      plan = s[isInstallment ? "installments" : "subscriptions"].find(
-        (p) => p.id === id,
-      );
+      plan = isInstallment
+        ? s.installments.find((p) => p.id === id)
+        : s.subscriptions.find((p) => p.id === id);
     if (!plan) throw Error("This plan no longer exists.");
     const stats = commitmentStats(
       s,
@@ -183,11 +232,12 @@ export function enhancementForm(kind, id, s, context = {}) {
     );
     if (stats.complete) throw Error("All installments are already paid.");
     title = `Record ${plan.name}`;
-    values = paymentDraft(
+    const draft = paymentDraft(
       s,
       plan,
       isInstallment ? "installment" : "subscription",
     );
+    values = draft;
     fields = [
       select(
         "How to record payment",
@@ -199,7 +249,7 @@ export function enhancementForm(kind, id, s, context = {}) {
         "transaction",
       ),
       select("Pay from account", "accountId", accounts, plan.accountId),
-      n("Actual cash amount", "amount", values.amount),
+      n("Actual cash amount", "amount", draft.amount),
       f("Payment date", "date", bahrainDate(), "date"),
       f("Payment note (optional)", "note"),
     ];

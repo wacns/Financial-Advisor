@@ -1,9 +1,13 @@
 import { organizeCommand, accountAppearance } from "../domain/organizing.ts";
+import type { OrganizeInput } from "../domain/organizing.ts";
 import { commitmentCommand } from "../domain/commitments.ts";
+import type { CommitmentInput } from "../domain/commitments.ts";
 import { termDetails } from "../domain/accounts.ts";
-import { normalizeWorkspace, validateWorkspace } from "../domain/model.ts";
+import { normalizeWorkspace, validateWorkspace, clone } from "../domain/model.ts";
 import { featureCommand } from "../domain/commands.ts";
+import type { FeatureInput } from "../domain/commands.ts";
 import { projectCommand, validateProjects } from "../domain/projects.ts";
+import type { ProjectInput } from "../domain/projects.ts";
 import { saveTransaction } from "../domain/ledger.ts";
 import { addTransaction, addTransfer } from "../finance.ts";
 import {
@@ -13,18 +17,42 @@ import {
   recordRepayment,
   saveProject,
 } from "../planning.ts";
+import type {
+  DebtInput,
+  OccurrenceInput,
+  ProjectFormInput,
+  RecurringInput,
+  RepaymentInput,
+} from "../planning.ts";
 import { toFils } from "../locale.ts";
-const positive = (value, label) => {
+import { checkedLater } from "../guards.ts";
+import type { Account, Budget, Transaction, Workspace } from "../domain/types.ts";
+/**
+ * Everything an entry form can submit. Each entry kind reads its own fields; values are
+ * unchecked until the command for that kind and validateWorkspace check them.
+ */
+export type EntryInput = OrganizeInput &
+  CommitmentInput &
+  FeatureInput &
+  ProjectInput &
+  RecurringInput &
+  OccurrenceInput &
+  DebtInput &
+  RepaymentInput &
+  ProjectFormInput & { [K in keyof Account]?: unknown } & {
+    [K in keyof Budget]?: unknown;
+  };
+const positive = (value: unknown, label: string) => {
   const amount = toFils(value) / 1000;
   if (amount <= 0) throw Error(`${label} must be greater than zero.`);
   return amount;
 };
-const nonnegative = (value) => {
+const nonnegative = (value: unknown) => {
   const amount = toFils(value) / 1000;
   if (amount < 0) throw Error("Saved amounts cannot be negative.");
   return amount;
 };
-function name(value, max = 80) {
+function name(value: unknown, max = 80): string {
   const text = String(value || "").trim();
   if (!text || text.length > max)
     throw Error(`Enter a name between 1 and ${max} characters.`);
@@ -33,12 +61,12 @@ function name(value, max = 80) {
 // Both clients use exactly the same mutations. Clone before validation so failed
 // changes cannot alter account balances or the workspace currently on screen.
 export function applyEntry(
-  state,
-  kind,
-  data,
-  id,
-  uuid = () => crypto.randomUUID(),
-) {
+  state: unknown,
+  kind: string,
+  data: EntryInput,
+  id: string | null | undefined,
+  uuid: () => string = () => crypto.randomUUID(),
+): Workspace {
   const next = normalizeWorkspace(state);
   const organized =
     organizeCommand(next, kind, data, id, uuid) ||
@@ -62,22 +90,24 @@ export function applyEntry(
     );
   else if (kind === "transfer") addTransfer(next, { ...data, id: uuid() });
   else if (kind === "account") {
-    if (data.last4 && !/^\d{4}$/.test(data.last4))
+    if (data.last4 && !/^\d{4}$/.test(String(data.last4)))
       throw Error(
         "Enter exactly four digits or leave the last four digits blank.",
       );
-    next.accounts.push({
-      ...data,
-      id: uuid(),
-      ...termDetails(data),
-      ...accountAppearance(data),
-      name: name(data.name, 60),
-      balance: toFils(data.balance) / 1000,
-      currency: data.currency || "BHD",
-      apr: Number(data.apr || 0),
-      limit: Number(data.limit || 0),
-      cost: Number(data.cost || 0),
-    });
+    next.accounts.push(
+      checkedLater<Account>({
+        ...data,
+        id: uuid(),
+        ...termDetails(data),
+        ...accountAppearance(data),
+        name: name(data.name, 60),
+        balance: toFils(data.balance) / 1000,
+        currency: data.currency || "BHD",
+        apr: Number(data.apr || 0),
+        limit: Number(data.limit || 0),
+        cost: Number(data.cost || 0),
+      }),
+    );
   } else if (kind === "budget") {
     const limit = positive(data.limit, "Spending limit");
     next.budgets = next.budgets.filter(
@@ -87,13 +117,15 @@ export function applyEntry(
           (b.period || "Monthly") === (data.period || "Monthly")
         ),
     );
-    next.budgets.push({
-      id: uuid(),
-      category: data.category,
-      currency: next.settings.base,
-      period: data.period || "Monthly",
-      limit,
-    });
+    next.budgets.push(
+      checkedLater<Budget>({
+        id: uuid(),
+        category: data.category,
+        currency: next.settings.base,
+        period: data.period || "Monthly",
+        limit,
+      }),
+    );
   } else if (kind === "goal")
     next.goals.push({
       id: uuid(),
@@ -117,18 +149,29 @@ export function applyEntry(
   validateProjects(next);
   return next;
 }
-export function togglePlan(state, kind, id) {
-  const next = JSON.parse(JSON.stringify(state));
-  const record = (kind === "pause" ? next.recurring : next.projects).find(
-    (row) => row.id === id,
-  );
-  if (!record) throw Error("This plan no longer exists.");
-  const field = kind === "pause" ? "paused" : "archived";
-  record[field] = !record[field];
+export function togglePlan(
+  state: Workspace,
+  kind: string,
+  id: string | null | undefined,
+): Workspace {
+  const next = clone(state);
+  // A schedule toggles paused; anything else is a project and toggles archived.
+  if (kind === "pause") {
+    const record = next.recurring.find((row) => row.id === id);
+    if (!record) throw Error("This plan no longer exists.");
+    record.paused = !record.paused;
+  } else {
+    const record = next.projects.find((row) => row.id === id);
+    if (!record) throw Error("This plan no longer exists.");
+    record.archived = !record.archived;
+  }
   return next;
 }
-export function transactionCSV(state, transactions) {
-  const cell = (value) =>
+export function transactionCSV(
+  state: Workspace,
+  transactions: Transaction[],
+): string {
+  const cell = (value: unknown) =>
     '"' +
     String(value ?? "")
       .replace(/^[=+@\-\t\r]/, "'$&")

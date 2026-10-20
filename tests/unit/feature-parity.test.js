@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { blankState } from "../../src/finance.ts";
-import { applyEntry, transactionCSV } from "../../src/application/workspace.js";
+import { applyEntry, transactionCSV } from "../../src/application/workspace.ts";
 import {
   normalizeWorkspace,
   convert,
@@ -23,7 +23,7 @@ import {
 import { projectTotals, milestonePaid } from "../../src/domain/projects.ts";
 import { reportRange, reportData } from "../../src/domain/reports.ts";
 import { parseReceipt } from "../../src/domain/receipt.ts";
-import { entryForm } from "../../src/application/forms.js";
+import { entryForm } from "../../src/application/forms.ts";
 let seq = 0;
 const save = (s, k, d, id) => applyEntry(s, k, d, id, () => `test-${++seq}`);
 const base = () =>

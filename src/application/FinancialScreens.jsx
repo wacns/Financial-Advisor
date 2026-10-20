@@ -25,7 +25,7 @@ import { formatMoney as money, formatDate, toFils } from "../locale.ts";
 import { upcomingPayments, dueStatus } from "../planning.ts";
 import { budgetHealth, shiftMonth } from "../reports.ts";
 import TrendChart from "./TrendChart.jsx";
-import { transactionCSV } from "./workspace.js";
+import { transactionCSV } from "./workspace.ts";
 import { exportFile } from "../platform/runtime";
 import { accountDetails, basicBudgetStats } from "../domain/reports.ts";
 import { filterTransactions, transactionGroups } from "../domain/organizing.ts";

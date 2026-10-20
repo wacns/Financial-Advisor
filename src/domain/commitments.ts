@@ -182,7 +182,7 @@ export function commitmentCommand(
   input: unknown,
   kind: string,
   data: CommitmentInput,
-  id: string | undefined,
+  id: string | null | undefined,
   uuid: () => string,
 ): Workspace | null {
   if (
