@@ -1,3 +1,8 @@
+import {
+  enhancementForm,
+  accountAppearanceFields,
+  contactFields,
+} from "./enhancementForms.js";
 import { currencyCodes } from "../domain/model.js";
 import { categoryPaths } from "../domain/commands.js";
 import { cycleKey, splitWeeks } from "../domain/cycles.js";
@@ -18,6 +23,8 @@ const select = (
   value = typeof options[0] === "string" ? options[0] : options[0]?.value || "",
 ) => f(label, name, value, "select", options);
 export function featureForm(kind, id, s, context = {}) {
+  const enhanced = enhancementForm(kind, id, s, context);
+  if (enhanced) return enhanced;
   const accountOptions = s.accounts.map((a) => ({
       value: a.id,
       label: `${a.name} · ${a.currency || "BHD"}`,
@@ -39,7 +46,9 @@ export function featureForm(kind, id, s, context = {}) {
       submitLabel: "Delete",
       note:
         kind === "deleteTransaction"
-          ? "This reverses the transaction from account balances. Schedule due dates remain unchanged."
+          ? s.transactions.find((t) => t.id === id)?.commitmentId
+            ? "This reverses the expense from the account balance and reopens the linked installment or subscription payment."
+            : "This reverses the transaction from account balances. Bill and salary schedule due dates remain unchanged."
           : "Delete this record? Linked records may prevent deletion. This action is saved only when you press Delete.",
       values: { ...context },
     };
@@ -69,6 +78,7 @@ export function featureForm(kind, id, s, context = {}) {
       d("Start date (optional)", "startDate", ""),
       d("Maturity date (optional)", "maturity", ""),
       f("Last four digits (optional)", "last4"),
+      ...accountAppearanceFields(),
     ];
     values = a;
     note =
@@ -126,6 +136,7 @@ export function featureForm(kind, id, s, context = {}) {
       f("Time (optional)", "time"),
       f("Labels (comma separated, optional)", "labels"),
       f("Note (optional)", "note"),
+      ...contactFields(s),
     ];
     values = { ...t, labels: (t.labels || []).join(", ") };
     note =
@@ -241,6 +252,18 @@ export function featureForm(kind, id, s, context = {}) {
     ];
     note =
       "Renaming updates linked transactions, plans, templates and budget rules. Only unused categories can be deleted.";
+    fields.push(
+      ...accountAppearanceFields()
+        .slice(0, 2)
+        .map((field) => ({
+          ...field,
+          label: field.label.replace("Account", "Category"),
+        })),
+    );
+    values = {
+      ...values,
+      ...(s.settings.categoryStyles || []).find((style) => style.path === id),
+    };
   } else if (kind === "cycleBudget" || kind === "subBudget") {
     const parent = s.cycleBudgets.find((b) => b.id === context.parentId),
       b =

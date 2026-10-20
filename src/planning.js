@@ -310,6 +310,7 @@ export function projectSpend(state, id) {
 }
 export function upcomingPayments(state) {
   return [
+    ...upcomingCommitments(state),
     ...state.recurring
       .filter((r) => !r.paused)
       .map((r) => ({ ...r, kind: "recurring" })),
@@ -323,3 +324,4 @@ export function upcomingPayments(state) {
       })),
   ].sort((a, b) => a.nextDue.localeCompare(b.nextDue));
 }
+import { upcomingCommitments } from "./domain/commitments.js";

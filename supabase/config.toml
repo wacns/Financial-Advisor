@@ -10,3 +10,7 @@ verify_jwt = true
 # The handler rejects missing/invalid secrets before any database read or send.
 [functions.dispatch-reminders]
 verify_jwt = false
+
+# The function verifies the Bearer token with auth.getUser before processing.
+[functions.financial-assistant]
+verify_jwt = false

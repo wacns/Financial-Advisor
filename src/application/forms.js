@@ -1,3 +1,4 @@
+import { accountAppearanceFields, contactFields } from "./enhancementForms.js";
 import { featureForm } from "./featureForms.js";
 import { categoryPaths } from "../domain/commands.js";
 import { normalizeWorkspace, currencyCodes } from "../domain/model.js";
@@ -20,7 +21,7 @@ export function entryForm(kind, id, state, context = {}) {
   const account = (
     label = "Account",
     name = "accountId",
-    value = accounts[0]?.value || "",
+    value = state.settings.defaultAccountId || accounts[0]?.value || "",
   ) => field(label, name, "select", value, accounts);
   const category = () =>
     field("Category", "category", "select", "Shopping", categoryPaths(state));
@@ -89,6 +90,7 @@ export function entryForm(kind, id, state, context = {}) {
       amount("Current balance (negative for debt)", "balance", "0"),
       field("Last four digits (optional)", "last4"),
       field("Account currency", "currency", "select", "BHD", currencyCodes),
+      ...accountAppearanceFields(),
       amount("Tenure in months (optional)", "tenure", 0),
       amount("Original loan amount (optional)", "loanOriginal", 0),
       amount("Monthly loan installment (optional)", "installment", 0),
@@ -234,6 +236,7 @@ export function entryForm(kind, id, state, context = {}) {
       field("Labels (comma separated, optional)", "labels"),
       field("Note (optional)", "note"),
       field("Salary month (optional)", "salaryMonth", "month", ""),
+      ...contactFields(state),
     );
   if (kind === "transfer")
     fields.push(amount("Received amount (optional)", "received"));

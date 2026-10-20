@@ -1,3 +1,4 @@
+import { validateEnhancements } from "./enhancement-validation.js";
 import { isCivilDate, toFils } from "../locale.js";
 export const currencyCodes = [
   "BHD",
@@ -42,6 +43,10 @@ export function normalizeWorkspace(input) {
     "warranties",
     "cycleBudgets",
     "templates",
+    "payees",
+    "tags",
+    "subscriptions",
+    "installments",
   ])
     s[key] ??= [];
   s.settings = {
@@ -128,6 +133,10 @@ export function validateWorkspace(s) {
     "warranties",
     "cycleBudgets",
     "templates",
+    "payees",
+    "tags",
+    "subscriptions",
+    "installments",
   ]) {
     if (!Array.isArray(s[key]) || s[key].length > 50000)
       throw Error(`Invalid ${key} collection.`);
@@ -373,5 +382,5 @@ export function validateWorkspace(s) {
       )
         throw Error("Invalid project document or link.");
   }
-  return s;
+  return validateEnhancements(s);
 }

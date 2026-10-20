@@ -3,6 +3,7 @@ import Vision
 import Foundation
 
 public class FinancialAdvisorNativeModule: Module {
+  private let speech = FinancialAdvisorSpeechCapture()
   public func definition() -> ModuleDefinition {
     Name("FinancialAdvisorNative")
     AsyncFunction("recognize") { (uri: String) -> String in
@@ -16,6 +17,11 @@ public class FinancialAdvisorNativeModule: Module {
       try VNImageRequestHandler(url: url).perform([request])
       return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: "\n")
     }
+    AsyncFunction("recognizeSpeech") { (language: String, promise: Promise) in
+      DispatchQueue.main.async { self.speech.start(language: language, promise: promise) }
+    }
+    AsyncFunction("stopSpeech") { DispatchQueue.main.async { self.speech.stop() } }
+    OnDestroy { DispatchQueue.main.async { self.speech.cancel() } }
     AsyncFunction("updateWidgets") { (_: String) in }
     AsyncFunction("requestWidget") { return false }
   }

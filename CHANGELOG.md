@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.7.0 — Organization, commitments and collaboration (2026-10-20)
+
+- Add account appearance/defaults/rewards/excluded totals, payees/payers, colored tags and category appearance.
+- Add pinned/day-grouped entries, location/receipt metadata, advanced and multiple-account search, rolling reports, payee charts and budget pace guidance.
+- Add subscription/trial tracking and finite installment schedules with exact rounding, separate manual acknowledgements and reversible linked expenses.
+- Add independently stored shared accounts with owner/editor/viewer permissions, expiring one-use invites, audit history, realtime refresh and stale-edit protection.
+- Add currency calculation/reviewed quotes/history, ATM map search, local text/voice draft capture, duplicate protection and local insights.
+- Add optional consent-based cloud AI with server authentication, strict suggestion validation, aggregate summaries and per-user quotas; financial writes remain explicit app actions.
+- Add native speech permissions/modules and iOS Shortcuts; bump all installer formats to 1.7.0 (mobile build 5). See `docs/WALLETRY-PARITY.md` for verification and native/provider limits.
+
 ## 1.6.1 — Public downloads and unified releases (2026-10-20)
 
 - Connect Windows NSIS and Linux AppImage installers to a public update feed without exposing repository credentials.

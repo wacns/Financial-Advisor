@@ -1,3 +1,4 @@
+import { accountAppearance } from "./organizing.js";
 import { termDetails } from "./accounts.js";
 import { saveRecurring } from "../planning.js";
 import {
@@ -141,6 +142,7 @@ export function featureCommand(
       throw Error("An account with transactions cannot change currency.");
     Object.assign(a, {
       ...termDetails(data),
+      ...accountAppearance(data),
       name: text(data.name),
       type: data.type,
       currency: data.currency,
@@ -193,7 +195,10 @@ export function featureCommand(
       throw Error(
         "An account linked to records or schedules cannot be deleted.",
       );
+    if ([...s.subscriptions, ...s.installments].some((p) => p.accountId === id))
+      throw Error("This account has linked commitments.");
     s.accounts = s.accounts.filter((a) => a.id !== id);
+    if (s.settings.defaultAccountId === id) s.settings.defaultAccountId = "";
   } else if (kind === "editGoal")
     Object.assign(row("goals"), {
       name: text(data.name),
@@ -236,6 +241,8 @@ export function featureCommand(
       motion: data.motion !== "no",
     });
   } else if (kind === "rates") {
+    delete s.settings.ratesAsOf;
+    delete s.settings.ratesSource;
     for (const code of currencyCodes)
       s.settings.rates[code] = code === "BHD" ? 1 : positive(data[code]);
   } else if (kind === "category") {
@@ -262,8 +269,16 @@ export function featureCommand(
         ...(s.settings.hiddenCategories || []),
         id,
       ];
-      for (const key of ["transactions", "recurring", "budgets"])
+      for (const key of [
+        "transactions",
+        "recurring",
+        "budgets",
+        "subscriptions",
+        "installments",
+      ])
         for (const r of s[key]) r.category = replace(r.category);
+      for (const style of s.settings.categoryStyles || [])
+        style.path = replace(style.path);
       for (const t of s.templates)
         t.record.category = replace(t.record.category);
       for (const b of s.cycleBudgets)
@@ -274,12 +289,23 @@ export function featureCommand(
     s.settings.hiddenCategories = (s.settings.hiddenCategories || []).filter(
       (c) => c !== path,
     );
+    if (data.color || data.icon) {
+      const { color, icon } = accountAppearance(data);
+      s.settings.categoryStyles = [
+        ...(s.settings.categoryStyles || []).filter(
+          (style) => style.path !== path,
+        ),
+        { path, color, icon },
+      ];
+    }
   } else if (kind === "deleteCategory") {
     const used =
       [
         ...s.transactions,
         ...s.recurring,
         ...s.budgets,
+        ...s.subscriptions,
+        ...s.installments,
         ...s.templates.map((t) => t.record),
       ].some((r) => r.category === id || r.category?.startsWith(`${id} / `)) ||
       s.cycleBudgets.some((b) =>
@@ -298,6 +324,9 @@ export function featureCommand(
         "Only unused categories without subcategories can be deleted.",
       );
     s.settings.categories = s.settings.categories.filter((c) => c !== id);
+    s.settings.categoryStyles = (s.settings.categoryStyles || []).filter(
+      (style) => style.path !== id,
+    );
     s.settings.hiddenCategories = [...(s.settings.hiddenCategories || []), id];
   } else if (kind === "cycleBudget" || kind === "subBudget") {
     const parent =

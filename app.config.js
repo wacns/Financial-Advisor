@@ -20,7 +20,7 @@ export default {
     owner: "financial-advisor",
     icon: "./assets/app-icon.png",
     slug: "financial-advisor",
-    version: "1.6.0",
+    version: "1.7.0",
     runtimeVersion: { policy: "fingerprint" },
     updates: easProjectId
       ? {
@@ -37,19 +37,21 @@ export default {
     userInterfaceStyle: "automatic",
     ios: {
       bundleIdentifier: "com.wacns.financialadvisor",
-      buildNumber: "4",
+      buildNumber: "5",
       supportsTablet: true,
       ...(iosFirebase ? { googleServicesFile: iosFirebaseFile } : {}),
       infoPlist: {
         UIBackgroundModes: ["remote-notification"],
         FirebaseMessagingAutoInitEnabled: false,
+        NSMicrophoneUsageDescription: "Use your microphone to create a transaction draft for review.",
+        NSSpeechRecognitionUsageDescription: "Turn speech into a transaction draft that you review before saving.",
       },
     },
     android: {
       package: "com.wacns.financialadvisor",
-      versionCode: 4,
+      versionCode: 5,
       ...(androidFirebase ? { googleServicesFile: androidFirebaseFile } : {}),
-      permissions: ["POST_NOTIFICATIONS"],
+      permissions: ["POST_NOTIFICATIONS", "RECORD_AUDIO"],
       allowBackup: false,
     },
     plugins: [

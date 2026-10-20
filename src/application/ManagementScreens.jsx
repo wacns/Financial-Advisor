@@ -1,3 +1,4 @@
+import { AccountChoices } from "./OrganizingScreens.jsx";
 import React, { useState } from "react";
 import { View, Image, Platform } from "react-native";
 import {
@@ -243,7 +244,19 @@ export function Categories({ workspace: w, open }) {
         </Muted>
         {categoryPaths(w.state).map((path) => (
           <Row key={path} style={{ justifyContent: "space-between" }}>
-            <Label style={{ flex: 1 }}>{path}</Label>
+            <Label
+              style={{
+                flex: 1,
+                color: w.state.settings.categoryStyles?.find(
+                  (style) => style.path === path,
+                )?.color,
+              }}
+            >
+              {w.state.settings.categoryStyles?.find(
+                (style) => style.path === path,
+              )?.icon || "◇"}{" "}
+              {path}
+            </Label>
             <Button
               secondary
               label={`Rename ${path}`}
@@ -731,11 +744,17 @@ export function CustomReports({ workspace: w, month, open }) {
     [group, setGroup] = useState("category"),
     [kind, setKind] = useState("expense"),
     [account, setAccount] = useState("all"),
-    [drill, setDrill] = useState("");
+    [drill, setDrill] = useState(""),
+    [reportAccounts, setReportAccounts] = useState([]);
   let data, error, range;
   try {
     range = reportRange(w.state, mode, month, from, to);
-    data = reportData(w.state, range, { account, group, kind });
+    data = reportData(w.state, range, {
+      account,
+      accounts: reportAccounts,
+      group,
+      kind,
+    });
   } catch (e) {
     error = e.message;
   }
@@ -748,7 +767,15 @@ export function CustomReports({ workspace: w, month, open }) {
           type="select"
           value={mode}
           onChange={setMode}
-          options={["month", "quarter", "year", "custom"]}
+          options={[
+            { value: "month", label: "Selected month" },
+            { value: "quarter", label: "Quarter" },
+            { value: "year", label: "Year" },
+            { value: "last7", label: "Last 7 days" },
+            { value: "last30", label: "Last 30 days" },
+            { value: "last3months", label: "Last 3 months" },
+            { value: "custom", label: "Custom dates" },
+          ]}
         />
         <Field
           label="Report direction"
@@ -765,7 +792,14 @@ export function CustomReports({ workspace: w, month, open }) {
             setGroup(value);
             setDrill("");
           }}
-          options={["category", "parent", "description", "account", "label"]}
+          options={[
+            "category",
+            "parent",
+            "description",
+            "account",
+            "label",
+            "payee",
+          ]}
         />
       </Row>
       <Field
@@ -777,6 +811,12 @@ export function CustomReports({ workspace: w, month, open }) {
           { value: "all", label: "All accounts" },
           ...w.state.accounts.map((a) => ({ value: a.id, label: a.name })),
         ]}
+      />
+      <AccountChoices
+        state={w.state}
+        selected={reportAccounts}
+        onChange={setReportAccounts}
+        label="Chart accounts"
       />
       {mode === "custom" ? (
         <Row>
@@ -822,16 +862,19 @@ export function CustomReports({ workspace: w, month, open }) {
                 ? data.rows
                     .filter((t) => {
                       const k =
-                        group === "account"
-                          ? w.state.accounts.find((a) => a.id === t.accountId)
-                              ?.name
-                          : group === "description"
-                            ? t.name
-                            : group === "parent"
-                              ? t.category.split(" / ")[0]
-                              : group === "label"
-                                ? (t.labels || []).join(", ") || "Unlabeled"
-                                : t.category;
+                        group === "payee"
+                          ? w.state.payees.find((p) => p.id === t.payeeId)
+                              ?.name || "No contact"
+                          : group === "account"
+                            ? w.state.accounts.find((a) => a.id === t.accountId)
+                                ?.name
+                            : group === "description"
+                              ? t.name
+                              : group === "parent"
+                                ? t.category.split(" / ")[0]
+                                : group === "label"
+                                  ? (t.labels || []).join(", ") || "Unlabeled"
+                                  : t.category;
                       return k === g.name && t.type === kind;
                     })
                     .map((t) => (

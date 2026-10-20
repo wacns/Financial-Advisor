@@ -15,7 +15,29 @@ export function bahrainDate(date = new Date()) {
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
-export function formatDate(date, options = { day: "2-digit", month: "short" }) {
+export function formatDate(date, options) {
+  if (!options && displayDateFormat) {
+    const parts = new Intl.DateTimeFormat(
+      displayLocale === "ar-BH" ? "ar-BH" : "en-GB",
+      {
+        timeZone: TIME_ZONE,
+        calendar: "gregory",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      },
+    ).formatToParts(new Date(`${date}T12:00:00+03:00`));
+    const order =
+      displayDateFormat === "ymd"
+        ? ["year", "month", "day"]
+        : displayDateFormat === "mdy"
+          ? ["month", "day", "year"]
+          : ["day", "month", "year"];
+    return order
+      .map((key) => parts.find((p) => p.type === key)?.value)
+      .join(" / ");
+  }
+  options ||= { day: "2-digit", month: "short" };
   // Stored transaction dates are civil dates, not UTC timestamps.
   return new Intl.DateTimeFormat(
     displayLocale === "ar-BH" ? "ar-BH" : "en-GB",
@@ -28,9 +50,11 @@ export function formatDate(date, options = { day: "2-digit", month: "short" }) {
 }
 
 let displayCurrency = CURRENCY,
-  displayLocale = LOCALE;
+  displayLocale = LOCALE,
+  displayDateFormat = "";
 export function setDisplayPreferences(settings = {}) {
   displayCurrency = settings.base || CURRENCY;
+  displayDateFormat = settings.dateFormat || "";
   displayLocale = settings.language === "ar" ? "ar-BH" : LOCALE;
 }
 export function formatMoney(amount, currency = displayCurrency) {

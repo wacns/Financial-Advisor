@@ -58,6 +58,9 @@ export async function syncWidgets() {}
 export function subscribeQuickEntry() {
   return () => {};
 }
+export function subscribeCapture() {
+  return () => {};
+}
 
 export async function requestWidget() {
   return false;

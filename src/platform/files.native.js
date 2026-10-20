@@ -5,6 +5,7 @@ import * as ImagePicker from "expo-image-picker";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import * as Linking from "expo-linking";
+import { captureURL } from "../domain/capture.js";
 export async function pickFile({ image = false, camera = false } = {}) {
   if (image) {
     if (camera && !(await ImagePicker.requestCameraPermissionsAsync()).granted)
@@ -75,6 +76,17 @@ export function subscribeQuickEntry(callback) {
       templateId: value.searchParams.get("template"),
       owner: value.searchParams.get("owner"),
     });
+  };
+  const sub = Linking.addEventListener("url", ({ url }) => handle(url));
+  Linking.getInitialURL()
+    .then(handle)
+    .catch(() => {});
+  return () => sub.remove();
+}
+export function subscribeCapture(callback) {
+  const handle = (url) => {
+    const capture = captureURL(url);
+    if (capture) callback(capture);
   };
   const sub = Linking.addEventListener("url", ({ url }) => handle(url));
   Linking.getInitialURL()

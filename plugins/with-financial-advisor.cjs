@@ -3,11 +3,29 @@ const {
   withDangerousMod,
   withPodfile,
   withAppBuildGradle,
+  withXcodeProject,
+  IOSConfig,
 } = require("expo/config-plugins");
 const { mergeContents } = require("@expo/config-plugins/build/utils/generateCode");
 const fs = require("node:fs");
 const path = require("node:path");
 module.exports = function withFinancialAdvisor(config) {
+  config = withDangerousMod(config, ["ios", async config => {
+    const projectName = IOSConfig.XcodeUtils.getProjectName(config.modRequest.projectRoot);
+    const directory = path.join(config.modRequest.platformProjectRoot, projectName);
+    fs.mkdirSync(directory, {recursive:true});
+    fs.copyFileSync(path.join(config.modRequest.projectRoot, "native/ios/FinancialAdvisorIntents.swift"), path.join(directory, "FinancialAdvisorIntents.swift"));
+    return config;
+  }]);
+  config = withXcodeProject(config, config => {
+    const projectName = IOSConfig.XcodeUtils.getProjectName(config.modRequest.projectRoot);
+    IOSConfig.XcodeUtils.addBuildSourceFileToGroup({filepath:"FinancialAdvisorIntents.swift",groupName:projectName,project:config.modResults});
+    // node-xcode's pbxFile includes an unset explicitFileType; omit it so
+    // Xcode uses the sourcecode.swift type instead of a literal "undefined".
+    for (const file of Object.values(config.modResults.pbxFileReferenceSection()))
+      if (typeof file === "object" && String(file.path).replaceAll('"','') === "FinancialAdvisorIntents.swift") delete file.explicitFileType;
+    return config;
+  });
   config = withAppBuildGradle(config, (config) => {
     config.modResults.contents = mergeContents({
       src: config.modResults.contents,

@@ -2,6 +2,29 @@ import { cycleRange, shiftPeriod } from "./cycles.js";
 import { recordValue, convert } from "./model.js";
 import { toFils, bahrainDate, isCivilDate } from "../locale.js";
 export function reportRange(s, mode, anchor, from, to) {
+  if (["last7", "last30", "last3months"].includes(mode)) {
+    const today = bahrainDate(),
+      end = new Date(`${today}T12:00:00Z`);
+    end.setUTCDate(end.getUTCDate() + 1);
+    const start = new Date(`${today}T12:00:00Z`);
+    if (mode === "last3months") {
+      const day = start.getUTCDate();
+      start.setUTCDate(1);
+      start.setUTCMonth(start.getUTCMonth() - 3);
+      start.setUTCDate(
+        Math.min(
+          day,
+          new Date(
+            Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0),
+          ).getUTCDate(),
+        ),
+      );
+    } else start.setUTCDate(start.getUTCDate() - (mode === "last7" ? 6 : 29));
+    return {
+      from: start.toISOString().slice(0, 10),
+      until: end.toISOString().slice(0, 10),
+    };
+  }
   if (mode === "custom") {
     if (!isCivilDate(from) || !isCivilDate(to) || to < from)
       throw Error("Choose an ordered, valid date range.");
@@ -29,16 +52,18 @@ export function reportRange(s, mode, anchor, from, to) {
 export function reportData(
   s,
   range,
-  { account = "all", group = "category", kind = "expense" } = {},
+  { account = "all", accounts = [], group = "category", kind = "expense" } = {},
 ) {
   const rows = s.transactions.filter(
     (t) =>
       (range.salaryMonth && t.type === "income" && t.salaryMonth
         ? t.salaryMonth === range.salaryMonth
         : t.date >= range.from && t.date < range.until) &&
-      (account === "all" ||
-        t.accountId === account ||
-        t.toAccountId === account),
+      (accounts.length
+        ? accounts.includes(t.accountId) || accounts.includes(t.toAccountId)
+        : account === "all" ||
+          t.accountId === account ||
+          t.toAccountId === account),
   );
   const groups = new Map();
   let income = 0,
@@ -52,15 +77,17 @@ export function reportData(
     else expenses += toFils(Math.abs(value));
     if (type !== kind) continue;
     let key =
-      group === "account"
-        ? s.accounts.find((a) => a.id === t.accountId)?.name
-        : group === "description"
-          ? t.name
-          : group === "parent"
-            ? t.category.split(" / ")[0]
-            : group === "label"
-              ? (t.labels || []).join(", ") || "Unlabeled"
-              : t.category;
+      group === "payee"
+        ? s.payees?.find((p) => p.id === t.payeeId)?.name || "No contact"
+        : group === "account"
+          ? s.accounts.find((a) => a.id === t.accountId)?.name
+          : group === "description"
+            ? t.name
+            : group === "parent"
+              ? t.category.split(" / ")[0]
+              : group === "label"
+                ? (t.labels || []).join(", ") || "Unlabeled"
+                : t.category;
     groups.set(key, (groups.get(key) || 0) + toFils(Math.abs(value)));
   }
   return {
@@ -114,7 +141,7 @@ export function accountDetails(a, today = bahrainDate()) {
   };
 }
 
-export function basicBudgetStats(s, b, month) {
+export function basicBudgetStats(s, b, month, today = bahrainDate()) {
   const range =
     b.period === "Yearly"
       ? reportRange(s, "year", month)
@@ -131,5 +158,24 @@ export function basicBudgetStats(s, b, month) {
       )
       .reduce((n, t) => n + Math.abs(toFils(recordValue(s, t))), 0) / 1000;
   const limit = convert(s, b.limit, b.currency || "BHD");
-  return { spent, limit, remaining: (toFils(limit) - toFils(spent)) / 1000 };
+  const remaining = (toFils(limit) - toFils(spent)) / 1000;
+  const daysLeft =
+    today >= range.until
+      ? 0
+      : Math.ceil(
+          (Date.parse(`${range.until}T12:00:00Z`) -
+            Date.parse(
+              `${today < range.from ? range.from : today}T12:00:00Z`,
+            )) /
+            86400000,
+        );
+  return {
+    spent,
+    limit,
+    remaining,
+    daysLeft,
+    dailyAllowance: daysLeft
+      ? Math.floor(Math.max(0, toFils(remaining)) / daysLeft) / 1000
+      : 0,
+  };
 }

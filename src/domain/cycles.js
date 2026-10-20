@@ -1,5 +1,6 @@
 import { bahrainDate, isCivilDate, toFils } from "../locale.js";
 import { convert, recordValue, currencyCodes, text } from "./model.js";
+import { commitmentStats } from "./commitments.js";
 export function shiftPeriod(month, n) {
   const d = new Date(`${month}-01T12:00:00Z`);
   d.setUTCMonth(d.getUTCMonth() + n);
@@ -211,6 +212,19 @@ export function recurringForecast(s) {
             1000,
         ) / 1000,
     }));
+  for (const plan of s.subscriptions || []) {
+    if (plan.status !== "active") continue;
+    rows.push({
+      ...plan,
+      type: "expense",
+      frequency: `every ${plan.interval} ${plan.frequency}`,
+      value: convert(
+        s,
+        commitmentStats(s, plan, "subscription").monthly,
+        plan.currency,
+      ),
+    });
+  }
   const income = rows
       .filter((r) => r.type === "income")
       .reduce((sum, r) => sum + r.value, 0),

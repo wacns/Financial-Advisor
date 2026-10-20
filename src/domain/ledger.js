@@ -30,9 +30,18 @@ export function applyEffect(s, t, direction = 1) {
 }
 export function saveTransaction(s, data, id, uuid = () => crypto.randomUUID()) {
   const old = s.transactions.find((t) => t.id === id);
-  if (old?.debtId)
+  if (
+    data.captureFingerprint &&
+    s.transactions.some(
+      (t) => t.id !== id && t.captureFingerprint === data.captureFingerprint,
+    )
+  )
     throw Error(
-      "Repayments cannot be edited. Delete the repayment and record its replacement to preserve principal.",
+      "This captured message was already recorded. Check your transactions before adding another copy.",
+    );
+  if (old?.debtId || old?.commitmentId)
+    throw Error(
+      "Linked repayments cannot be edited. Delete the repayment and record its replacement to preserve principal.",
     );
   const t = {
     ...old,
@@ -50,6 +59,12 @@ export function saveTransaction(s, data, id, uuid = () => crypto.randomUUID()) {
           .filter(Boolean),
     note: String(data.note || "").slice(0, 500),
   };
+  if (data.rewardPoints === "" || (data.rewardPoints == null && !old)) {
+    const rate = s.accounts.find((a) => a.id === t.accountId)?.rewardRate || 0;
+    t.rewardPoints =
+      t.type === "expense" ? Math.round(t.amount * rate * 1000) / 1000 : 0;
+  } else if (data.rewardPoints != null)
+    t.rewardPoints = amount(data.rewardPoints);
   if (!["income", "expense", "transfer", "adjustment"].includes(t.type))
     throw Error("Choose a valid transaction type.");
   if (t.labels.length > 5 || t.labels.some((x) => x.length > 40))
@@ -85,6 +100,8 @@ export function deleteTransaction(s, id) {
       debt.balance = (toFils(debt.balance) + toFils(t.principal)) / 1000;
   }
   s.transactions = s.transactions.filter((row) => row.id !== id);
+  for (const plan of [...(s.subscriptions || []), ...(s.installments || [])])
+    plan.payments = plan.payments.filter((p) => p.transactionId !== id);
   for (const p of s.projects)
     for (const doc of p.documents)
       if (doc.transactionId === id) doc.transactionId = "";
@@ -101,6 +118,11 @@ export function copyTransaction(t) {
     "principal",
     "contractId",
     "milestoneId",
+    "commitmentId",
+    "commitmentType",
+    "commitmentOccurrence",
+    "pinned",
+    "captureFingerprint",
   ])
     delete copy[key];
   return copy;

@@ -4,6 +4,7 @@ import { cycleRange } from "./domain/cycles.js";
 import { categorySpend, summary } from "./finance.js";
 import { toFils, isCivilDate } from "./locale.js";
 import { nextOccurrence, upcomingPayments } from "./planning.js";
+import { commitmentCalendar } from "./domain/commitments.js";
 
 export function shiftMonth(month, offset) {
   const date = new Date(`${month}-01T12:00:00Z`);
@@ -70,7 +71,7 @@ export function calendarEntries(state, month) {
   if (!isCivilDate(`${month}-01`)) throw Error("Choose a valid month.");
   const start = `${month}-01`;
   const end = `${shiftMonth(month, 1)}-01`;
-  const entries = [];
+  const entries = commitmentCalendar(state, month).map(row => ({...row, type:"expense", actionable:row.status === "due"}));
   for (const r of state.recurring || []) {
     if (r.paused || r.nextDue >= end) continue;
     let date = r.nextDue;

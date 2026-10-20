@@ -131,6 +131,17 @@ export function Settings({ workspace: w, open }) {
   return (
     <Stack>
       <ExtendedSettings workspace={w} open={open} />
+      <Card>
+        <Heading>Entry and date preferences</Heading>
+        <Row>
+          <Button secondary onPress={() => open("defaultAccount")}>
+            Default account
+          </Button>
+          <Button secondary onPress={() => open("datePreferences")}>
+            Date format
+          </Button>
+        </Row>
+      </Card>
       <Card testID="regional-settings">
         <Heading>At home in Bahrain</Heading>
         <Label>Region: Bahrain</Label>

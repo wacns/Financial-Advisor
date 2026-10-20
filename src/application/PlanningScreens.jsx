@@ -398,13 +398,17 @@ export function Calendar({ workspace: w, month, setMonth, open }) {
                     · {entry.type}
                   </Muted>
                 </View>
-                <Label>{money(entry.amount)}</Label>
+                <Label>{money(entry.amount, entry.currency)}</Label>
               </Row>
               {entry.actionable ? (
                 <Button
                   onPress={() =>
                     open(
-                      entry.kind === "debt" ? "repayment" : "record",
+                      entry.kind === "debt"
+                        ? "repayment"
+                        : ["subscription", "installment"].includes(entry.kind)
+                          ? `${entry.kind}Payment`
+                          : "record",
                       entry.id,
                     )
                   }

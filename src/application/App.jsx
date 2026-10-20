@@ -1,5 +1,5 @@
 import { useAppearance, AppearanceProvider } from "./appearance.jsx";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   ScrollView,
@@ -37,14 +37,28 @@ import {
   Receipts,
   DataTools,
 } from "./ManagementScreens.jsx";
-import { subscribeQuickEntry } from "../platform/files";
+import CurrencyTools from "./CurrencyTools.jsx";
+import MoneyTools from "./MoneyTools.jsx";
+import SharedAccounts from "./SharedAccounts.jsx";
+import {
+  Contacts,
+  Tags,
+  Subscriptions,
+  Installments,
+} from "./OrganizingScreens.jsx";
+import { subscribeCapture, subscribeQuickEntry } from "../platform/files";
 const pages = [
   ["overview", "Overview", "◈"],
   ["accounts", "Accounts", "▣"],
+  ["shared-accounts", "Shared accounts", "♧"],
   ["transactions", "Transactions", "⇄"],
   ["budgets", "Budgets", "▥"],
   ["goals", "Goals", "⚑"],
   ["bills", "Bills & salary", "◷"],
+  ["subscriptions", "Subscriptions", "⟳"],
+  ["installments", "Installments", "◴"],
+  ["contacts", "Payees & payers", "♧"],
+  ["tags", "Tags", "◇"],
   ["calendar", "Calendar", "▦"],
   ["debts", "Debts & loans", "◇"],
   ["projects", "Projects", "▱"],
@@ -52,6 +66,8 @@ const pages = [
   ["advanced-budgets", "Cycle budgets", "▤"],
   ["salary", "Salary", "◉"],
   ["forecast", "Commitment forecast", "↗"],
+  ["currency", "Currency tools", "↔"],
+  ["capture", "Capture & assistant", "✧"],
   ["receipts", "Receipt scanner", "▧"],
   ["warranties", "Warranties", "✓"],
   ["categories", "Categories", "⊞"],
@@ -160,6 +176,13 @@ function WorkspaceApp() {
     }
   }
   const [quickEntry, setQuickEntry] = useState(null);
+  const [capture, setCapture] = useState(null);
+  const consumeCapture = useCallback(() => setCapture(null), []);
+  useEffect(() => subscribeCapture(setCapture), []);
+  useEffect(() => {
+    if (capture && !w.loading && w.user && !w.demo && page !== "capture")
+      navigate("capture");
+  }, [capture, w.loading, w.user, w.demo, page, navigate]);
   useEffect(() => subscribeQuickEntry(setQuickEntry), []);
   useEffect(() => {
     if (!quickEntry || w.loading || !w.user || w.demo) return;
@@ -211,10 +234,16 @@ function WorkspaceApp() {
   const screens = {
     overview: Overview,
     accounts: Accounts,
+    capture: MoneyTools,
+    "shared-accounts": SharedAccounts,
     transactions: Transactions,
     budgets: Budgets,
     goals: Goals,
     bills: Bills,
+    subscriptions: Subscriptions,
+    installments: Installments,
+    contacts: Contacts,
+    tags: Tags,
     calendar: Calendar,
     debts: Debts,
     projects: Projects,
@@ -224,6 +253,7 @@ function WorkspaceApp() {
     categories: Categories,
     templates: Templates,
     forecast: Forecast,
+    currency: CurrencyTools,
     salary: Salary,
     warranties: Warranties,
     receipts: Receipts,
@@ -407,6 +437,8 @@ function WorkspaceApp() {
                   </View>
                 </Row>
                 <Screen
+                  capture={page === "capture" ? capture : null}
+                  onCaptureConsumed={consumeCapture}
                   key={page}
                   workspace={w}
                   month={month}

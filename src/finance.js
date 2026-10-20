@@ -22,12 +22,14 @@ export const categories = [
 ];
 export function totalBalance(state) {
   return (
-    state.accounts.reduce(
-      (sum, account) =>
-        sum +
-        toFils(convert(state, account.balance, account.currency || "BHD")),
-      0,
-    ) / 1000
+    state.accounts
+      .filter((account) => account.includeInTotal !== false)
+      .reduce(
+        (sum, account) =>
+          sum +
+          toFils(convert(state, account.balance, account.currency || "BHD")),
+        0,
+      ) / 1000
   );
 }
 export function monthTransactions(state, month) {

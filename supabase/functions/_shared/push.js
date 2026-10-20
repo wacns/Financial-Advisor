@@ -1,6 +1,6 @@
 export const productionOrigin = 'https://financial-advisor-partner.vercel.app';
 const origins = new Set([productionOrigin, 'https://northline-bahrain.vercel.app',
-  'capacitor://localhost', 'https://localhost', 'http://localhost:5173']);
+  'capacitor://localhost', 'financialadvisor://app', 'https://localhost', 'http://localhost:5173', 'http://127.0.0.1:5173']);
 export function json(request, data, status = 200) {
   const origin = request.headers.get('origin');
   return new Response(JSON.stringify(data), {status, headers:{
@@ -27,7 +27,21 @@ export function validateDevice(data) {
 export function hasDuePayment(workspace, date) {
   if (workspace?.currency !== 'BHD') return false;
   return (workspace.recurring || []).some(r => !r.paused && (r.type === 'expense'||r.type==='transfer') && r.nextDue <= date) ||
-    (workspace.debts || []).some(d => d.balance > 0 && d.nextDue <= date);
+    (workspace.debts || []).some(d => d.balance > 0 && d.nextDue <= date) ||
+    ['subscriptions', 'installments'].some(key => (workspace[key] || []).some(plan => {
+      if (plan.status !== 'active' || !/^\d{4}-\d{2}-\d{2}$/.test(plan.firstDue)) return false;
+      const paid = new Set((plan.payments || []).map(p => p.index));
+      let index = 0; while (paid.has(index)) index++;
+      if (key === 'installments' && index >= plan.count) return false;
+      const [year,month,day] = plan.firstDue.split('-').map(Number), step = index * plan.interval;
+      let due;
+      if (plan.frequency === 'daily' || plan.frequency === 'weekly') due = new Date(Date.UTC(year,month-1,day+step*(plan.frequency === 'weekly' ? 7 : 1)));
+      else {
+        due = new Date(Date.UTC(year+(plan.frequency === 'yearly' ? step : 0),month-1+(plan.frequency === 'monthly' ? step : 0),1));
+        due.setUTCDate(Math.min(day,new Date(Date.UTC(due.getUTCFullYear(),due.getUTCMonth()+1,0)).getUTCDate()));
+      }
+      return Number.isFinite(due.getTime()) && due.toISOString().slice(0,10) <= date;
+    }));
 }
 export function hasReminderDue(workspace,time){
   const r={hour:9,frequency:'daily',expenses:true,salary:false,advice:false,...workspace?.settings?.reminders};

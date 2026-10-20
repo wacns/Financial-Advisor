@@ -1,6 +1,6 @@
 const preferenceKey = 'financial-advisor-push-v1';
 const installationKey = 'financial-advisor-installation-v1';
-const routes = new Set(['overview', 'transactions', 'calendar', 'bills', 'goals']);
+const routes = new Set(['overview', 'transactions', 'calendar', 'bills', 'goals', 'subscriptions', 'installments']);
 
 export function notificationRoute(notification) {
   const route = notification?.data?.route;

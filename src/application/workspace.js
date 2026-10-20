@@ -1,3 +1,5 @@
+import { organizeCommand, accountAppearance } from "../domain/organizing.js";
+import { commitmentCommand } from "../domain/commitments.js";
 import { termDetails } from "../domain/accounts.js";
 import { normalizeWorkspace, validateWorkspace } from "../domain/model.js";
 import { featureCommand } from "../domain/commands.js";
@@ -38,6 +40,10 @@ export function applyEntry(
   uuid = () => crypto.randomUUID(),
 ) {
   const next = normalizeWorkspace(state);
+  const organized =
+    organizeCommand(next, kind, data, id, uuid) ||
+    commitmentCommand(next, kind, data, id, uuid);
+  if (organized) return organized;
   const feature = featureCommand(next, kind, data, id, uuid);
   if (feature) return validateProjects(feature);
   const project = projectCommand(next, kind, data, id, uuid);
@@ -64,6 +70,7 @@ export function applyEntry(
       ...data,
       id: uuid(),
       ...termDetails(data),
+      ...accountAppearance(data),
       name: name(data.name, 60),
       balance: toFils(data.balance) / 1000,
       currency: data.currency || "BHD",
@@ -140,7 +147,7 @@ export function transactionCSV(state, transactions) {
   const amountHeader =
     currencies.length === 1 ? `Amount (${currencies[0]})` : "Amount";
   return [
-    `Date,Description,Category,Type,${amountHeader},Currency,Account,To Account,Time,Labels,Note`,
+    `Date,Description,Category,Type,${amountHeader},Currency,Account,To Account,Time,Labels,Note,Payee,Location,Reward Points`,
     ...transactions.map((t) =>
       [
         t.date,
@@ -158,6 +165,9 @@ export function transactionCSV(state, transactions) {
         t.time || "",
         (t.labels || []).join(", "),
         t.note || "",
+        state.payees?.find((p) => p.id === t.payeeId)?.name || "",
+        t.location || "",
+        t.rewardPoints || "",
       ]
         .map(cell)
         .join(","),
