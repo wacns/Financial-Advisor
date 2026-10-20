@@ -16,7 +16,8 @@ export function useWorkspace() {
   const [route, setRoute] = useState(runtime.currentRoute),
     [ready, setReady] = useState(false),
     [loading, setLoading] = useState(true);
-  const [state, setState] = useState(blankState),
+  // Screens can render once more while navigation is pending after sign-out.
+  const [state, setState] = useState(() => normalizeWorkspace(blankState())),
     [user, setUser] = useState(null),
     [message, setMessage] = useState(""),
     [saving, setSaving] = useState(false);
@@ -87,7 +88,8 @@ export function useWorkspace() {
       ) {
         identity.current = null;
         setUser(null);
-        setState(blankState());
+        stateRef.current = normalizeWorkspace(blankState());
+        setState(stateRef.current);
         notifications.reset();
         runtime.navigate("login");
       }
@@ -155,7 +157,8 @@ export function useWorkspace() {
         } else {
           identity.current = null;
           setUser(null);
-          setState(blankState());
+          stateRef.current = normalizeWorkspace(blankState());
+          setState(stateRef.current);
         }
       } catch (error) {
         if (active) {
@@ -249,7 +252,7 @@ export function useWorkspace() {
       }
       identity.current = null;
       setUser(null);
-      stateRef.current = blankState();
+      stateRef.current = normalizeWorkspace(blankState());
       setState(stateRef.current);
       notifications.reset();
       runtime.navigate("login");
