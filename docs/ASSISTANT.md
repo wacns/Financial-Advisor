@@ -42,7 +42,7 @@ The Edge Function verifies the Bearer token with Supabase `auth.getUser`. The pu
 
 The existing quota remains at most 20 attempts per user per UTC day and five seconds between attempts across cloud funding modes. Output is bounded to 1,500 tokens, retries are disabled and generation times out after 25 seconds. Failed provider attempts count toward quota. API keys never enter model prompts or request/credit metadata. The own-key OpenAI path sets `store: false`. Suggestions receive strict schema and amount/date/currency validation before the app offers review.
 
-Sources: `supabase/functions/financial-assistant`, `supabase/migrations/20261020071106_assistant_quota.sql`, `supabase/migrations/20261020091000_ai_prepaid_credits.sql`. The function does its own authentication; `verify_jwt = false` disables only the legacy gateway check. AI SDK/OpenAI provider dependencies are pinned server-side and excluded from client bundles. Check with:
+Sources: `supabase/functions/financial-assistant`, `supabase/migrations/20261020071906_assistant_quota.sql`, `supabase/migrations/20261020084655_ai_prepaid_credits.sql`. The function does its own authentication; `verify_jwt = false` disables only the legacy gateway check. AI SDK/OpenAI provider dependencies are pinned server-side and excluded from client bundles. Check with:
 
 ```sh
 npm ci --prefix supabase/functions/financial-assistant --ignore-scripts
