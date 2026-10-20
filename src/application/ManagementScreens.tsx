@@ -1,4 +1,4 @@
-import { AccountChoices } from "./OrganizingScreens.jsx";
+import { AccountChoices } from "./OrganizingScreens.tsx";
 import React, { useState } from "react";
 import { View, Image, Platform } from "react-native";
 import {
@@ -35,7 +35,11 @@ import {
   downloadAttachment,
   requestWidget,
 } from "../platform/files";
-export function AdvancedBudgets({ workspace: w, open }) {
+import type { ScreenProps } from "./screenTypes.ts";
+import { errorMessage, must } from "../guards.ts";
+import type { ReportRange } from "../domain/reports.ts";
+import type { CycleBudget, Warranty, Workspace } from "../domain/types.ts";
+export function AdvancedBudgets({ workspace: w, open }: Pick<ScreenProps, "workspace" | "open">) {
   const [selected, setSelected] = useState("");
   const budgets = w.state.cycleBudgets || [],
     current = budgets.find((b) => b.id === selected) || budgets.at(-1),
@@ -62,7 +66,8 @@ export function AdvancedBudgets({ workspace: w, open }) {
         <Field
           label="Cycle budget"
           type="select"
-          value={current.id}
+          // With at least one budget, the fallback to the last one always finds a budget.
+          value={must(current, "cycle budget").id}
           onChange={setSelected}
           options={budgets.map((b) => ({
             value: b.id,
@@ -99,7 +104,11 @@ export function AdvancedBudgets({ workspace: w, open }) {
     </Stack>
   );
 }
-function CycleDetails({ workspace: w, budget: b, open }) {
+function CycleDetails({
+  workspace: w,
+  budget: b,
+  open,
+}: Pick<ScreenProps, "workspace" | "open"> & { budget: CycleBudget }) {
   const stats = budgetStats(w.state, b),
     [drill, setDrill] = useState("");
   const covered = stats.rows
@@ -232,7 +241,7 @@ function CycleDetails({ workspace: w, budget: b, open }) {
     </Stack>
   );
 }
-export function Categories({ workspace: w, open }) {
+export function Categories({ workspace: w, open }: Pick<ScreenProps, "workspace" | "open">) {
   return (
     <Stack>
       <Button onPress={() => open("category")}>New category</Button>
@@ -277,7 +286,7 @@ export function Categories({ workspace: w, open }) {
     </Stack>
   );
 }
-export function Templates({ workspace: w, open }) {
+export function Templates({ workspace: w, open }: Pick<ScreenProps, "workspace" | "open">) {
   return (
     <Stack>
       <Muted>
@@ -318,7 +327,7 @@ export function Templates({ workspace: w, open }) {
     </Stack>
   );
 }
-export function Forecast({ workspace: w }) {
+export function Forecast({ workspace: w }: Pick<ScreenProps, "workspace">) {
   const f = recurringForecast(w.state);
   return (
     <Stack>
@@ -361,7 +370,7 @@ export function Forecast({ workspace: w }) {
     </Stack>
   );
 }
-export function Salary({ workspace: w, open, month }) {
+export function Salary({ workspace: w, open, month }: Pick<ScreenProps, "workspace" | "open" | "month">) {
   const [selected, setSelected] = useState(month);
   const rows = w.state.transactions.filter(
       (t) => t.type === "income" && t.salaryMonth === selected,
@@ -458,11 +467,11 @@ export function Salary({ workspace: w, open, month }) {
     </Stack>
   );
 }
-export function Warranties({ workspace: w, open }) {
+export function Warranties({ workspace: w, open }: Pick<ScreenProps, "workspace" | "open">) {
   const [query, setQuery] = useState(""),
     [status, setStatus] = useState("all"),
     today = bahrainDate();
-  const label = (record) =>
+  const label = (record: Warranty) =>
     record.expires < today
       ? "Expired"
       : Math.ceil(
@@ -524,9 +533,10 @@ export function Warranties({ workspace: w, open }) {
                   secondary
                   onPress={() =>
                     downloadAttachment(
-                      r.receipt,
+                      // The button only shows for a warranty with a receipt.
+                      must(r.receipt, "receipt"),
                       `${r.name}-receipt.jpg`,
-                    ).catch((e) => w.setMessage(e.message))
+                    ).catch((e) => w.setMessage(errorMessage(e)))
                   }
                 >
                   Download receipt
@@ -543,18 +553,18 @@ export function Warranties({ workspace: w, open }) {
     </Stack>
   );
 }
-export function Receipts({ workspace: w, open }) {
+export function Receipts({ workspace: w, open }: Pick<ScreenProps, "workspace" | "open">) {
   const [busy, setBusy] = useState(false),
     [recognized, setRecognized] = useState(""),
-    [error, setError] = useState("");
-  async function scan(camera) {
+    [error, setError] = useState<string | undefined>("");
+  async function scan(camera: boolean) {
     setBusy(true);
     setError("");
     try {
       const result = await scanReceipt(camera);
       if (result) setRecognized(result);
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -604,22 +614,22 @@ export function Receipts({ workspace: w, open }) {
     </Stack>
   );
 }
-export function DataTools({ workspace: w }) {
-  const [preview, setPreview] = useState(null),
+export function DataTools({ workspace: w }: Pick<ScreenProps, "workspace">) {
+  const [preview, setPreview] = useState<Workspace | null>(null),
     [csv, setCSV] = useState(""),
     [account, setAccount] = useState(w.state.accounts[0]?.id || ""),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
+    [error, setError] = useState<string | undefined>("");
   async function file() {
     setError("");
     try {
       const file = await pickFile();
       if (!file) return;
       if (file.name.toLowerCase().endsWith(".json"))
-        setPreview(parseBackup(file.text));
-      else setCSV(file.text);
+        setPreview(parseBackup(must(file.text, "file text")));
+      else setCSV(must(file.text, "file text"));
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e));
     }
   }
   async function restore() {
@@ -629,7 +639,7 @@ export function DataTools({ workspace: w }) {
       await w.replace(preview);
       setPreview(null);
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -645,7 +655,7 @@ export function DataTools({ workspace: w }) {
       );
       setCSV("");
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -667,7 +677,7 @@ export function DataTools({ workspace: w }) {
                 backupText(w.state),
                 "application/json",
                 "financial-advisor-full-backup.json",
-              ).catch((e) => setError(e.message))
+              ).catch((e) => setError(errorMessage(e)))
             }
           >
             Export full backup
@@ -679,7 +689,7 @@ export function DataTools({ workspace: w }) {
         {preview ? (
           <Stack>
             <Heading>Review backup before replacing records</Heading>
-            {[
+            {([
               "accounts",
               "transactions",
               "budgets",
@@ -690,7 +700,7 @@ export function DataTools({ workspace: w }) {
               "warranties",
               "cycleBudgets",
               "templates",
-            ].map((key) => (
+            ] as const).map((key) => (
               <Label key={key}>
                 {key}: {preview[key].length}
               </Label>
@@ -737,16 +747,18 @@ export function DataTools({ workspace: w }) {
     </Stack>
   );
 }
-export function CustomReports({ workspace: w, month, open }) {
+export function CustomReports({ workspace: w, month, open }: Pick<ScreenProps, "workspace" | "month" | "open">) {
   const [mode, setMode] = useState("month"),
     [from, setFrom] = useState(`${month}-01`),
     [to, setTo] = useState(bahrainDate()),
     [group, setGroup] = useState("category"),
     [kind, setKind] = useState("expense"),
     [account, setAccount] = useState("all"),
-    [drill, setDrill] = useState(""),
-    [reportAccounts, setReportAccounts] = useState([]);
-  let data, error, range;
+    [drill, setDrill] = useState<string | undefined>(""),
+    [reportAccounts, setReportAccounts] = useState<string[]>([]);
+  let data: ReturnType<typeof reportData> | undefined,
+    error: string | undefined,
+    range: ReportRange | undefined;
   try {
     range = reportRange(w.state, mode, month, from, to);
     data = reportData(w.state, range, {
@@ -756,7 +768,7 @@ export function CustomReports({ workspace: w, month, open }) {
       kind,
     });
   } catch (e) {
-    error = e.message;
+    error = errorMessage(e);
   }
   return (
     <Card>
@@ -834,13 +846,13 @@ export function CustomReports({ workspace: w, month, open }) {
       ) : (
         <>
           <Muted>
-            {range.from} → {range.until} (end exclusive)
+            {must(range, "report range").from} → {must(range, "report range").until} (end exclusive)
           </Muted>
           <Label>
-            Income {money(data.income)} · Expenses {money(data.expenses)} · Net{" "}
-            {money(data.net)}
+            Income {money(must(data, "report").income)} · Expenses {money(must(data, "report").expenses)} · Net{" "}
+            {money(must(data, "report").net)}
           </Label>
-          {data.groups.map((g) => (
+          {must(data, "report").groups.map((g) => (
             <View key={g.name} style={{ gap: 5, paddingVertical: 7 }}>
               <Row style={{ justifyContent: "space-between" }}>
                 <Button
@@ -854,12 +866,12 @@ export function CustomReports({ workspace: w, month, open }) {
               <Progress
                 value={
                   (g.amount /
-                    (kind === "income" ? data.income : data.expenses)) *
+                    (kind === "income" ? must(data, "report").income : must(data, "report").expenses)) *
                   100
                 }
               />
               {drill === g.name
-                ? data.rows
+                ? must(data, "report").rows
                     .filter((t) => {
                       const k =
                         group === "payee"
@@ -901,7 +913,7 @@ export function CustomReports({ workspace: w, month, open }) {
     </Card>
   );
 }
-export function ExtendedSettings({ workspace: w, open }) {
+export function ExtendedSettings({ workspace: w, open }: Pick<ScreenProps, "workspace" | "open">) {
   async function widget() {
     try {
       await w.save("widgetPreferences", {
@@ -909,7 +921,7 @@ export function ExtendedSettings({ workspace: w, open }) {
       });
       if (!w.state.settings.widgetsEnabled && native) await requestWidget();
     } catch (e) {
-      w.setMessage(e.message);
+      w.setMessage(errorMessage(e));
     }
   }
   return (

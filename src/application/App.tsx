@@ -23,9 +23,9 @@ import {
   Transactions,
   Budgets,
   Goals,
-} from "./FinancialScreens.jsx";
-import { Bills, Debts, Projects, Calendar } from "./PlanningScreens.jsx";
-import { Insights, Settings } from "./ReportsSettings.jsx";
+} from "./FinancialScreens.tsx";
+import { Bills, Debts, Projects, Calendar } from "./PlanningScreens.tsx";
+import { Insights, Settings } from "./ReportsSettings.tsx";
 import { bahrainDate, isCivilDate, setDisplayPreferences } from "../locale.ts";
 import {
   AdvancedBudgets,
@@ -36,18 +36,24 @@ import {
   Warranties,
   Receipts,
   DataTools,
-} from "./ManagementScreens.jsx";
-import CurrencyTools from "./CurrencyTools.jsx";
-import MoneyTools from "./MoneyTools.jsx";
-import SharedAccounts from "./SharedAccounts.jsx";
+} from "./ManagementScreens.tsx";
+import CurrencyTools from "./CurrencyTools.tsx";
+import MoneyTools from "./MoneyTools.tsx";
+import SharedAccounts from "./SharedAccounts.tsx";
 import {
   Contacts,
   Tags,
   Subscriptions,
   Installments,
-} from "./OrganizingScreens.jsx";
+} from "./OrganizingScreens.tsx";
 import { subscribeCapture, subscribeQuickEntry } from "../platform/files";
-const pages = [
+import { errorMessage, must } from "../guards.ts";
+import type { ComponentType } from "react";
+import type { FormContext, FormSpec } from "./enhancementForms.ts";
+import type { CaptureRequest, QuickEntry } from "../platform/contracts.ts";
+import type { ScreenProps } from "./screenTypes.ts";
+/** Route id, navigation label and icon for every workspace page. */
+const pages: [string, string, string][] = [
   ["overview", "Overview", "◈"],
   ["accounts", "Accounts", "▣"],
   ["shared-accounts", "Shared accounts", "♧"],
@@ -75,7 +81,7 @@ const pages = [
   ["data", "Import & restore", "⇅"],
   ["settings", "Settings", "⚙"],
 ];
-const titles = {
+const titles: Record<string, string> = {
   accounts: "A home for your money.",
   transactions: "Every little money moment.",
   budgets: "A little intention goes a long way.",
@@ -87,7 +93,7 @@ const titles = {
   insights: "A little perspective.",
   settings: "Make yourself at home.",
 };
-const actions = {
+const actions: Record<string, [string, string]> = {
   overview: ["Add transaction", "transaction"],
   transactions: ["Add transaction", "transaction"],
   budgets: ["Set a budget", "budget"],
@@ -97,7 +103,13 @@ const actions = {
   debts: ["Add debt", "debt"],
   projects: ["New project", "project"],
 };
-function MonthSelector({ month, setMonth }) {
+function MonthSelector({
+  month,
+  setMonth,
+}: {
+  month: string;
+  setMonth: (month: string) => void;
+}) {
   const { colors } = useAppearance();
   const [draft, setDraft] = useState(month);
   useEffect(() => setDraft(month), [month]);
@@ -124,13 +136,18 @@ function WorkspaceApp() {
     setPreferences(w.state.settings || {});
   }, [w.state.settings, setPreferences]);
   const [month, setMonth] = useState(() => bahrainDate().slice(0, 7)),
-    [form, setForm] = useState(null),
+    [form, setForm] = useState<FormSpec | null>(null),
     [menu, setMenu] = useState(false);
-  const scroll = useRef(null),
+  const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null),
     routeRef = useRef(w.route),
-    historyRef = useRef([]);
+    // Pages visited in this workspace; an entry is undefined if a route had no page segment.
+    historyRef = useRef<(string | undefined)[]>([]);
   const rawPage = w.route.split("/")[1],
-    page = pages.some((row) => row[0] === rawPage) ? rawPage : "overview";
+    // A missing segment matches no page, so this is the same test as before.
+    page =
+      rawPage !== undefined && pages.some((row) => row[0] === rawPage)
+        ? rawPage
+        : "overview";
   const login = !w.route.startsWith("demo/") && !w.route.startsWith("app/");
   useEffect(() => {
     setMenu(false);
@@ -155,7 +172,8 @@ function WorkspaceApp() {
         if (historyRef.current.length) {
           const previous = historyRef.current.pop();
           routeRef.current = `${demo ? "demo" : "app"}/${previous}`;
-          navigate(previous);
+          // String() gives the same route text navigate's template produced from undefined.
+          navigate(String(previous));
           return true;
         }
         return false;
@@ -168,15 +186,15 @@ function WorkspaceApp() {
     const timer = setTimeout(() => setMessage(""), 5000);
     return () => clearTimeout(timer);
   }, [message, login, setMessage]);
-  function open(kind, id, context = {}) {
+  function open(kind: string, id?: string | null, context: FormContext = {}) {
     try {
       setForm(entryForm(kind, id, w.state, context));
     } catch (error) {
-      w.setMessage(error.message);
+      w.setMessage(errorMessage(error));
     }
   }
-  const [quickEntry, setQuickEntry] = useState(null);
-  const [capture, setCapture] = useState(null);
+  const [quickEntry, setQuickEntry] = useState<QuickEntry | null>(null);
+  const [capture, setCapture] = useState<CaptureRequest | null>(null);
   const consumeCapture = useCallback(() => setCapture(null), []);
   useEffect(() => subscribeCapture(setCapture), []);
   useEffect(() => {
@@ -192,7 +210,7 @@ function WorkspaceApp() {
       return;
     }
     try {
-      let draft = {
+      let draft: Record<string, unknown> = {
         type: quickEntry.kind === "income" ? "income" : "expense",
         date: bahrainDate(),
       };
@@ -212,7 +230,7 @@ function WorkspaceApp() {
         ),
       );
     } catch (error) {
-      w.setMessage(error.message);
+      w.setMessage(errorMessage(error));
     }
   }, [quickEntry, w]);
   const prefix = w.demo ? "demo" : "app";
@@ -231,7 +249,7 @@ function WorkspaceApp() {
       ))}
     </View>
   );
-  const screens = {
+  const screens: Record<string, ComponentType<ScreenProps>> = {
     overview: Overview,
     accounts: Accounts,
     capture: MoneyTools,
@@ -259,7 +277,8 @@ function WorkspaceApp() {
     receipts: Receipts,
     data: DataTools,
   };
-  const Screen = screens[page];
+  // Every page in the list has a screen.
+  const Screen = must(screens[page], "screen");
   if (login && !w.loading)
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.cream }}>
@@ -429,11 +448,14 @@ function WorkspaceApp() {
                     ].includes(page) ? (
                       <MonthSelector month={month} setMonth={setMonth} />
                     ) : null}
-                    {actions[page] ? (
-                      <Button onPress={() => open(actions[page][1])}>
-                        {actions[page][0]}
-                      </Button>
-                    ) : null}
+                    {(() => {
+                      const action = actions[page];
+                      return action ? (
+                        <Button onPress={() => open(action[1])}>
+                          {action[0]}
+                        </Button>
+                      ) : null;
+                    })()}
                   </View>
                 </Row>
                 <Screen
@@ -463,12 +485,12 @@ function WorkspaceApp() {
                 paddingVertical: 7,
               }}
             >
-              {[
+              {([
                 ["overview", "Home", "◈"],
                 ["transactions", "Activity", "⇄"],
                 ["calendar", "Calendar", "▦"],
                 ["insights", "Insights", "◔"],
-              ].map(([id, label, symbol]) => (
+              ] as const).map(([id, label, symbol]) => (
                 <NavLink
                   key={id}
                   label={label}

@@ -144,7 +144,8 @@ export const accountCurrency = (
 ): CurrencyCode => s.accounts.find((a) => a.id === id)?.currency || "BHD";
 export const recordValue = (
   s: Pick<Workspace, "accounts" | "settings">,
-  t: Pick<Transaction, "amount" | "currency" | "accountId">,
+  // Any record with an amount; scheduled rows without an account fall back to BHD.
+  t: { amount: unknown; currency?: string; accountId?: unknown },
   to: string = s.settings?.base || "BHD",
 ): number =>
   convert(s, t.amount, t.currency || accountCurrency(s, t.accountId), to);

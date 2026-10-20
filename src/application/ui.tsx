@@ -8,6 +8,17 @@ import {
   translatedChildren,
 } from "./appearance.tsx";
 export const colors = lightColors;
+/**
+ * Renders an unchecked value as React would: strings, numbers, booleans and empty values as is.
+ * Anything else (which React would refuse to render) is shown as text.
+ */
+export const display = (value: unknown): ReactNode =>
+  value == null ||
+  typeof value === "string" ||
+  typeof value === "number" ||
+  typeof value === "boolean"
+    ? value
+    : String(value);
 export function Label({ children, style, ...props }: TextProps) {
   const { colors, language, t } = useAppearance();
   if (Platform.OS !== "web" && props.accessibilityRole === "status") {

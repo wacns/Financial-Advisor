@@ -31,7 +31,22 @@ import { accountDetails, basicBudgetStats } from "../domain/reports.ts";
 import { filterTransactions, transactionGroups } from "../domain/organizing.ts";
 import { copyTransaction } from "../domain/ledger.ts";
 import { convert, recordValue } from "../domain/model.ts";
-export function TransactionList({ state, transactions, open, onPin }) {
+import type { OpenForm, ScreenProps } from "./screenTypes.ts";
+import { errorMessage, must } from "../guards.ts";
+import type { TransactionFilter } from "../domain/organizing.ts";
+import type { Account, Transaction, Workspace } from "../domain/types.ts";
+export function TransactionList({
+  state,
+  transactions,
+  open,
+  onPin,
+}: {
+  state: Workspace;
+  transactions: Transaction[];
+  /** Without it the list is read-only. */
+  open?: OpenForm;
+  onPin?: (id: string) => void;
+}) {
   const { colors } = useAppearance();
   if (!transactions.length)
     return <Empty>No transactions match this view.</Empty>;
@@ -71,7 +86,7 @@ export function TransactionList({ state, transactions, open, onPin }) {
             ) : null}
             {t.labels?.length ? <Muted>{t.labels.join(" · ")}</Muted> : null}
             {t.location ? <Muted>{t.location}</Muted> : null}
-            {t.rewardPoints > 0 ? (
+            {(t.rewardPoints ?? 0) > 0 ? (
               <Muted>{t.rewardPoints} reward points</Muted>
             ) : null}
           </View>
@@ -142,7 +157,7 @@ export function TransactionList({ state, transactions, open, onPin }) {
     </View>
   );
 }
-export function Overview({ workspace: w, month, open }) {
+export function Overview({ workspace: w, month, open }: Pick<ScreenProps, "workspace" | "month" | "open">) {
   const { colors } = useAppearance();
   const { state } = w,
     totals = summary(state, month),
@@ -281,7 +296,7 @@ export function Overview({ workspace: w, month, open }) {
     </Stack>
   );
 }
-export function Accounts({ workspace: w, open }) {
+export function Accounts({ workspace: w, open }: Pick<ScreenProps, "workspace" | "open">) {
   const { colors } = useAppearance();
   return (
     <Stack>
@@ -319,7 +334,7 @@ export function Accounts({ workspace: w, open }) {
               {a.last4 ? `•••• ${a.last4}` : "Manually tracked account"}
             </Muted>
             <AccountTerms state={w.state} account={a} />
-            {a.rewardRate > 0 ? (
+            {(a.rewardRate ?? 0) > 0 ? (
               <Muted>
                 {a.rewardRate} reward points per currency unit ·{" "}
                 {w.state.transactions
@@ -372,15 +387,15 @@ export function Accounts({ workspace: w, open }) {
     </Stack>
   );
 }
-export function Transactions({ workspace: w, month, open }) {
+export function Transactions({ workspace: w, month, open }: Pick<ScreenProps, "workspace" | "month" | "open">) {
   const { colors } = useAppearance();
   const [search, setSearch] = useState(""),
     [type, setType] = useState("all"),
     [account, setAccount] = useState("all"),
-    [accountScopes, setAccountScopes] = useState([]),
+    [accountScopes, setAccountScopes] = useState<string[]>([]),
     [limit, setLimit] = useState(50);
   const [advanced, setAdvanced] = useState(false),
-    [filters, setFilters] = useState({
+    [filters, setFilters] = useState<TransactionFilter>({
       query: "",
       type: "all",
       from: "",
@@ -392,8 +407,8 @@ export function Transactions({ workspace: w, month, open }) {
       pinned: false,
     }),
     [allDates, setAllDates] = useState(false);
-  let transactions = [],
-    filterError = "";
+  let transactions: Transaction[] = [],
+    filterError: string | undefined = "";
   try {
     transactions = filterTransactions(
       w.state,
@@ -410,17 +425,20 @@ export function Transactions({ workspace: w, month, open }) {
       allDates ? w.state.transactions : monthTransactions(w.state, month),
     );
   } catch (e) {
-    filterError = e.message;
+    filterError = errorMessage(e);
   }
-  const updateFilter = (name, value) => {
+  const updateFilter = <K extends keyof TransactionFilter>(
+    name: K,
+    value: TransactionFilter[K],
+  ) => {
     setFilters((previous) => ({ ...previous, [name]: value }));
     setLimit(50);
   };
-  async function pin(id) {
+  async function pin(id: string) {
     try {
       await w.save("pinTransaction", {}, id);
     } catch (e) {
-      w.setMessage(e.message);
+      w.setMessage(errorMessage(e));
     }
   }
   async function download() {
@@ -431,7 +449,7 @@ export function Transactions({ workspace: w, month, open }) {
         `financial-advisor-${month}.csv`,
       );
     } catch (error) {
-      w.setMessage(error.message);
+      w.setMessage(errorMessage(error));
     }
   }
   return (
@@ -628,7 +646,7 @@ export function Transactions({ workspace: w, month, open }) {
     </Card>
   );
 }
-export function Budgets({ workspace: w, month, open }) {
+export function Budgets({ workspace: w, month, open }: Pick<ScreenProps, "workspace" | "month" | "open">) {
   const { colors } = useAppearance();
   return (
     <Stack>
@@ -688,7 +706,7 @@ export function Budgets({ workspace: w, month, open }) {
     </Stack>
   );
 }
-export function Goals({ workspace: w, open }) {
+export function Goals({ workspace: w, open }: Pick<ScreenProps, "workspace" | "open">) {
   const { colors } = useAppearance();
   return (
     <Row style={{ alignItems: "stretch" }}>
@@ -735,26 +753,27 @@ export function Goals({ workspace: w, open }) {
   );
 }
 
-function AccountTerms({ state, account: a }) {
+function AccountTerms({ state, account: a }: { state: Workspace; account: Account }) {
   const d = accountDetails(a);
+  // Each detail below is computed whenever its branch shows (accountDetails uses the same tests).
   return (
     <Stack style={{ gap: 5 }}>
-      {a.apr > 0 ? (
+      {(a.apr ?? 0) > 0 ? (
         <Muted>
           APR: {a.apr}% · Estimated annual interest:{" "}
-          {money(d.annualInterest, a.currency)}
+          {money(must(d.annualInterest, "annual interest"), a.currency)}
         </Muted>
       ) : null}
-      {a.limit > 0 ? (
+      {(a.limit ?? 0) > 0 ? (
         <Muted>
-          Credit utilization: {d.utilization.toFixed(1)}% of{" "}
-          {money(a.limit, a.currency)}
+          Credit utilization: {must(d.utilization, "utilization").toFixed(1)}% of{" "}
+          {money(must(a.limit, "credit limit"), a.currency)}
         </Muted>
       ) : null}
-      {a.cost > 0 ? (
+      {(a.cost ?? 0) > 0 ? (
         <Muted>
-          Cost basis: {money(a.cost, a.currency)} · Gain:{" "}
-          {money(d.valuation, a.currency)}
+          Cost basis: {money(must(a.cost, "cost basis"), a.currency)} · Gain:{" "}
+          {money(must(d.valuation, "valuation"), a.currency)}
         </Muted>
       ) : null}
       {a.maturity ? (
@@ -764,9 +783,9 @@ function AccountTerms({ state, account: a }) {
       ) : null}
       {a.type === "Fixed deposit" && d.maturityValue ? (
         <>
-          <Progress value={d.termProgress} />
+          <Progress value={must(d.termProgress, "term progress")} />
           <Muted>
-            Term completed: {d.termProgress.toFixed(1)}% · Estimated maturity:{" "}
+            Term completed: {must(d.termProgress, "term progress").toFixed(1)}% · Estimated maturity:{" "}
             {money(d.maturityValue, a.currency)}
           </Muted>
           <Muted>
@@ -774,13 +793,13 @@ function AccountTerms({ state, account: a }) {
           </Muted>
         </>
       ) : null}
-      {a.type === "Loan" && a.loanOriginal > 0 ? (
+      {a.type === "Loan" && (a.loanOriginal ?? 0) > 0 ? (
         <>
           <Progress
-            value={(1 - Math.max(0, -a.balance) / a.loanOriginal) * 100}
+            value={(1 - Math.max(0, -a.balance) / must(a.loanOriginal, "loan amount")) * 100}
           />
           <Muted>
-            Original loan: {money(a.loanOriginal, a.currency)} ·{" "}
+            Original loan: {money(must(a.loanOriginal, "loan amount"), a.currency)} ·{" "}
             {d.paymentsRemaining || "—"} estimated payments remaining
           </Muted>
         </>

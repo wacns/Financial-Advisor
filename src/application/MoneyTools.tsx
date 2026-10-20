@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Button, Card, Heading, Label, Muted, Row, Stack } from "./ui.tsx";
+import { Button, Card, Heading, Label, Muted, Row, Stack, display } from "./ui.tsx";
 import Field from "./Field";
 import { parseTransactionText } from "../domain/capture.ts";
 import {
@@ -20,22 +20,35 @@ import {
   assistantRequest,
   unavailableAI,
 } from "./assistantClient.ts";
+import { errorMessage, field } from "../guards.ts";
+import type { OpenForm, ScreenProps } from "./screenTypes.ts";
+import type { WorkspaceController } from "./useWorkspace.ts";
+/** A transaction draft from capture or the assistant; its fields are unchecked until saved. */
+type CaptureItem = { draft: unknown; warnings: string[]; source: string };
+type ChatMessage = { question: string; answer: string | undefined; mode: string };
 
-export function reviewCapture(w, open, draft) {
-  const account = captureAccount(w.state, draft.currency);
+export function reviewCapture(
+  w: WorkspaceController,
+  open: OpenForm,
+  draft: unknown,
+) {
+  const currency = field(draft, "currency"),
+    category = field(draft, "category");
+  const account = captureAccount(w.state, currency);
   if (!account)
-    throw Error(`Add a ${draft.currency} account before reviewing this entry.`);
+    throw Error(`Add a ${currency} account before reviewing this entry.`);
   const categories = categoryPaths(w.state);
   // The captured currency selects the initial matching account. After that,
   // let the form derive its label from the account the user is reviewing.
-  const entry = { ...draft };
+  // Object.assign copies exactly what the object spread copied, for any draft value.
+  const entry: Record<string, unknown> = Object.assign({}, draft);
   delete entry.currency;
   open("transaction", undefined, {
     draft: {
       ...entry,
       accountId: account.id,
-      category: categories.includes(draft.category)
-        ? draft.category
+      category: categories.some((c) => c === category)
+        ? category
         : categories[0],
     },
   });
@@ -47,16 +60,19 @@ export default function MoneyTools({
   month,
   capture,
   onCaptureConsumed,
-}) {
+}: Pick<
+  ScreenProps,
+  "workspace" | "open" | "month" | "capture" | "onCaptureConsumed"
+>) {
   const userId = w.user?.id;
   const [text, setText] = useState(""),
     [currency, setCurrency] = useState("BHD"),
-    [drafts, setDrafts] = useState([]),
-    [error, setError] = useState(""),
+    [drafts, setDrafts] = useState<CaptureItem[]>([]),
+    [error, setError] = useState<string | undefined>(""),
     [listening, setListening] = useState(false),
     [speechLanguage, setSpeechLanguage] = useState("en-BH"),
     [question, setQuestion] = useState(""),
-    [messages, setMessages] = useState([]),
+    [messages, setMessages] = useState<ChatMessage[]>([]),
     [mode, setMode] = useState("local"),
     [shareSummary, setShareSummary] = useState("no"),
     [consent, setConsent] = useState("no"),
@@ -104,10 +120,11 @@ export default function MoneyTools({
   }, []);
   useEffect(() => {
     if (!capture) return;
-    if (capture.text) {
+    // A capture link carries either message text or a ready draft.
+    if ("text" in capture && capture.text) {
       setText(capture.text);
       setDrafts([]);
-    } else if (capture.draft) {
+    } else if ("draft" in capture && capture.draft) {
       setDrafts([
         {
           draft: capture.draft,
@@ -125,15 +142,15 @@ export default function MoneyTools({
     try {
       setDrafts(parseTransactionText(text, { defaultCurrency: currency }));
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e));
     }
   }
-  function review(draft) {
+  function review(draft: unknown) {
     setError("");
     try {
       reviewCapture(w, open, draft);
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e));
     }
   }
   async function dictate() {
@@ -146,7 +163,7 @@ export default function MoneyTools({
         setDrafts([]);
       }
     } catch (e) {
-      if (alive.current) setError(e.message);
+      if (alive.current) setError(errorMessage(e));
     } finally {
       if (alive.current) setListening(false);
     }
@@ -157,8 +174,8 @@ export default function MoneyTools({
     setBusy(true);
     const prompt = question.trim();
     try {
-      let answer,
-        proposals = [];
+      let answer: string | undefined,
+        proposals: unknown[] = [];
       if (mode === "local") answer = localAnswer(w.state, prompt, month);
       else {
         if (w.demo || !w.user)
@@ -188,10 +205,12 @@ export default function MoneyTools({
             ? { summary: assistantSummary(w.state, month) }
             : {}),
         });
-        if (typeof data?.answer !== "string" || !Array.isArray(data?.drafts))
+        const reply = field(data, "answer"),
+          suggested = field(data, "drafts");
+        if (typeof reply !== "string" || !Array.isArray(suggested))
           throw Error("The assistant returned an invalid response.");
-        answer = data.answer;
-        proposals = data.drafts;
+        answer = reply;
+        proposals = suggested;
         if (mode === "hosted") await refreshAI();
       }
       if (!alive.current) return;
@@ -210,7 +229,7 @@ export default function MoneyTools({
         );
       setQuestion("");
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e));
       if (mode === "hosted") await refreshAI();
     } finally {
       setBusy(false);
@@ -280,7 +299,7 @@ export default function MoneyTools({
           {listening ? (
             <Button
               secondary
-              onPress={() => stopSpeech().catch((e) => setError(e.message))}
+              onPress={() => stopSpeech().catch((e) => setError(errorMessage(e)))}
             >
               Finish speaking
             </Button>
@@ -313,13 +332,15 @@ export default function MoneyTools({
           </Muted>
           {drafts.map(({ draft, warnings, source }, i) => (
             <Card
-              key={`${draft.captureFingerprint || i}-${i}`}
+              key={`${field(draft, "captureFingerprint") || i}-${i}`}
               testID="capture-draft"
             >
-              <Heading>{draft.name}</Heading>
+              <Heading>{display(field(draft, "name"))}</Heading>
               <Label>
-                {draft.type} · {draft.amount || "Amount needed"}{" "}
-                {draft.currency} · {draft.date || "Date needed"}
+                {display(field(draft, "type"))} ·{" "}
+                {display(field(draft, "amount") || "Amount needed")}{" "}
+                {display(field(draft, "currency"))} ·{" "}
+                {display(field(draft, "date") || "Date needed")}
               </Label>
               <Muted>{source}</Muted>
               {warnings.map((warning, j) => (
@@ -375,7 +396,7 @@ export default function MoneyTools({
           refresh={refreshAI}
           statusError={statusError}
           linkIdentity={() =>
-            w.chatgptSignIn(true).catch((e) => setError(e.message))
+            w.chatgptSignIn(true).catch((e) => setError(errorMessage(e)))
           }
         />
         {mode === "hosted" || mode === "byok" ? (

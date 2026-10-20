@@ -17,14 +17,14 @@ export type FormField = {
 /** Everything the entry modal needs to show and submit a form. */
 export type FormSpec = {
   kind: string;
-  id: string | null | undefined;
+  id?: string | null;
   title: string;
   fields: FormField[];
   note: string;
   values: Record<string, unknown>;
   submitLabel?: string;
   accounts?: Pick<Account, "id" | "currency">[];
-  reportingCurrency?: CurrencyCode;
+  reportingCurrency?: string;
 };
 /** Extra values a screen passes when opening a form. */
 export type FormContext = Record<string, unknown> & {

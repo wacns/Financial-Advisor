@@ -19,11 +19,13 @@ import { accountReport, shiftMonth, spendingBreakdown } from "../reports.ts";
 import { summary, monthTransactions } from "../finance.ts";
 import { formatMoney as money, formatDate, toFils } from "../locale.ts";
 import { exportFile, native } from "../platform/runtime";
-import { CustomReports, ExtendedSettings } from "./ManagementScreens.jsx";
+import { CustomReports, ExtendedSettings } from "./ManagementScreens.tsx";
 import { backupText } from "../domain/imports.ts";
 import { recordValue } from "../domain/model.ts";
 import AppUpdates from "./AppUpdates.tsx";
-export function Insights({ workspace: w, month, open }) {
+import type { ScreenProps } from "./screenTypes.ts";
+import { errorMessage } from "../guards.ts";
+export function Insights({ workspace: w, month, open }: Pick<ScreenProps, "workspace" | "month" | "open">) {
   const { colors } = useAppearance();
   const [account, setAccount] = useState("all"),
     filtered = accountReport(w.state, account),
@@ -107,7 +109,7 @@ export function Insights({ workspace: w, month, open }) {
     </Stack>
   );
 }
-export function Settings({ workspace: w, open }) {
+export function Settings({ workspace: w, open }: Pick<ScreenProps, "workspace" | "open">) {
   const { colors } = useAppearance();
   async function download() {
     try {
@@ -117,15 +119,15 @@ export function Settings({ workspace: w, open }) {
         "financial-advisor-backup.json",
       );
     } catch (error) {
-      w.setMessage(error.message);
+      w.setMessage(errorMessage(error));
     }
   }
-  async function push(action) {
+  async function push(action: "enable" | "disable" | "test") {
     try {
       await w.notifications[action]();
       if (action === "test") w.setMessage("Test notification sent.");
     } catch (error) {
-      w.setMessage(error.message);
+      w.setMessage(errorMessage(error));
     }
   }
   return (

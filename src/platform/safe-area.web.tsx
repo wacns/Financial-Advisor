@@ -20,6 +20,8 @@ export function SafeAreaView({
 }: {
   children?: ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Accepted for parity with the native component; the web view always pads every edge. */
+  edges?: readonly ("top" | "bottom" | "left" | "right")[];
 }) {
   return (
     <View

@@ -21,11 +21,12 @@ import {
 } from "../locale.ts";
 import { dueStatus, projectSpend } from "../planning.ts";
 import { calendarEntries, shiftMonth } from "../reports.ts";
-import { TransactionList } from "./FinancialScreens.jsx";
-import ProjectDetails from "./ProjectDetails.jsx";
-const fullDate = (date) =>
+import { TransactionList } from "./FinancialScreens.tsx";
+import ProjectDetails from "./ProjectDetails.tsx";
+import type { ScreenProps } from "./screenTypes.ts";
+const fullDate = (date: string) =>
   formatDate(date, { day: "2-digit", month: "short", year: "numeric" });
-export function Bills({ workspace: w, open }) {
+export function Bills({ workspace: w, open }: Pick<ScreenProps, "workspace" | "open">) {
   const { colors } = useAppearance();
   const [filter, setFilter] = useState("all");
   return (
@@ -115,7 +116,7 @@ export function Bills({ workspace: w, open }) {
     </Stack>
   );
 }
-export function Debts({ workspace: w, open }) {
+export function Debts({ workspace: w, open }: Pick<ScreenProps, "workspace" | "open">) {
   const { colors } = useAppearance();
   return (
     <Stack>
@@ -183,14 +184,14 @@ export function Debts({ workspace: w, open }) {
           .filter((t) => t.debtId)
           .map((t) => (
             <Muted key={t.id}>
-              {t.name}: {money(t.principal)} principal · {fullDate(t.date)}
+              {t.name}: {money(Number(t.principal))} principal · {fullDate(t.date)}
             </Muted>
           ))}
       </Card>
     </Stack>
   );
 }
-export function Projects({ workspace: w, open }) {
+export function Projects({ workspace: w, open }: Pick<ScreenProps, "workspace" | "open">) {
   const { colors } = useAppearance();
   return (
     <Stack>
@@ -258,7 +259,7 @@ export function Projects({ workspace: w, open }) {
     </Stack>
   );
 }
-export function Calendar({ workspace: w, month, setMonth, open }) {
+export function Calendar({ workspace: w, month, setMonth, open }: Pick<ScreenProps, "workspace" | "month" | "setMonth" | "open">) {
   const { colors } = useAppearance();
   const [selected, setSelected] = useState("");
   const entries = calendarEntries(w.state, month),
@@ -273,7 +274,7 @@ export function Calendar({ workspace: w, month, setMonth, open }) {
         ? bahrainDate()
         : `${month}-01`,
     agenda = entries.filter((entry) => entry.date === date);
-  function move(n) {
+  function move(n: number) {
     setMonth(shiftMonth(month, n));
     setSelected("");
   }

@@ -7,7 +7,16 @@ import React, {
 } from "react";
 import { View } from "react-native";
 import { client } from "./client.ts";
-import { sharedAccountService } from "./sharedAccounts.ts";
+import { sharedAccountService, sharedResult } from "./sharedAccounts.ts";
+import type {
+  CreatedInvite,
+  SharedAccountSummary,
+  SharedInvite,
+  SharedMember,
+  SharedSnapshot,
+  SharedTransaction,
+} from "./sharedAccounts.ts";
+import type { FieldOption, FormField, FormSpec } from "./enhancementForms.ts";
 import {
   Button,
   Card,
@@ -23,43 +32,59 @@ import EntryModal from "./EntryModal.tsx";
 import { bahrainDate, formatMoney as money } from "../locale.ts";
 import { currencyCodes } from "../domain/model.ts";
 import { exportFile } from "../platform/runtime";
-const field = (label, name, value = "", type = "text", options) => ({
+import type { ScreenProps } from "./screenTypes.ts";
+import { errorMessage, must } from "../guards.ts";
+/** The record a shared-account form edits: a transaction, member or invitation. */
+type SharedRow = Partial<SharedTransaction> &
+  Partial<SharedMember> &
+  Partial<SharedInvite>;
+const field = (
+  label: string,
+  name: string,
+  value: unknown = "",
+  type = "text",
+  options?: readonly FieldOption[],
+): FormField => ({
   label,
   name,
   value,
   type,
   options,
 });
-export default function SharedAccounts({ workspace: w }) {
+export default function SharedAccounts({ workspace: w }: Pick<ScreenProps, "workspace">) {
   const service = useMemo(() => sharedAccountService(client), []);
-  const [accounts, setAccounts] = useState([]),
+  const [accounts, setAccounts] = useState<SharedAccountSummary[]>([]),
     [selected, setSelected] = useState(""),
-    [snapshot, setSnapshot] = useState(null),
-    [error, setError] = useState(""),
+    [snapshot, setSnapshot] = useState<SharedSnapshot | null>(null),
+    [error, setError] = useState<string | undefined>(""),
     [busy, setBusy] = useState(false),
-    [form, setForm] = useState(null),
-    [invite, setInvite] = useState(null),
+    [form, setForm] = useState<FormSpec | null>(null),
+    [invite, setInvite] = useState<CreatedInvite | null>(null),
     [limit, setLimit] = useState(50);
   const generation = useRef(0);
   const invalidate = useCallback(() => {
     generation.current++;
   }, []);
   const refresh = useCallback(
-    async (target = selected) => {
+    async (target: string = selected) => {
       if (w.demo || !w.user) return;
       const attempt = ++generation.current;
       try {
-        const list = await service.call("list");
+        const list = sharedResult<SharedAccountSummary[]>(
+          await service.call("list"),
+        );
         if (attempt !== generation.current) return;
         setAccounts(list);
         if (target && list.some((a) => a.id === target)) {
-          const data = await service.call("snapshot", { account_id: target });
+          const data = sharedResult<SharedSnapshot>(
+            await service.call("snapshot", { account_id: target }),
+          );
           if (attempt === generation.current) setSnapshot(data);
         } else setSnapshot(null);
         setError("");
       } catch (e) {
         if (attempt === generation.current) {
-          setError(e.message);
+          setError(errorMessage(e));
           setSnapshot(null);
         }
       }
@@ -75,7 +100,9 @@ export default function SharedAccounts({ workspace: w }) {
   useEffect(() => {
     if (!selected || w.demo || !w.user) return;
     const timer = globalThis.setInterval(() => refresh(), 30000);
-    const channel = client
+    // A signed-in user means the Supabase client exists.
+    const live = must(client, "Supabase client");
+    const channel = live
       .channel(`shared-${selected}`)
       .on(
         "postgres_changes",
@@ -90,7 +117,7 @@ export default function SharedAccounts({ workspace: w }) {
       .subscribe();
     return () => {
       globalThis.clearInterval(timer);
-      client.removeChannel(channel).catch(() => {});
+      live.removeChannel(channel).catch(() => {});
     };
   }, [selected, w.demo, w.user, refresh]);
   const account = snapshot?.account,
@@ -99,9 +126,11 @@ export default function SharedAccounts({ workspace: w }) {
       account &&
       !account.archived &&
       ["owner", "editor"].includes(account.role);
-  function open(kind, row = {}) {
-    let fields = [],
-      values = { account_id: selected },
+  // Forms that edit the account itself only open while an account is shown.
+  const shown = () => must(account, "shared account");
+  function open(kind: string, row: SharedRow = {}) {
+    let fields: FormField[] = [],
+      values: Record<string, unknown> = { account_id: selected },
       title = "",
       note = "",
       submitLabel = "Save";
@@ -149,7 +178,7 @@ export default function SharedAccounts({ workspace: w }) {
           "income",
         ]),
         field(
-          `Shared amount (${account.currency})`,
+          `Shared amount (${shown().currency})`,
           "amount",
           row.amount ?? "",
           "number",
@@ -178,7 +207,7 @@ export default function SharedAccounts({ workspace: w }) {
         "Only this shared account is updated. Other members with access will see this transaction.";
     } else if (kind === "rename") {
       title = "Rename shared account";
-      fields = [field("Shared account name", "name", account.name)];
+      fields = [field("Shared account name", "name", shown().name)];
     } else if (kind === "set_role") {
       title = `Change access: ${row.display_name}`;
       fields = [
@@ -191,7 +220,7 @@ export default function SharedAccounts({ workspace: w }) {
     } else {
       title =
         kind === "archive"
-          ? account.archived
+          ? shown().archived
             ? "Reopen shared account"
             : "Archive shared account"
           : kind === "leave"
@@ -204,7 +233,7 @@ export default function SharedAccounts({ workspace: w }) {
       values = {
         ...values,
         ...(kind === "archive"
-          ? { archived: !account.archived }
+          ? { archived: !shown().archived }
           : kind === "remove_member"
             ? { user_id: row.user_id }
             : kind === "delete_transaction"
@@ -234,7 +263,7 @@ export default function SharedAccounts({ workspace: w }) {
       },
     });
   }
-  async function save(action, values) {
+  async function save(action: string, values: Record<string, unknown>) {
     setBusy(true);
     try {
       const data = { ...values };
@@ -245,9 +274,9 @@ export default function SharedAccounts({ workspace: w }) {
           .filter(Boolean);
       if (action === "accept") data.token = String(data.token || "").trim();
       const result = await service.call(action, data);
-      if (action === "invite") setInvite(result);
+      if (action === "invite") setInvite(sharedResult<CreatedInvite>(result));
       const target = ["create", "accept"].includes(action)
-        ? result.id
+        ? sharedResult<{ id: string }>(result).id
         : action === "leave"
           ? ""
           : selected;
@@ -261,7 +290,9 @@ export default function SharedAccounts({ workspace: w }) {
   }
   async function download() {
     try {
-      const cell = (value) =>
+      // The export button only shows while an account and its snapshot are loaded.
+      const current = must(snapshot, "shared snapshot");
+      const cell = (value: unknown) =>
         '"' +
         String(value ?? "")
           .replace(/^[=+@\-\t\r]/, "'$&")
@@ -269,13 +300,13 @@ export default function SharedAccounts({ workspace: w }) {
         '"';
       const content = [
         "Date,Description,Type,Amount,Currency,Category,Payee,Labels,Note",
-        ...snapshot.transactions.map((t) =>
+        ...current.transactions.map((t) =>
           [
             t.date,
             t.name,
             t.type,
             t.amount,
-            account.currency,
+            shown().currency,
             t.category,
             t.payee,
             (t.labels || []).join(", "),
@@ -291,7 +322,7 @@ export default function SharedAccounts({ workspace: w }) {
         "financial-advisor-shared-account.csv",
       );
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e));
     }
   }
   if (w.demo || !w.user)
@@ -419,7 +450,7 @@ export default function SharedAccounts({ workspace: w }) {
                       "financial-advisor-invitation.txt",
                     );
                   } catch (e) {
-                    setError(e.message);
+                    setError(errorMessage(e));
                   }
                 }}
               >
@@ -435,7 +466,7 @@ export default function SharedAccounts({ workspace: w }) {
             <Muted>
               Latest records, up to 5,000. Exports contain these loaded records.
             </Muted>
-            {snapshot.transactions.slice(0, limit).map((t) => (
+            {must(snapshot, "shared snapshot").transactions.slice(0, limit).map((t) => (
               <View key={t.id} style={{ gap: 8, paddingVertical: 12 }}>
                 <Row style={{ justifyContent: "space-between" }}>
                   <Label style={{ flex: 1 }}>{t.name}</Label>
@@ -467,10 +498,10 @@ export default function SharedAccounts({ workspace: w }) {
                 ) : null}
               </View>
             ))}
-            {!snapshot.transactions.length ? (
+            {!must(snapshot, "shared snapshot").transactions.length ? (
               <Empty>No shared transactions yet.</Empty>
             ) : null}
-            {snapshot.transactions.length > limit ? (
+            {must(snapshot, "shared snapshot").transactions.length > limit ? (
               <Button secondary onPress={() => setLimit((n) => n + 50)}>
                 Show more shared transactions
               </Button>
@@ -478,12 +509,12 @@ export default function SharedAccounts({ workspace: w }) {
           </Card>
           <Card>
             <Heading>Members & access</Heading>
-            {snapshot.members.map((m) => (
+            {must(snapshot, "shared snapshot").members.map((m) => (
               <Row key={m.user_id} style={{ justifyContent: "space-between" }}>
                 <Label>{m.display_name}</Label>
                 <Muted>
                   {m.role}
-                  {m.user_id === w.user.id ? " · You" : ""}
+                  {m.user_id === must(w.user, "user").id ? " · You" : ""}
                 </Muted>
                 {owner && m.role !== "owner" ? (
                   <>
@@ -497,10 +528,10 @@ export default function SharedAccounts({ workspace: w }) {
                 ) : null}
               </Row>
             ))}
-            {owner && snapshot.invites.length ? (
+            {owner && must(snapshot, "shared snapshot").invites.length ? (
               <>
                 <Heading>Invitations</Heading>
-                {snapshot.invites.map((i) => (
+                {must(snapshot, "shared snapshot").invites.map((i) => (
                   <Row key={i.id}>
                     <Muted>
                       {i.role} · {i.redeemed ? "Used" : "Available"} ·{" "}
@@ -521,9 +552,9 @@ export default function SharedAccounts({ workspace: w }) {
           </Card>
           <Card>
             <Heading>Recent shared activity</Heading>
-            {snapshot.activity.map((event) => (
+            {must(snapshot, "shared snapshot").activity.map((event) => (
               <Muted key={event.id}>
-                {snapshot.members.find((m) => m.user_id === event.actor_id)
+                {must(snapshot, "shared snapshot").members.find((m) => m.user_id === event.actor_id)
                   ?.display_name || "Former member"}{" "}
                 · {event.action.replaceAll("_", " ")}{" "}
                 {event.detail ? `· ${event.detail}` : ""}

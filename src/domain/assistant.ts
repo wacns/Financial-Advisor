@@ -72,7 +72,7 @@ export function localAnswer(s: Workspace, question: string, month?: string) {
     return `You recorded ${money(summary.expenses)} in expenses for ${summary.month}. Net cash flow is ${money(summary.net)}. Use Insights to choose more accounts, dates and groupings.`;
   return `For ${summary.month}, recorded income is ${money(summary.income)}, expenses are ${money(summary.expenses)}, and net cash flow is ${money(summary.net)}. Ask about spending, income, balances, categories, subscriptions or installments.`;
 }
-export function captureAccount(s: Workspace, currency: string) {
+export function captureAccount(s: Workspace, currency: unknown) {
   return (
     s.accounts.find(
       (a) => a.id === s.settings.defaultAccountId && a.currency === currency,

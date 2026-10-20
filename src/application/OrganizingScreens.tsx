@@ -23,9 +23,14 @@ import {
   commitmentDue,
   installmentAmount,
 } from "../domain/commitments.ts";
-import { TransactionList } from "./FinancialScreens.jsx";
+import { TransactionList } from "./FinancialScreens.tsx";
+import type { ScreenProps } from "./screenTypes.ts";
+import type { CommitmentRef } from "../domain/commitments.ts";
+import type { CommitmentKind } from "../domain/types.ts";
+import { field, must } from "../guards.ts";
+import { errorMessage } from "../guards.ts";
 export { AccountChoices } from "./AccountChoices.tsx";
-export function Contacts({ workspace: w, open }) {
+export function Contacts({ workspace: w, open }: Pick<ScreenProps, "workspace" | "open">) {
   const [search, setSearch] = useState(""),
     [role, setRole] = useState("all"),
     [expanded, setExpanded] = useState("");
@@ -100,7 +105,7 @@ export function Contacts({ workspace: w, open }) {
     </Stack>
   );
 }
-export function Tags({ workspace: w, open }) {
+export function Tags({ workspace: w, open }: Pick<ScreenProps, "workspace" | "open">) {
   const [expanded, setExpanded] = useState("");
   const names = [
     ...new Set([
@@ -175,7 +180,12 @@ export function Tags({ workspace: w, open }) {
     </Stack>
   );
 }
-function Plans({ workspace: w, open, kind, month }) {
+function Plans({
+  workspace: w,
+  open,
+  kind,
+  month,
+}: Pick<ScreenProps, "workspace" | "open" | "month"> & { kind: CommitmentKind }) {
   const [status, setStatus] = useState("active"),
     [search, setSearch] = useState(""),
     [expanded, setExpanded] = useState(""),
@@ -185,14 +195,18 @@ function Plans({ workspace: w, open, kind, month }) {
     );
   const isInstallment = kind === "installment",
     key = isInstallment ? "installments" : "subscriptions",
-    plans = w.state[key];
+    // Each plan is paired with its kind, so the installment and subscription branches below can
+    // read their own fields. ref.kind is "installment" exactly when isInstallment is true.
+    plans: CommitmentRef[] = isInstallment
+      ? w.state.installments.map((plan) => ({ kind: "installment" as const, plan }))
+      : w.state.subscriptions.map((plan) => ({ kind: "subscription" as const, plan }));
   const rows = plans.filter(
-    (p) =>
+    ({ plan: p }) =>
       (status === "all" || p.status === status) &&
       `${p.name} ${p.provider}`.toLowerCase().includes(search.toLowerCase()),
   );
-  const active = plans.filter((p) => p.status === "active");
-  const total = active.reduce((n, p) => {
+  const active = plans.filter(({ plan: p }) => p.status === "active");
+  const total = active.reduce((n, { plan: p }) => {
     const stats = commitmentStats(w.state, p, kind);
     return (
       n +
@@ -203,11 +217,11 @@ function Plans({ workspace: w, open, kind, month }) {
       )
     );
   }, 0);
-  async function action(name, id) {
+  async function action(name: string, id: string) {
     try {
       await w.save(name, {}, id);
     } catch (e) {
-      w.setMessage(e.message);
+      w.setMessage(errorMessage(e));
     }
   }
   const calendar = commitmentCalendar(w.state, calendarMonth).filter(
@@ -289,8 +303,11 @@ function Plans({ workspace: w, open, kind, month }) {
           <Muted>Projected occurrences never change balances.</Muted>
         </Card>
       ) : (
-        rows.map((p) => {
+        rows.map((ref) => {
+          const p = ref.plan;
           const stats = commitmentStats(w.state, p, kind);
+          // Only subscriptions set a trial end; read it the way p.trialEnds did for any plan.
+          const trialEnds = field(p, "trialEnds");
           return (
             <Card key={p.id} testID={`${kind}-card`}>
               <Row style={{ justifyContent: "space-between" }}>
@@ -301,16 +318,20 @@ function Plans({ workspace: w, open, kind, month }) {
                   <Heading>{p.name}</Heading>
                 </View>
                 <Label style={{ fontSize: 25, fontWeight: "600" }}>
-                  {money(isInstallment ? p.total : p.amount, p.currency)}
+                  {money(
+                    ref.kind === "installment" ? ref.plan.total : ref.plan.amount,
+                    p.currency,
+                  )}
                 </Label>
               </Row>
-              {isInstallment ? (
+              {ref.kind === "installment" ? (
                 <>
-                  <Progress value={(p.payments.length / p.count) * 100} />
+                  <Progress value={(p.payments.length / ref.plan.count) * 100} />
                   <Muted>
-                    {p.payments.length} / {p.count} paid ·{" "}
+                    {p.payments.length} / {ref.plan.count} paid ·{" "}
                     {money(stats.paid, p.currency)} paid ·{" "}
-                    {money(stats.remaining, p.currency)} remaining
+                    {/* Installment stats always carry a remaining amount. */}
+                    {money(must(stats.remaining, "remaining amount"), p.currency)} remaining
                   </Muted>
                 </>
               ) : (
@@ -324,10 +345,10 @@ function Plans({ workspace: w, open, kind, month }) {
                   ? "All installments paid"
                   : `${stats.overdue ? "Overdue" : "Next payment"}: ${formatDate(stats.due, { day: "2-digit", month: "short", year: "numeric" })} · ${money(stats.amount, p.currency)}`}
               </Label>
-              {p.trialEnds ? (
+              {trialEnds ? (
                 <Muted>
                   Trial ends:{" "}
-                  {formatDate(p.trialEnds, {
+                  {formatDate(String(trialEnds), {
                     day: "2-digit",
                     month: "short",
                     year: "numeric",
@@ -424,10 +445,10 @@ function Plans({ workspace: w, open, kind, month }) {
                   ) : (
                     <Empty>No payments yet.</Empty>
                   )}
-                  {isInstallment ? (
+                  {ref.kind === "installment" ? (
                     <>
                       <Heading>Upcoming installments</Heading>
-                      {Array.from({ length: p.count }, (_, index) => index)
+                      {Array.from({ length: ref.plan.count }, (_, index) => index)
                         .filter(
                           (index) =>
                             !p.payments.some(
@@ -444,11 +465,11 @@ function Plans({ workspace: w, open, kind, month }) {
                               #{index + 1} · {commitmentDue(p, index)}
                             </Label>
                             <Label>
-                              {money(installmentAmount(p, index), p.currency)}
+                              {money(installmentAmount(ref.plan, index), p.currency)}
                             </Label>
                           </Row>
                         ))}
-                      {p.count - stats.index > 12 ? (
+                      {ref.plan.count - stats.index > 12 ? (
                         <Muted>Showing the next 12 payments.</Muted>
                       ) : null}
                     </>
@@ -470,7 +491,7 @@ function Plans({ workspace: w, open, kind, month }) {
     </Stack>
   );
 }
-export const Subscriptions = (props) => (
+export const Subscriptions = (props: ScreenProps) => (
   <Plans {...props} kind="subscription" />
 );
-export const Installments = (props) => <Plans {...props} kind="installment" />;
+export const Installments = (props: ScreenProps) => <Plans {...props} kind="installment" />;

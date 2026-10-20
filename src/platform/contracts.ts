@@ -107,7 +107,10 @@ type ChildrenOnly = { children?: import("react").ReactNode };
 export interface SafeArea {
   SafeAreaProvider: import("react").ComponentType<ChildrenOnly>;
   SafeAreaView: import("react").ComponentType<
-    ChildrenOnly & { style?: import("react-native").StyleProp<import("react-native").ViewStyle> }
+    ChildrenOnly & {
+      style?: import("react-native").StyleProp<import("react-native").ViewStyle>;
+      edges?: readonly ("top" | "bottom" | "left" | "right")[];
+    }
   >;
   useSafeAreaInsets(): { top: number; bottom: number; left: number; right: number };
 }

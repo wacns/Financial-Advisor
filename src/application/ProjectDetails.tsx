@@ -19,19 +19,28 @@ import { formatMoney as money } from "../locale.ts";
 import { convert } from "../domain/model.ts";
 import { downloadAttachment } from "../platform/files";
 import { exportFile } from "../platform/runtime";
-export default function ProjectDetails({ workspace: w, project: p, open }) {
+import { errorMessage } from "../guards.ts";
+import type { ScreenProps } from "./screenTypes.ts";
+import type { FormContext } from "./enhancementForms.ts";
+import type { Project } from "../domain/types.ts";
+export default function ProjectDetails({
+  workspace: w,
+  project: p,
+  open,
+}: Pick<ScreenProps, "workspace" | "open"> & { project: Project }) {
   const [expanded, setExpanded] = useState(false),
     totals = projectTotals(w.state, p);
   const context = { projectId: p.id },
-    edit = (kind, id, extra = {}) => open(kind, id, { ...context, ...extra });
-  async function command(kind, id) {
+    edit = (kind: string, id?: string | null, extra: FormContext = {}) =>
+      open(kind, id, { ...context, ...extra });
+  async function command(kind: string, id: string) {
     try {
       await w.save(kind, context, id);
     } catch (e) {
-      w.setMessage(e.message);
+      w.setMessage(errorMessage(e));
     }
   }
-  const remove = (collection, id, extra = {}) =>
+  const remove = (collection: string, id: string | undefined, extra: FormContext = {}) =>
     edit("projectDeleteItem", id, { collection, ...extra });
   async function download() {
     try {
@@ -51,7 +60,7 @@ export default function ProjectDetails({ workspace: w, project: p, open }) {
         `${p.name}-project.json`,
       );
     } catch (e) {
-      w.setMessage(e.message);
+      w.setMessage(errorMessage(e));
     }
   }
   return (
@@ -284,7 +293,7 @@ export default function ProjectDetails({ workspace: w, project: p, open }) {
                   secondary
                   onPress={() =>
                     downloadAttachment(d.file, d.fileName || d.name).catch(
-                      (e) => w.setMessage(e.message),
+                      (e) => w.setMessage(errorMessage(e)),
                     )
                   }
                 >

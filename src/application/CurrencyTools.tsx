@@ -6,19 +6,22 @@ import { Button, Card, Heading, Label, Muted, Row, Stack } from "./ui.tsx";
 import { currencyCodes, convert } from "../domain/model.ts";
 import { exchangeSnapshot } from "../domain/currency-tools.ts";
 import { formatMoney as money, bahrainDate } from "../locale.ts";
-export default function CurrencyTools({ workspace: w, open }) {
+import { must } from "../guards.ts";
+import type { ScreenProps } from "./screenTypes.ts";
+import { errorMessage } from "../guards.ts";
+export default function CurrencyTools({ workspace: w, open }: Pick<ScreenProps, "workspace" | "open">) {
   const [amount, setAmount] = useState("1"),
     [from, setFrom] = useState("BHD"),
     [to, setTo] = useState("USD"),
-    [preview, setPreview] = useState(null),
+    [preview, setPreview] = useState<ReturnType<typeof exchangeSnapshot> | null>(null),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
+    [error, setError] = useState<string | undefined>("");
   const [area, setArea] = useState("Manama, Bahrain");
   let result, conversionError;
   try {
     result = convert(w.state, amount, from, to);
   } catch (e) {
-    conversionError = e.message;
+    conversionError = errorMessage(e);
   }
   async function fetchRates() {
     setBusy(true);
@@ -29,7 +32,7 @@ export default function CurrencyTools({ workspace: w, open }) {
       );
       setPreview(exchangeSnapshot(response));
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -38,10 +41,11 @@ export default function CurrencyTools({ workspace: w, open }) {
     setBusy(true);
     setError("");
     try {
-      await w.save("refreshRates", preview);
+      // The apply button only shows while quotes are under review.
+      await w.save("refreshRates", must(preview, "exchange quotes"));
       setPreview(null);
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -95,7 +99,8 @@ export default function CurrencyTools({ workspace: w, open }) {
           <Muted>{conversionError}</Muted>
         ) : (
           <Label style={{ fontSize: 30, fontWeight: "600" }}>
-            {money(result, to)}
+            {/* Number() turns a missing result into NaN, as formatting undefined did. */}
+            {money(Number(result), to)}
           </Label>
         )}
         <Muted>
@@ -146,7 +151,7 @@ export default function CurrencyTools({ workspace: w, open }) {
               <Row key={code} style={{ justifyContent: "space-between" }}>
                 <Label>{code}</Label>
                 <Muted>
-                  1 {code} = {preview.rates[code].toFixed(6)} BHD
+                  1 {code} = {must(preview.rates[code], "quote").toFixed(6)} BHD
                 </Muted>
               </Row>
             ))}
@@ -173,7 +178,8 @@ export default function CurrencyTools({ workspace: w, open }) {
           .reverse()
           .map((row) => (
             <Muted key={`${row.asOf}-${row.savedAt}`}>
-              {row.asOf} · {row.source} · 1 USD = {row.rates.USD.toFixed(6)} BHD
+              {row.asOf} · {row.source} · 1 USD ={" "}
+              {must(row.rates.USD, "USD quote").toFixed(6)} BHD
             </Muted>
           ))}
         {!w.state.settings.rateHistory?.length ? (
