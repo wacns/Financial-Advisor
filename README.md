@@ -4,7 +4,7 @@ An English/Arabic personal finance app for Bahrain, built with React, React Nati
 
 **Live app:** [financial-advisor-partner.vercel.app](https://financial-advisor-partner.vercel.app/)
 
-**Installers:** [Public desktop downloads](https://github.com/wacns/financial-advisor-releases/releases/tag/v1.6.1) — Windows EXE, macOS DMG/ZIP and Linux AppImage/DEB. [Public mobile downloads](https://github.com/wacns/financial-advisor-releases/releases/tag/v1.6.0) contain the Android APK/AAB and unsigned iOS IPA. Preview signing and update requirements are explained in the [release guide](docs/RELEASES.md).
+**Installers:** [Unified public release](https://github.com/wacns/financial-advisor-releases/releases/tag/v1.6.1) — Android APK/AAB, unsigned iOS IPA, Windows EXE, macOS DMG/ZIP and Linux AppImage/DEB. Desktop builds are v1.6.1; mobile builds retain their actual v1.6.0 filenames. Preview signing and update requirements are explained in the [release guide](docs/RELEASES.md).
 
 ## Quick start
 
