@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["es2023"],
+    "types": ["node"]
+  },
+  "include": [
+    "tests",
+    "scripts",
+    "*.config.*",
+    "native-entry.*",
+    "plugins",
+    "supabase/functions/_shared/push.*",
+    "supabase/functions/financial-assistant/handler.*",
+    "supabase/functions/financial-assistant/funding.*"
+  ]
+}
