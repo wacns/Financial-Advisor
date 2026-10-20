@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assistantHandler } from "../../supabase/functions/financial-assistant/handler.js";
-import { fundingRequest } from "../../supabase/functions/financial-assistant/funding.js";
-import { json } from "../../supabase/functions/_shared/push.js";
+import { assistantHandler } from "../../supabase/functions/financial-assistant/handler.ts";
+import { fundingRequest } from "../../supabase/functions/financial-assistant/funding.ts";
+import { json } from "../../supabase/functions/_shared/push.ts";
 import { startChatGPTSignIn, NATIVE_AUTH_REDIRECT } from "../../src/auth.ts";
 
 const id = "60000000-0000-4000-8000-000000000001";

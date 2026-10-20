@@ -1,5 +1,5 @@
 import {adminClient} from '../_shared/client.ts';
-import {json, secretMatches, bahrainTime, hasReminderDue, createFcmSender, deliver} from '../_shared/push.js';
+import {json, secretMatches, bahrainTime, hasReminderDue, createFcmSender, deliver} from '../_shared/push.ts';
 
 Deno.serve(async (request: Request) => {
   if (request.method !== 'POST') return json(request,{error:'Method not allowed.'},405);

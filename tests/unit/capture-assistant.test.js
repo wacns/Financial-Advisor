@@ -18,8 +18,8 @@ import {
   assistantHandler,
   validateAssistantInput,
   validateAssistantOutput,
-} from "../../supabase/functions/financial-assistant/handler.js";
-import { json, hasDuePayment } from "../../supabase/functions/_shared/push.js";
+} from "../../supabase/functions/financial-assistant/handler.ts";
+import { json, hasDuePayment } from "../../supabase/functions/_shared/push.ts";
 import { commitmentDue } from "../../src/domain/commitments.ts";
 import { calendarEntries } from "../../src/reports.ts";
 import { basicBudgetStats } from "../../src/domain/reports.ts";

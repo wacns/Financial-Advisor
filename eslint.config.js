@@ -65,8 +65,6 @@ export default [
   },
   {
     files: ["**/*.{ts,tsx,mts,cts}"],
-    // Task 10 brings the Supabase functions under the escape-hatch rules.
-    ignores: ["supabase/functions/**"],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: { ecmaFeatures: { jsx: true } },

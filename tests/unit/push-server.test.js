@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {validateDevice,hasDuePayment,hasReminderDue,bahrainTime,secretMatches,createFcmSender} from '../../supabase/functions/_shared/push.js';
+import {validateDevice,hasDuePayment,hasReminderDue,bahrainTime,secretMatches,createFcmSender} from '../../supabase/functions/_shared/push.ts';
 
 test('registration rejects invalid IDs, platforms and oversized tokens and discards owner fields',()=>{
   const valid={installationId:crypto.randomUUID(),action:'register',platform:'ios',token:'a'.repeat(100),userId:'forged'};

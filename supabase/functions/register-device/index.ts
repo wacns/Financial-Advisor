@@ -1,5 +1,5 @@
 import {adminClient, authenticatedUser} from '../_shared/client.ts';
-import {json, body, validateDevice} from '../_shared/push.js';
+import {json, body, validateDevice} from '../_shared/push.ts';
 
 Deno.serve(async (request: Request) => {
   if (request.method === 'OPTIONS') return json(request, {});
