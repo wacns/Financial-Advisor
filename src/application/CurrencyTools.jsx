@@ -117,6 +117,16 @@ export default function CurrencyTools({ workspace: w, open }) {
           <Button secondary onPress={() => open("rates")}>
             Edit manual rates
           </Button>
+          <Button
+            secondary
+            onPress={() =>
+              Linking.openURL("https://www.exchangerate-api.com").catch(() =>
+                setError("Unable to open the rate provider website."),
+              )
+            }
+          >
+            Rates by ExchangeRate-API
+          </Button>
         </Row>
         <Muted>
           Quotes from ExchangeRate-API (open.er-api.com) are reference rates,

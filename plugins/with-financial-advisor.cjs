@@ -19,11 +19,11 @@ module.exports = function withFinancialAdvisor(config) {
   }]);
   config = withXcodeProject(config, config => {
     const projectName = IOSConfig.XcodeUtils.getProjectName(config.modRequest.projectRoot);
-    IOSConfig.XcodeUtils.addBuildSourceFileToGroup({filepath:"FinancialAdvisorIntents.swift",groupName:projectName,project:config.modResults});
+    IOSConfig.XcodeUtils.addBuildSourceFileToGroup({filepath:`${projectName}/FinancialAdvisorIntents.swift`,groupName:projectName,project:config.modResults});
     // node-xcode's pbxFile includes an unset explicitFileType; omit it so
     // Xcode uses the sourcecode.swift type instead of a literal "undefined".
     for (const file of Object.values(config.modResults.pbxFileReferenceSection()))
-      if (typeof file === "object" && String(file.path).replaceAll('"','') === "FinancialAdvisorIntents.swift") delete file.explicitFileType;
+      if (typeof file === "object" && String(file.path).replaceAll('"','').endsWith("/FinancialAdvisorIntents.swift")) delete file.explicitFileType;
     return config;
   });
   config = withAppBuildGradle(config, (config) => {

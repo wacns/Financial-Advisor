@@ -665,6 +665,10 @@ jobs:
           echo "Prebuilding $BUNDLE_ID into '$IOS_PATH'..."
 
           ${JS_EXEC:-npx} expo prebuild --platform ios --no-install
+          if [ -f scripts/verify-ios-inputs.mjs ]; then node scripts/verify-ios-inputs.mjs "$IOS_PATH"; fi
+          if [ -f native/ios/FinancialAdvisorIntents.swift ]; then
+            xcrun swiftc -typecheck -sdk "$(xcrun --sdk iphoneos --show-sdk-path)" -target arm64-apple-ios16.0 native/ios/FinancialAdvisorIntents.swift
+          fi
           if [ -z "$(find "$IOS_PATH" -maxdepth 1 -name '*.xcodeproj' -print -quit 2>/dev/null)" ]; then
             echo "::error::'expo prebuild' produced no Xcode project in '$IOS_PATH'. If the project generates it elsewhere, set ios.path in builder.json."
             exit 1

@@ -258,8 +258,8 @@ export default function MoneyTools({
         <Card>
           <Heading>Review captured entries</Heading>
           <Muted>
-            Ambiguous amounts and dates are left for you to enter. A captured
-            message cannot be saved twice; review Transactions before
+            Ambiguous amounts and dates are left for you to enter. Text-message
+            drafts are checked for duplicate saves. Review Transactions before
             intentionally recording a separate payment.
           </Muted>
           {drafts.map(({ draft, warnings, source }, i) => (
