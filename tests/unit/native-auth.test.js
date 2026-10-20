@@ -5,7 +5,7 @@ import {
   startGoogleSignIn,
   finishNativeAuth,
   NATIVE_AUTH_REDIRECT,
-} from "../../src/auth.js";
+} from "../../src/auth.ts";
 
 test("native Google sign-in opens the system browser with PKCE and the app callback", async () => {
   let options, opened;

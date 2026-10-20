@@ -5,14 +5,16 @@ import { categorySpend, summary } from "./finance.ts";
 import { toFils, isCivilDate } from "./locale.ts";
 import { nextOccurrence, upcomingPayments } from "./planning.ts";
 import { commitmentCalendar } from "./domain/commitments.ts";
+import type { CalendarRow } from "./domain/commitments.ts";
+import type { Recurring, Transaction, Workspace } from "./domain/types.ts";
 
-export function shiftMonth(month, offset) {
+export function shiftMonth(month: string, offset: number): string {
   const date = new Date(`${month}-01T12:00:00Z`);
   date.setUTCMonth(date.getUTCMonth() + offset);
   return date.toISOString().slice(0, 7);
 }
 
-export function accountReport(state, accountId = "all") {
+export function accountReport(state: Workspace, accountId = "all"): Workspace {
   return {
     ...state,
     transactions: state.transactions.filter(
@@ -24,8 +26,8 @@ export function accountReport(state, accountId = "all") {
   };
 }
 
-export function spendingBreakdown(state, month) {
-  const totals = new Map();
+export function spendingBreakdown(state: Workspace, month: string) {
+  const totals = new Map<string, number>();
   for (const t of state.transactions) {
     const { from, until } = cycleRange(state, month);
     if (!(t.type === "expense") || t.date < from || t.date >= until) continue;
@@ -39,14 +41,14 @@ export function spendingBreakdown(state, month) {
     .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name));
 }
 
-export function monthlyTrend(state, month) {
+export function monthlyTrend(state: Workspace, month: string) {
   return Array.from({ length: 6 }, (_, i) => {
     const period = shiftMonth(month, i - 5);
     return { month: period, ...summary(state, period) };
   });
 }
 
-export function budgetHealth(state, month) {
+export function budgetHealth(state: Workspace, month: string) {
   let limit = 0,
     spent = 0,
     exceeded = 0;
@@ -67,18 +69,36 @@ export function budgetHealth(state, month) {
 
 // Project repeated schedules without advancing them or creating ledger records.
 // Jump near the requested month first, even if a schedule is years overdue.
-export function calendarEntries(state, month) {
+export type CalendarEntry =
+  | (CalendarRow & { type: "expense"; actionable: boolean })
+  | (Recurring & {
+      date: string;
+      kind: "recurring";
+      status: "due" | "projected";
+      actionable: boolean;
+    })
+  | (Extract<ReturnType<typeof upcomingPayments>[number], { kind: "debt" }> & {
+      date: string;
+      status: "due";
+      actionable: true;
+    })
+  | (Transaction & {
+      kind: "transaction";
+      status: "recorded";
+      actionable: false;
+    });
+export function calendarEntries(state: Workspace, month: string): CalendarEntry[] {
   if (!isCivilDate(`${month}-01`)) throw Error("Choose a valid month.");
   const start = `${month}-01`;
   const end = `${shiftMonth(month, 1)}-01`;
-  const entries = commitmentCalendar(state, month).map(row => ({...row, type:"expense", actionable:row.status === "due"}));
+  const entries: CalendarEntry[] = commitmentCalendar(state, month).map(row => ({...row, type:"expense", actionable:row.status === "due"}));
   for (const r of state.recurring || []) {
     if (r.paused || r.nextDue >= end) continue;
     let date = r.nextDue;
     if (date < start) {
       if (r.frequency === "weekly" || r.frequency === "daily") {
         const jump = Math.ceil(
-          (new Date(`${start}T12:00:00Z`) - new Date(`${date}T12:00:00Z`)) /
+          (new Date(`${start}T12:00:00Z`).getTime() - new Date(`${date}T12:00:00Z`).getTime()) /
             (r.frequency === "daily" ? 86400000 : 604800000),
         );
         const target = new Date(`${date}T12:00:00Z`);
@@ -113,7 +133,8 @@ export function calendarEntries(state, month) {
     }
   }
   // Do not assume the interest/principal split of future loan repayments.
-  for (const r of upcomingPayments(state).filter((r) => r.kind === "debt")) {
+  for (const r of upcomingPayments(state)) {
+    if (r.kind !== "debt") continue;
     if (r.nextDue >= start && r.nextDue < end)
       entries.push({ ...r, date: r.nextDue, status: "due", actionable: true });
   }

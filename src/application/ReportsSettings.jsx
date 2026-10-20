@@ -15,7 +15,7 @@ import {
 } from "./ui.jsx";
 import Field from "./Field";
 import TrendChart from "./TrendChart.jsx";
-import { accountReport, shiftMonth, spendingBreakdown } from "../reports.js";
+import { accountReport, shiftMonth, spendingBreakdown } from "../reports.ts";
 import { summary, monthTransactions } from "../finance.ts";
 import { formatMoney as money, formatDate, toFils } from "../locale.ts";
 import { exportFile, native } from "../platform/runtime";

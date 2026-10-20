@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {blankState, addTransfer, addTransaction, summary, totalBalance} from '../../src/finance.ts';
-import {accountReport, spendingBreakdown, monthlyTrend, budgetHealth, calendarEntries, shiftMonth} from '../../src/reports.js';
+import {accountReport, spendingBreakdown, monthlyTrend, budgetHealth, calendarEntries, shiftMonth} from '../../src/reports.ts';
 import {recordRecurring} from '../../src/planning.ts';
 
 const workspace = () => ({...blankState(), accounts:[{id:'a', balance:100}, {id:'b', balance:50}]});

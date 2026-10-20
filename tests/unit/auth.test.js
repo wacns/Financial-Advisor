@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {authRedirectUrl,startGoogleSignIn,finishAuthRedirect} from '../../src/auth.js';
+import {authRedirectUrl,startGoogleSignIn,finishAuthRedirect} from '../../src/auth.ts';
 const location=new URL('https://northline.example/app/?next=https://external.example/#/login');
 test('Google uses a fixed same-origin callback and account selection',async()=>{
  let options;

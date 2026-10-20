@@ -8,8 +8,8 @@ import * as runtime from "../platform/runtime";
 import { blankState, demoState } from "../finance.ts";
 import { normalizePlanning } from "../planning.ts";
 import { DEMO_STORAGE_KEY, requireBahrainWorkspace } from "../locale.ts";
-import { createNotifications } from "../notifications.js";
-import { finishNativeAuth } from "../auth.js";
+import { createNotifications } from "../notifications.ts";
+import { finishNativeAuth } from "../auth.ts";
 import { applyEntry, togglePlan } from "./workspace.js";
 import { aiOptions } from "./assistantClient.js";
 export function useWorkspace() {

@@ -13,7 +13,7 @@ import {
   startChatGPTSignIn,
   finishNativeAuth,
   NATIVE_AUTH_REDIRECT,
-} from "../auth.js";
+} from "../auth.ts";
 export const native = true;
 export const platform = Platform.OS;
 export const clientConfig = {

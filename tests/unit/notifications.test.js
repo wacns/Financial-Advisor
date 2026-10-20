@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createNotifications, notificationRoute} from '../../src/notifications.js';
+import {createNotifications, notificationRoute} from '../../src/notifications.ts';
 
 function setup({permission='granted',native=true}={}) {
   const saved=new Map(), events={}, calls=[];let user={id:'user-a'},token='first-token',deleted=0;

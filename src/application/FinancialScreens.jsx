@@ -23,7 +23,7 @@ import {
 } from "../finance.ts";
 import { formatMoney as money, formatDate, toFils } from "../locale.ts";
 import { upcomingPayments, dueStatus } from "../planning.ts";
-import { budgetHealth, shiftMonth } from "../reports.js";
+import { budgetHealth, shiftMonth } from "../reports.ts";
 import TrendChart from "./TrendChart.jsx";
 import { transactionCSV } from "./workspace.js";
 import { exportFile } from "../platform/runtime";

@@ -373,14 +373,14 @@ export function upcomingPayments(state: Workspace) {
     ...upcomingCommitments(state),
     ...state.recurring
       .filter((r) => !r.paused)
-      .map((r) => ({ ...r, kind: "recurring" })),
+      .map((r) => ({ ...r, kind: "recurring" as const })),
     ...state.debts
       .filter((d) => d.balance > 0)
       .map((d) => ({
         ...d,
         amount: d.installment,
         type: d.direction === "lent" ? "income" : "expense",
-        kind: "debt",
+        kind: "debt" as const,
       })),
   ].sort((a, b) => a.nextDue.localeCompare(b.nextDue));
 }

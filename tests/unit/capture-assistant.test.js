@@ -21,7 +21,7 @@ import {
 } from "../../supabase/functions/financial-assistant/handler.js";
 import { json, hasDuePayment } from "../../supabase/functions/_shared/push.js";
 import { commitmentDue } from "../../src/domain/commitments.ts";
-import { calendarEntries } from "../../src/reports.js";
+import { calendarEntries } from "../../src/reports.ts";
 import { basicBudgetStats } from "../../src/domain/reports.ts";
 const today = "2026-10-20";
 test("budget daily allowance rounds down a fils and closes at the period boundary", () => {

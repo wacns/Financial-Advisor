@@ -1,4 +1,4 @@
-import { finishAuthRedirect, startGoogleSignIn, startChatGPTSignIn, NATIVE_AUTH_REDIRECT } from "../auth.js";
+import { finishAuthRedirect, startGoogleSignIn, startChatGPTSignIn, NATIVE_AUTH_REDIRECT } from "../auth.ts";
 const desktop = globalThis.financialAdvisorDesktop;
 import publicClient from "../public-client.json";
 export const native = false;

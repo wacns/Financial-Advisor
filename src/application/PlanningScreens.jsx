@@ -20,7 +20,7 @@ import {
   toFils,
 } from "../locale.ts";
 import { dueStatus, projectSpend } from "../planning.ts";
-import { calendarEntries, shiftMonth } from "../reports.js";
+import { calendarEntries, shiftMonth } from "../reports.ts";
 import { TransactionList } from "./FinancialScreens.jsx";
 import ProjectDetails from "./ProjectDetails.jsx";
 const fullDate = (date) =>

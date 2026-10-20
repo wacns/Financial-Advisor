@@ -2,7 +2,7 @@ import { useAppearance } from "./appearance.jsx";
 import React from "react";
 import { View } from "react-native";
 import { Card, Heading, Label, Muted, Row } from "./ui.jsx";
-import { monthlyTrend } from "../reports.js";
+import { monthlyTrend } from "../reports.ts";
 import { formatDate, formatMoney as money } from "../locale.ts";
 export default function TrendChart({ state, month }) {
   const { colors } = useAppearance();
