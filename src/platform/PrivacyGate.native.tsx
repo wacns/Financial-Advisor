@@ -2,7 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, View, Text, Pressable, StyleSheet } from "react-native";
 import * as LocalAuthentication from "expo-local-authentication";
 import { usePreventScreenCapture } from "expo-screen-capture";
-export default function PrivacyGate({ children }) {
+import type { ReactNode } from "react";
+import type { PrivacyGateModule, Satisfies } from "./contracts.ts";
+import type * as Self from "./PrivacyGate.native.tsx";
+export default function PrivacyGate({ children }: { children?: ReactNode }) {
   usePreventScreenCapture("financial-advisor");
   const [unlocked, setUnlocked] = useState(false),
     [covered, setCovered] = useState(true),
@@ -105,9 +108,16 @@ export default function PrivacyGate({ children }) {
     </View>
   );
 }
+// React Native 0.88 no longer has StyleSheet.absoluteFillObject, so this spread adds nothing and
+// the cover is not stretched over the screen (see typescript-findings.md). It is read the same way
+// here so behavior is unchanged until that is fixed on purpose.
+const legacyFill = (() => {
+  const value: unknown = Reflect.get(StyleSheet, "absoluteFillObject");
+  return typeof value === "object" && value !== null ? value : undefined;
+})();
 const styles = StyleSheet.create({
   cover: {
-    ...StyleSheet.absoluteFillObject,
+    ...legacyFill,
     backgroundColor: "#193b35",
     justifyContent: "center",
     alignItems: "center",
@@ -124,3 +134,5 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
 });
+// Compile-time check that this module matches the privacy gate contract.
+export type PrivacyGateCheck = Satisfies<PrivacyGateModule, typeof Self>;

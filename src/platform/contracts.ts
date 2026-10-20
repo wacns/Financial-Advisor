@@ -35,10 +35,10 @@ export interface DesktopBridge {
   openAuth(url: string): Promise<unknown>;
   consumeAuthLink(): Promise<string | null | undefined>;
   onAuthLink(callback: (url: string) => void): () => void;
-  updateStatus(): Promise<unknown>;
-  checkUpdate(): Promise<unknown>;
+  updateStatus(): Promise<UpdateStatus>;
+  checkUpdate(): Promise<UpdateStatus>;
   installUpdate(): Promise<unknown>;
-  onUpdate(callback: (status: unknown) => void): () => void;
+  onUpdate(callback: (status: UpdateStatus) => void): () => void;
 }
 
 declare global {
@@ -86,4 +86,32 @@ export interface FinancialAdvisorNative {
   stopSpeech(): Promise<void>;
   updateWidgets(json: string): Promise<void>;
   requestWidget(): Promise<boolean>;
+}
+
+export interface Speech {
+  speechSupported(): boolean;
+  recognizeSpeech(language?: string): Promise<string>;
+  stopSpeech(): Promise<void>;
+}
+
+/** What the update panel shows about app updates on this platform. */
+export type UpdateStatus = { state: string; message: string; version?: string };
+export interface Updates {
+  updateStatus(): Promise<UpdateStatus>;
+  checkUpdate(): Promise<UpdateStatus>;
+  installUpdate(): Promise<void>;
+  subscribeUpdates(callback: (status: UpdateStatus) => void): () => void;
+}
+
+type ChildrenOnly = { children?: import("react").ReactNode };
+export interface SafeArea {
+  SafeAreaProvider: import("react").ComponentType<ChildrenOnly>;
+  SafeAreaView: import("react").ComponentType<
+    ChildrenOnly & { style?: import("react-native").StyleProp<import("react-native").ViewStyle> }
+  >;
+  useSafeAreaInsets(): { top: number; bottom: number; left: number; right: number };
+}
+
+export interface PrivacyGateModule {
+  default: import("react").ComponentType<ChildrenOnly>;
 }

@@ -1,4 +1,4 @@
-import { requestJSON } from "../platform/http.js";
+import { requestJSON } from "../platform/http.ts";
 import React, { useState } from "react";
 import { Linking } from "react-native";
 import Field from "./Field";

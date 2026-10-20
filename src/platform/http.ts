@@ -1,4 +1,8 @@
-export async function requestJSON(url, options = {}, timeout = 15000) {
+export async function requestJSON(
+  url: string,
+  options: RequestInit = {},
+  timeout = 15000,
+): Promise<unknown> {
   const controller = new globalThis.AbortController();
   const timer = globalThis.setTimeout(() => controller.abort(), timeout);
   try {
@@ -10,7 +14,8 @@ export async function requestJSON(url, options = {}, timeout = 15000) {
       throw Error(
         `The service is unavailable (HTTP ${response.status}). Try again later.`,
       );
-    return await response.json();
+    const body: unknown = await response.json();
+    return body;
   } finally {
     globalThis.clearTimeout(timer);
   }
