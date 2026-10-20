@@ -13,11 +13,13 @@ const gh = (...args) => execFileSync("gh", args, { encoding: "utf8", stdio: ["pi
 const api = endpoint => JSON.parse(gh("api", endpoint));
 const repo = api(`repos/${repository}`);
 if (repo.private) throw Error("Downloads repository must be public");
-const tag = `v${version}`;
+const releaseVersion = process.env.PUBLIC_RELEASE_VERSION || JSON.parse(fs.readFileSync(new URL("../desktop/package.json", import.meta.url), "utf8")).version;
+if (!/^\d+\.\d+\.\d+$/.test(releaseVersion)) throw Error("Invalid public release version");
+const tag = `v${releaseVersion}`;
 let release = api(`repos/${repository}/releases?per_page=100`).find(r => r.tag_name === tag);
 const note = "## Mobile installers\n\nAPK and AAB are Android preview builds unless the filename says release. The iOS IPA is unsigned and requires signing before installation. Mobile version: " + version + ". Verify these files with MOBILE-SHA256SUMS.txt. Application source remains private.";
 if (!release) {
-  gh("release", "create", tag, "--repo", repository, "--target", repo.default_branch, "--draft", "--prerelease", "--title", `FinancialAdvisor ${version} — preview`, "--notes", note);
+  gh("release", "create", tag, "--repo", repository, "--target", repo.default_branch, "--draft", "--prerelease", "--title", `FinancialAdvisor ${releaseVersion} — preview`, "--notes", note);
   release = api(`repos/${repository}/releases?per_page=100`).find(r => r.tag_name === tag);
   if (!release) throw Error("Created mobile release draft was not returned by GitHub");
 }

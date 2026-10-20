@@ -165,5 +165,6 @@ jobs:
     uses: ./.github/workflows/publish-mobile.yml
     with:
       version: ${{ needs.verify.outputs.version }}
+      release_version: ${{ needs.verify.outputs.version }}
     secrets:
       RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}

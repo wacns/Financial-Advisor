@@ -7,10 +7,17 @@ on:
         required: true
         default: '1.6.0'
         type: string
+      release_version:
+        description: Public release version (blank uses current desktop version)
+        required: false
+        type: string
   workflow_call:
     inputs:
       version:
         required: true
+        type: string
+      release_version:
+        required: false
         type: string
     secrets:
       RELEASES_TOKEN:
@@ -39,4 +46,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           MOBILE_RELEASE_VERSION: ${{ inputs.version }}
+          PUBLIC_RELEASE_VERSION: ${{ inputs.release_version }}
         run: node scripts/publish-mobile.mjs mobile-installers

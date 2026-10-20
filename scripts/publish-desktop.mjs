@@ -25,7 +25,7 @@ if (existing && !existing.draft) {
     if (assets.find(a => a.name === name)?.digest !== digest) throw Error(`Published release differs: ${name}. Increment the desktop version.`);
   }
 } else {
-  if (!existing) gh("release", "create", tag, "--repo", repository, "--target", repo.default_branch, "--draft", "--prerelease", "--title", `FinancialAdvisor desktop ${version} — preview`, "--notes", "Desktop preview installers with a public automatic-update feed. Windows and macOS builds are unsigned; macOS updates require manual installation. AppImage and Windows NSIS support automatic updates. DEB updates use the newer package. Source code remains private. Verify downloads with SHA256SUMS.txt.");
+  if (!existing) gh("release", "create", tag, "--repo", repository, "--target", repo.default_branch, "--draft", "--prerelease", "--title", `FinancialAdvisor ${version} — preview`, "--notes", "Desktop preview installers with a public automatic-update feed. Windows and macOS builds are unsigned; macOS updates require manual installation. AppImage and Windows NSIS support automatic updates. DEB updates use the newer package. Source code remains private. Verify downloads with SHA256SUMS.txt.");
   gh("release", "upload", tag, "--repo", repository, "--clobber", ...assetNames.map(n => path.join(directory, n)));
   gh("release", "edit", tag, "--repo", repository, "--draft=false", "--prerelease", "--latest=false");
 }
