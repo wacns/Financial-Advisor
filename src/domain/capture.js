@@ -116,7 +116,7 @@ export function parseTransactionText(
             : /rent|internet|electric|water|subscription|bill|إيجار/i.test(
                   payment,
                 )
-              ? "Bills & utilities"
+              ? "Utilities"
               : "Shopping";
     return {
       draft: {

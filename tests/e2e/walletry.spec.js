@@ -199,6 +199,9 @@ test("subscription manual payment updates its calendar and history without posti
     .getByLabel("Subscription name", { exact: true })
     .fill("Quarterly storage");
   await p.getByLabel("Payment amount", { exact: true }).fill("6");
+  await expect(p.getByLabel("Category", { exact: true })).toHaveValue(
+    "Utilities",
+  );
   await p.getByLabel("Repeat every (frequency units)").fill("3");
   await p.getByLabel("First due date").fill("2026-01-31");
   await save(p);

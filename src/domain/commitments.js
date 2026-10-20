@@ -129,7 +129,7 @@ export function commitmentCommand(input, kind, data, id, uuid) {
         .slice(0, 80),
       accountId: account.id,
       currency: account.currency,
-      category: data.category || "Bills & utilities",
+      category: data.category || "Utilities",
       payeeId: data.payeeId || "",
       firstDue: data.firstDue,
       frequency: data.frequency,

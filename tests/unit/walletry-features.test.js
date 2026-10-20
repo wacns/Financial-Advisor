@@ -10,6 +10,7 @@ import {
 } from "../../src/domain/commitments.js";
 import { filterTransactions } from "../../src/domain/organizing.js";
 import { backupText, parseBackup } from "../../src/domain/imports.js";
+import { entryForm } from "../../src/application/forms.js";
 const setup = () => {
   let i = 0;
   const apply = (s, kind, data = {}, id) =>
@@ -23,6 +24,40 @@ const setup = () => {
   });
   return { state, apply, account: state.accounts[0].id };
 };
+test("plan pickers display their saved category, including imported and renamed categories", () => {
+  const { state, apply, account } = setup();
+  const initial = entryForm("subscription", undefined, state);
+  assert.equal(initial.values.category, "Utilities");
+  assert(
+    initial.fields
+      .find((f) => f.name === "category")
+      .options.includes(initial.values.category),
+  );
+  let s = apply(state, "subscription", {
+    name: "Legacy plan",
+    accountId: account,
+    category: "Imported billing",
+    amount: 1,
+    firstDue: "2026-10-01",
+    frequency: "monthly",
+    interval: 1,
+  });
+  const edit = entryForm("subscription", s.subscriptions[0].id, s);
+  assert.equal(edit.values.category, "Imported billing");
+  assert(
+    edit.fields
+      .find((f) => f.name === "category")
+      .options.includes(edit.values.category),
+  );
+  s = apply(s, "category", { name: "Power", parent: "" }, "Utilities");
+  const afterRename = entryForm("installment", undefined, s);
+  assert.equal(afterRename.values.category, "Other");
+  assert(
+    afterRename.fields
+      .find((f) => f.name === "category")
+      .options.includes(afterRename.values.category),
+  );
+});
 test("old workspaces normalize new feature collections without posting records", () => {
   const old = blankState(),
     s = normalizeWorkspace(old);

@@ -128,7 +128,12 @@ export function enhancementForm(kind, id, s, context = {}) {
         accounts,
         s.settings.defaultAccountId || accounts[0].value,
       ),
-      select("Category", "category", categoryPaths(s), "Bills & utilities"),
+      select(
+        "Category",
+        "category",
+        categoryPaths(s),
+        categoryPaths(s).includes("Utilities") ? "Utilities" : "Other",
+      ),
       select(
         "Payee (optional)",
         "payeeId",

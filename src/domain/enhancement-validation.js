@@ -142,6 +142,12 @@ export function validateEnhancements(s) {
       )
         fail("Commitment account and currency must match.");
       contact(p);
+      if (
+        typeof p.category !== "string" ||
+        !p.category.trim() ||
+        p.category.length > 160
+      )
+        fail("Choose a valid plan category.");
       date(p.firstDue);
       if (
         !["daily", "weekly", "monthly", "yearly"].includes(p.frequency) ||

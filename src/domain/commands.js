@@ -25,7 +25,16 @@ export const categoryPaths = (s) =>
     ...new Set([
       ...categories,
       ...(s.settings?.categories || []),
-      ...s.transactions.map((t) => t.category),
+      ...[
+        ...(s.transactions || []),
+        ...(s.recurring || []),
+        ...(s.budgets || []),
+        ...(s.subscriptions || []),
+        ...(s.installments || []),
+        ...(s.templates || []).map((t) => t.record),
+      ]
+        .map((t) => t.category)
+        .filter((value) => typeof value === "string" && value.trim()),
     ]),
   ].filter((c) => !(s.settings?.hiddenCategories || []).includes(c));
 const list = (value) =>

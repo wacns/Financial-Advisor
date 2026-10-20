@@ -73,7 +73,6 @@ The workflow passes actionlint v1.7.12 and its Builder defaults match the Expo b
 On 2026-10-18, [GitHub Actions run 39127356895](https://github.com/wacns/Financial-Advisor/actions/runs/39127356895) **succeeded** for commit `9077abd500a196dc966548e63ec559a17709847d`. It installed `FinancialAdvisorNative`, built the device target with `xcodebuild` in Release with `CODE_SIGNING_ALLOWED=NO`, compiled the embedded Hermes `main.jsbundle`, and packaged `FinancialAdvisor.app` as `fa-ios-9077abd.ipa`. Download artifact **ipa** from the run (seven-day retention; artifact ID `12136965854`). This establishes the native iOS compile/package, not installation, OCR results, authentication or push behavior on a device.
 
 The workspace's download connection returned HTTP 403 at GitHub's artifact storage host. The successful run, packaging log and artifact metadata were inspected; the IPA contents were not independently inspected locally. Download through GitHub Actions in your browser. No Apple signing credentials were supplied, and no TestFlight/App Store upload occurred.
-# Native source verification
+## Native source verification
 
 For this app's managed Expo build, prebuild now verifies that every app-owned Xcode source input exists and that the Shortcuts file appears exactly once in the app's Sources phase. It also type-checks the standalone App Intents source against the runner's iPhoneOS SDK before the full build. These local guards catch path and Swift API errors before compiling the complete React Native application.
-
