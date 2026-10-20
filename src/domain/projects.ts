@@ -1,8 +1,11 @@
 import { amount, text, date, convert, clone } from "./model.ts";
 import { toFils, bahrainDate } from "../locale.ts";
-import { saveTransaction } from "./ledger.js";
-const sum = (rows) => rows.reduce((n, value) => n + toFils(value), 0) / 1000;
-export function projectTotals(s, p) {
+import { saveTransaction } from "./ledger.ts";
+import { checkedLater, isOneOf, must } from "../guards.ts";
+import type { Contract, Milestone, Project, Workspace } from "./types.ts";
+const sum = (rows: unknown[]): number =>
+  rows.reduce<number>((n, value) => n + toFils(value), 0) / 1000;
+export function projectTotals(s: Workspace, p: Project) {
   const payments = s.transactions.filter(
     (t) => t.projectId === p.id && t.type === "expense",
   );
@@ -36,7 +39,11 @@ export function projectTotals(s, p) {
     allocated: sum(p.categories.map((c) => c.budget)),
   };
 }
-export function milestonePaid(s, p, m) {
+export function milestonePaid(
+  s: Workspace,
+  p: Pick<Project, "id" | "currency">,
+  m: Pick<Milestone, "id">,
+): number {
   return sum(
     s.transactions
       .filter(
@@ -57,7 +64,12 @@ export function milestonePaid(s, p, m) {
       ),
   );
 }
-export function milestoneStatus(s, p, m, today = bahrainDate()) {
+export function milestoneStatus(
+  s: Workspace,
+  p: Project,
+  m: Milestone,
+  today: string = bahrainDate(),
+) {
   if (toFils(milestonePaid(s, p, m)) >= toFils(m.amount)) return "Paid";
   return m.due < today
     ? "Overdue"
@@ -67,7 +79,7 @@ export function milestoneStatus(s, p, m, today = bahrainDate()) {
         ? "Completed · unpaid"
         : "Upcoming";
 }
-export function validateProjects(s) {
+export function validateProjects(s: Workspace): Workspace {
   for (const p of s.projects) {
     if (
       p.reserve < 0 ||
@@ -82,8 +94,10 @@ export function validateProjects(s) {
         throw Error("Choose a project category.");
       const value = sum([c.original, ...c.variations.map((v) => v.amount)]);
       if (value <= 0) throw Error("Contract value must remain positive.");
-      const category = p.categories.find(
-        (category) => category.id === c.categoryId,
+      // The check above guarantees the category exists.
+      const category = must(
+        p.categories.find((category) => category.id === c.categoryId),
+        "project category",
       );
       const allocated = sum(
         p.contracts
@@ -134,13 +148,37 @@ export function validateProjects(s) {
   }
   return s;
 }
+/** Fields the project forms submit; each command kind reads its own subset. */
+export type ProjectInput = {
+  projectId?: string;
+  reserve?: unknown;
+  name?: string;
+  budget?: unknown;
+  vendor?: unknown;
+  categoryId?: string;
+  original?: unknown;
+  startDate?: unknown;
+  endDate?: unknown;
+  notes?: unknown;
+  contractId?: string;
+  amount?: unknown;
+  date?: unknown;
+  due?: unknown;
+  kind?: string;
+  milestoneId?: string;
+  accountId?: string;
+  transactionId?: string;
+  file?: string;
+  fileName?: unknown;
+  collection?: string;
+};
 export function projectCommand(
-  s,
-  kind,
-  data,
-  id,
-  uuid = () => crypto.randomUUID(),
-) {
+  s: Workspace,
+  kind: string,
+  data: ProjectInput,
+  id?: string,
+  uuid: () => string = () => crypto.randomUUID(),
+): Workspace | null {
   const p = s.projects.find((p) => p.id === data.projectId);
   if (
     ![
@@ -179,7 +217,7 @@ export function projectCommand(
     p.categories.push(c);
   } else if (kind === "projectContract") {
     const old = p.contracts.find((c) => c.id === id),
-      c = {
+      c = checkedLater<Contract>({
         id: id || uuid(),
         name: text(data.name),
         vendor: String(data.vendor || ""),
@@ -189,7 +227,7 @@ export function projectCommand(
         endDate: date(data.endDate, true),
         notes: String(data.notes || "").slice(0, 1000),
         variations: old?.variations || [],
-      };
+      });
     p.contracts = p.contracts.filter((row) => row.id !== c.id);
     p.contracts.push(c);
   } else if (kind === "projectVariation") {
@@ -205,7 +243,7 @@ export function projectCommand(
     });
   } else if (kind === "projectMilestone") {
     const old = p.milestones.find((m) => m.id === id),
-      m = {
+      m = checkedLater<Milestone>({
         id: id || uuid(),
         name: text(data.name),
         contractId: data.contractId,
@@ -213,7 +251,7 @@ export function projectCommand(
         due: date(data.due),
         kind: data.kind || old?.kind || "Milestone",
         complete: old?.complete || false,
-      };
+      });
     if (
       (p.targetDate && m.due > p.targetDate) ||
       (p.startDate && m.due < p.startDate)
@@ -285,18 +323,19 @@ export function projectCommand(
     delete t.contractId;
     delete t.milestoneId;
   } else if (kind === "projectDocument") {
+    const file = data.file || "";
     if (
       !/^data:(application\/pdf|text\/plain|image\/(png|jpeg|webp));base64,/.test(
-        data.file || "",
+        file,
       )
     )
       throw Error("Choose a PDF, text document or receipt image.");
-    if (data.file.length > 1500000)
+    if (file.length > 1500000)
       throw Error("Document must be at most 1 MB.");
     p.documents.push({
       id: uuid(),
       name: text(data.name),
-      file: data.file,
+      file,
       fileName: String(data.fileName || data.name).replace(/[\\/]/g, "_"),
       contractId: data.contractId || "",
       transactionId: data.transactionId || "",
@@ -305,13 +344,10 @@ export function projectCommand(
   } else if (kind === "projectDeleteItem") {
     const collection = data.collection;
     if (
-      ![
-        "categories",
-        "contracts",
-        "milestones",
-        "documents",
-        "variations",
-      ].includes(collection)
+      !isOneOf(
+        ["categories", "contracts", "milestones", "documents", "variations"],
+        collection,
+      )
     )
       throw Error("Choose an item.");
     if (
@@ -328,7 +364,13 @@ export function projectCommand(
       const c = p.contracts.find((c) => c.id === data.contractId);
       if (!c) throw Error("Contract not found.");
       c.variations = c.variations.filter((v) => v.id !== id);
-    } else p[collection] = p[collection].filter((r) => r.id !== id);
+    } else if (collection === "categories")
+      p.categories = p.categories.filter((r) => r.id !== id);
+    else if (collection === "contracts")
+      p.contracts = p.contracts.filter((r) => r.id !== id);
+    else if (collection === "milestones")
+      p.milestones = p.milestones.filter((r) => r.id !== id);
+    else p.documents = p.documents.filter((r) => r.id !== id);
   } else return null;
   return validateProjects(s);
 }

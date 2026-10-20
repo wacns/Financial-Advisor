@@ -19,7 +19,7 @@ import {
   bahrainDate,
   toFils,
 } from "../locale.ts";
-import { dueStatus, projectSpend } from "../planning.js";
+import { dueStatus, projectSpend } from "../planning.ts";
 import { calendarEntries, shiftMonth } from "../reports.js";
 import { TransactionList } from "./FinancialScreens.jsx";
 import ProjectDetails from "./ProjectDetails.jsx";

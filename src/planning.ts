@@ -1,15 +1,25 @@
 import { normalizeWorkspace, convert } from "./domain/model.ts";
-import { addTransfer } from "./finance.js";
-import { addTransaction, categories } from "./finance.js";
+import { addTransfer } from "./finance.ts";
+import { addTransaction, categories } from "./finance.ts";
 import { bahrainDate, toFils, isCivilDate } from "./locale.ts";
+import { checkedLater, isOneOf, must } from "./guards.ts";
+import type {
+  Debt,
+  Frequency,
+  Project,
+  Recurring,
+  Workspace,
+} from "./domain/types.ts";
 
-export const frequencies = {
+export const frequencies: Record<Frequency, string> = {
   daily: "Daily",
   weekly: "Weekly",
   monthly: "Monthly",
   yearly: "Yearly",
 };
-export function normalizePlanning(state) {
+export function normalizePlanning<
+  T extends { recurring?: unknown[]; debts?: unknown[]; projects?: unknown[] },
+>(state: T) {
   return {
     ...state,
     recurring: state.recurring ?? [],
@@ -17,35 +27,36 @@ export function normalizePlanning(state) {
     projects: state.projects ?? [],
   };
 }
-function positive(value, label) {
+function positive(value: unknown, label: string): number {
   const fils = toFils(value);
   if (fils <= 0) throw Error(`${label} must be greater than zero.`);
   return fils / 1000;
 }
-function name(value) {
+function name(value: unknown): string {
   const text = String(value || "").trim();
   if (!text || text.length > 80)
     throw Error("Enter a name between 1 and 80 characters.");
   return text;
 }
-function validDate(value) {
+function validDate(value: unknown): string {
   if (!isCivilDate(value)) throw Error("Choose a valid date.");
   return value;
 }
-function accountExists(state, id) {
+function accountExists(state: Pick<Workspace, "accounts">, id: unknown): void {
   if (!state.accounts.some((a) => a.id === id))
     throw Error("Choose an existing account.");
 }
 export function nextOccurrence(
-  date,
-  frequency,
-  anchorDay = Number(date.slice(8)),
-  anchorMonth = Number(date.slice(5, 7)),
-) {
+  date: string,
+  frequency: string,
+  anchorDay: number = Number(date.slice(8)),
+  anchorMonth: number = Number(date.slice(5, 7)),
+): string {
   validDate(date);
   if (!Object.hasOwn(frequencies, frequency))
     throw Error("Choose a repeat frequency.");
-  const [year, month, day] = date.split("-").map(Number);
+  // A valid civil date always has three parts; NaN defaults match the old undefined arithmetic.
+  const [year = NaN, month = NaN, day = NaN] = date.split("-").map(Number);
   if (frequency === "weekly" || frequency === "daily") {
     const next = new Date(`${date}T12:00:00Z`);
     next.setUTCDate(day + (frequency === "daily" ? 1 : 7));
@@ -65,17 +76,24 @@ export function nextOccurrence(
   target.setUTCDate(Math.min(anchorDay, days));
   return target.toISOString().slice(0, 10);
 }
-export function dueStatus(date, today = bahrainDate()) {
+export function dueStatus(date: string, today: string = bahrainDate()) {
   if (date < today) return "Overdue";
   if (date === today) return "Due today";
   return "Upcoming";
 }
-export function saveRecurring(state, data, id = crypto.randomUUID()) {
+/** Values the schedule form or a command submits; checked here and by validateWorkspace. */
+export type RecurringInput = { [K in keyof Recurring]?: unknown };
+export function saveRecurring(
+  state: Workspace,
+  data: RecurringInput,
+  id: string = crypto.randomUUID(),
+): Recurring {
   const old = state.recurring.find((r) => r.id === id);
   accountExists(state, data.accountId);
-  if (!["income", "expense", "transfer"].includes(data.type))
+  if (!isOneOf(["income", "expense", "transfer"], data.type))
     throw Error("Choose income or expense.");
-  if (!Object.hasOwn(frequencies, data.frequency))
+  // String() is the same key conversion Object.hasOwn applies itself.
+  if (!Object.hasOwn(frequencies, String(data.frequency)))
     throw Error("Choose a repeat frequency.");
   if (!String(data.category || "").trim()) throw Error("Choose a category.");
   if (
@@ -86,7 +104,7 @@ export function saveRecurring(state, data, id = crypto.randomUUID()) {
     throw Error("Choose different accounts for the recurring transfer.");
   const nextDue = validDate(data.nextDue);
   const changedDate = old?.nextDue !== nextDue;
-  const record = {
+  const record = checkedLater<Recurring>({
     id,
     name: name(data.name),
     type: data.type,
@@ -95,8 +113,13 @@ export function saveRecurring(state, data, id = crypto.randomUUID()) {
     accountId: data.accountId,
     frequency: data.frequency,
     nextDue,
-    anchorDay: changedDate ? Number(nextDue.slice(8)) : old.anchorDay,
-    anchorMonth: changedDate ? Number(nextDue.slice(5, 7)) : old.anchorMonth,
+    // An unchanged date means an existing schedule.
+    anchorDay: changedDate
+      ? Number(nextDue.slice(8))
+      : must(old, "schedule").anchorDay,
+    anchorMonth: changedDate
+      ? Number(nextDue.slice(5, 7))
+      : must(old, "schedule").anchorMonth,
     paused: old?.paused ?? false,
     toAccountId: data.toAccountId || "",
     received: data.received
@@ -105,7 +128,7 @@ export function saveRecurring(state, data, id = crypto.randomUUID()) {
     isSalary: data.isSalary === true || data.isSalary === "yes",
     currency:
       state.accounts.find((a) => a.id === data.accountId)?.currency || "BHD",
-  };
+  });
   if (old?.loanInstallment) {
     if (
       record.type !== "transfer" ||
@@ -124,12 +147,21 @@ export function saveRecurring(state, data, id = crypto.randomUUID()) {
   else state.recurring[index] = record;
   return record;
 }
+/** Values the "record payment" form submits for a schedule occurrence. */
+export type OccurrenceInput = {
+  scheduledFor?: string;
+  accountId?: string;
+  amount?: unknown;
+  received?: unknown;
+  salaryMonth?: string;
+  date?: unknown;
+};
 export function recordRecurring(
-  state,
-  id,
-  data,
-  transactionId = crypto.randomUUID(),
-) {
+  state: Workspace,
+  id: string,
+  data: OccurrenceInput,
+  transactionId: string = crypto.randomUUID(),
+): void {
   const schedule = state.recurring.find((r) => r.id === id);
   if (!schedule || schedule.paused)
     throw Error("This schedule is no longer active.");
@@ -169,7 +201,7 @@ export function recordRecurring(
       : data.received || schedule.received,
     salaryMonth:
       data.salaryMonth ||
-      (schedule.isSalary ? data.scheduledFor.slice(0, 7) : undefined),
+      (schedule.isSalary ? schedule.nextDue.slice(0, 7) : undefined),
     id: transactionId,
     name: schedule.name,
     type: schedule.type,
@@ -181,11 +213,11 @@ export function recordRecurring(
     scheduledFor: schedule.nextDue,
   });
   if (schedule.type === "transfer")
-    Object.assign(state.transactions[0], {
+    Object.assign(must(state.transactions[0], "recorded transfer"), {
       recurringId: id,
       scheduledFor: schedule.nextDue,
     });
-  if (schedule.loanInstallment && schedule.interest > 0)
+  if (schedule.loanInstallment && (schedule.interest ?? 0) > 0)
     addTransaction(state, {
       id: `${transactionId}-interest`,
       name: `Interest · ${schedule.name}`,
@@ -199,9 +231,15 @@ export function recordRecurring(
     });
   schedule.nextDue = next;
 }
-export function addDebt(state, data, id = crypto.randomUUID()) {
+/** Values the debt form submits. */
+export type DebtInput = { [K in keyof Debt]?: unknown };
+export function addDebt(
+  state: Workspace,
+  data: DebtInput,
+  id: string = crypto.randomUUID(),
+): Debt {
   const balance = positive(data.balance, "Outstanding principal");
-  const record = {
+  const record = checkedLater<Debt>({
     id,
     name: name(data.name),
     direction: data.direction === "lent" ? "lent" : "borrowed",
@@ -213,17 +251,26 @@ export function addDebt(state, data, id = crypto.randomUUID()) {
     originalBalance: balance,
     installment: positive(data.installment, "Planned payment"),
     nextDue: validDate(data.nextDue),
-    anchorDay: Number(data.nextDue.slice(8)),
-  };
+    // nextDue was validated on the line above, so it is a date string here.
+    anchorDay: Number(String(data.nextDue).slice(8)),
+  });
   state.debts.push(record);
   return record;
 }
+/** Values the repayment form submits. */
+export type RepaymentInput = {
+  scheduledFor?: string;
+  accountId?: string;
+  amount?: unknown;
+  principal?: unknown;
+  date?: unknown;
+};
 export function recordRepayment(
-  state,
-  id,
-  data,
-  transactionId = crypto.randomUUID(),
-) {
+  state: Workspace,
+  id: string,
+  data: RepaymentInput,
+  transactionId: string = crypto.randomUUID(),
+): void {
   const debt = state.debts.find((d) => d.id === id);
   if (!debt || debt.balance <= 0)
     throw Error("This debt has already been repaid.");
@@ -263,9 +310,22 @@ export function recordRepayment(
   debt.balance = (toFils(debt.balance) - toFils(principal)) / 1000;
   debt.nextDue = next;
 }
-export function saveProject(state, data, id = crypto.randomUUID()) {
+/** Values the project form submits. */
+export type ProjectFormInput = {
+  name?: unknown;
+  budget?: unknown;
+  targetDate?: unknown;
+  notes?: unknown;
+  currency?: unknown;
+  startDate?: unknown;
+};
+export function saveProject(
+  state: Workspace,
+  data: ProjectFormInput,
+  id: string = crypto.randomUUID(),
+): Project {
   const old = state.projects.find((p) => p.id === id);
-  const record = {
+  const record = checkedLater<Project>({
     id,
     name: name(data.name),
     budget: positive(data.budget, "Budget"),
@@ -281,13 +341,13 @@ export function saveProject(state, data, id = crypto.randomUUID()) {
     milestones: old?.milestones || [],
     documents: old?.documents || [],
     startDate: data.startDate || old?.startDate || bahrainDate(),
-  };
+  });
   const index = state.projects.findIndex((p) => p.id === id);
   if (index < 0) state.projects.push(record);
   else state.projects[index] = record;
   return record;
 }
-export function projectSpend(state, id) {
+export function projectSpend(state: Workspace, id: string): number {
   return (
     state.transactions
       .filter((t) => t.projectId === id && t.type === "expense")
@@ -308,7 +368,7 @@ export function projectSpend(state, id) {
       ) / 1000
   );
 }
-export function upcomingPayments(state) {
+export function upcomingPayments(state: Workspace) {
   return [
     ...upcomingCommitments(state),
     ...state.recurring
@@ -324,4 +384,4 @@ export function upcomingPayments(state) {
       })),
   ].sort((a, b) => a.nextDue.localeCompare(b.nextDue));
 }
-import { upcomingCommitments } from "./domain/commitments.js";
+import { upcomingCommitments } from "./domain/commitments.ts";

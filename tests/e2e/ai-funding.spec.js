@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { blankState } from "../../src/finance.js";
+import { blankState } from "../../src/finance.ts";
 
 async function signedIn(page) {
   const user = {

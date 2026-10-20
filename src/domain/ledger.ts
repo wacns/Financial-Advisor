@@ -1,4 +1,5 @@
 import { toFils } from "../locale.ts";
+import { checkedLater } from "../guards.ts";
 import {
   clone,
   amount,
@@ -7,7 +8,25 @@ import {
   text,
   date,
 } from "./model.ts";
-export function applyEffect(s, t, direction = 1) {
+import type { Transaction, Workspace } from "./types.ts";
+/**
+ * Values an entry form, import or command submits for a transaction. Only known keys are
+ * allowed; the values are unchecked (amounts may still be text) until saveTransaction and
+ * validateWorkspace check them.
+ */
+export type TransactionInput = { [K in keyof Transaction]?: unknown };
+type Effect = {
+  accountId?: string;
+  toAccountId?: string;
+  type?: string;
+  amount: unknown;
+  received?: unknown;
+};
+export function applyEffect(
+  s: Pick<Workspace, "accounts">,
+  t: Effect,
+  direction = 1,
+): void {
   const account = s.accounts.find((a) => a.id === t.accountId);
   if (!account) throw Error("Choose an existing account.");
   const delta =
@@ -28,7 +47,12 @@ export function applyEffect(s, t, direction = 1) {
     );
   }
 }
-export function saveTransaction(s, data, id, uuid = () => crypto.randomUUID()) {
+export function saveTransaction(
+  s: Workspace,
+  data: TransactionInput,
+  id?: string,
+  uuid: () => string = () => crypto.randomUUID(),
+): Transaction {
   const old = s.transactions.find((t) => t.id === id);
   if (
     data.captureFingerprint &&
@@ -43,7 +67,7 @@ export function saveTransaction(s, data, id, uuid = () => crypto.randomUUID()) {
     throw Error(
       "Linked repayments cannot be edited. Delete the repayment and record its replacement to preserve principal.",
     );
-  const t = {
+  const t = checkedLater<Transaction>({
     ...old,
     ...data,
     id: id || uuid(),
@@ -58,7 +82,7 @@ export function saveTransaction(s, data, id, uuid = () => crypto.randomUUID()) {
           .map((x) => x.trim())
           .filter(Boolean),
     note: String(data.note || "").slice(0, 500),
-  };
+  });
   if (data.rewardPoints === "" || (data.rewardPoints == null && !old)) {
     const rate = s.accounts.find((a) => a.id === t.accountId)?.rewardRate || 0;
     t.rewardPoints =
@@ -67,7 +91,8 @@ export function saveTransaction(s, data, id, uuid = () => crypto.randomUUID()) {
     t.rewardPoints = amount(data.rewardPoints);
   if (!["income", "expense", "transfer", "adjustment"].includes(t.type))
     throw Error("Choose a valid transaction type.");
-  if (t.labels.length > 5 || t.labels.some((x) => x.length > 40))
+  const labels = t.labels ?? [];
+  if (labels.length > 5 || labels.some((x) => x.length > 40))
     throw Error("Use up to five labels of 40 characters each.");
   if (t.time && !/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(t.time))
     throw Error("Time must be HH:mm or HH:mm:ss.");
@@ -90,7 +115,7 @@ export function saveTransaction(s, data, id, uuid = () => crypto.randomUUID()) {
   s.transactions.unshift(t);
   return t;
 }
-export function deleteTransaction(s, id) {
+export function deleteTransaction(s: Workspace, id: string | undefined): void {
   const t = s.transactions.find((t) => t.id === id);
   if (!t) throw Error("Transaction not found.");
   applyEffect(s, t, -1);
@@ -108,22 +133,22 @@ export function deleteTransaction(s, id) {
   // The occurrence remains consumed even when deleted. Deleting history must
   // never silently reopen and duplicate an already-advanced bill/salary cycle.
 }
-export function copyTransaction(t) {
-  const copy = clone(t);
-  for (const key of [
-    "id",
-    "recurringId",
-    "scheduledFor",
-    "debtId",
-    "principal",
-    "contractId",
-    "milestoneId",
-    "commitmentId",
-    "commitmentType",
-    "commitmentOccurrence",
-    "pinned",
-    "captureFingerprint",
-  ])
-    delete copy[key];
+export function copyTransaction(t: Transaction) {
+  // Same keys dropped as before; the rest keep their order.
+  const {
+    id: _id,
+    recurringId: _recurringId,
+    scheduledFor: _scheduledFor,
+    debtId: _debtId,
+    principal: _principal,
+    contractId: _contractId,
+    milestoneId: _milestoneId,
+    commitmentId: _commitmentId,
+    commitmentType: _commitmentType,
+    commitmentOccurrence: _commitmentOccurrence,
+    pinned: _pinned,
+    captureFingerprint: _captureFingerprint,
+    ...copy
+  } = clone(t);
   return copy;
 }

@@ -127,7 +127,7 @@ export function normalizeWorkspace(input: unknown): Workspace {
 }
 export function convert(
   s: { settings?: Partial<Settings> },
-  amount: number | string,
+  amount: unknown,
   from: string = "BHD",
   to: string = s.settings?.base || "BHD",
 ): number {
@@ -140,7 +140,7 @@ export function convert(
 }
 export const accountCurrency = (
   s: Pick<Workspace, "accounts">,
-  id: string | undefined,
+  id: unknown,
 ): CurrencyCode => s.accounts.find((a) => a.id === id)?.currency || "BHD";
 export const recordValue = (
   s: Pick<Workspace, "accounts" | "settings">,

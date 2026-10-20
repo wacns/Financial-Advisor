@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { blankState, addTransaction } from "../../src/finance.js";
+import { blankState, addTransaction } from "../../src/finance.ts";
 import { isCivilDate } from "../../src/locale.ts";
 import {
   normalizePlanning,
@@ -12,7 +12,7 @@ import {
   saveProject,
   projectSpend,
   upcomingPayments,
-} from "../../src/planning.js";
+} from "../../src/planning.ts";
 function workspace() {
   const state = blankState();
   state.accounts = [{ id: "current", name: "Current", balance: 1000 }];

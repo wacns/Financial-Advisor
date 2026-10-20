@@ -1,17 +1,25 @@
 import { bahrainDate, isCivilDate, toFils } from "../locale.ts";
-import { currencyCodes } from "./model.ts";
-function fingerprint(value) {
+import { currencyCodes, isCurrencyCode } from "./model.ts";
+import { isOneOf, must } from "../guards.ts";
+function fingerprint(value: string): string {
   // An idempotency hint, not a security credential. Four independent lanes
   // avoid the birthday collisions of a single 32-bit hash in large imports.
   const hashes = [2166136261, 2246822507, 3266489909, 668265263];
   for (const char of value)
     for (let i = 0; i < hashes.length; i++)
-      hashes[i] = Math.imul(hashes[i] ^ char.codePointAt(0), 16777619 + i * 2);
+      // `?? 0` never applies here, and bitwise operators already read undefined as 0.
+      hashes[i] = Math.imul(
+        (hashes[i] ?? 0) ^ (char.codePointAt(0) ?? 0),
+        16777619 + i * 2,
+      );
   return `text-${hashes.map((h) => (h >>> 0).toString(16).padStart(8, "0")).join("")}`;
 }
 export function parseTransactionText(
-  input,
-  { today = bahrainDate(), defaultCurrency = "BHD" } = {},
+  input: unknown,
+  {
+    today = bahrainDate(),
+    defaultCurrency = "BHD",
+  }: { today?: string; defaultCurrency?: string } = {},
 ) {
   if (typeof input !== "string" || input.length > 20000)
     throw Error("Use at most 20,000 characters.");
@@ -26,9 +34,10 @@ export function parseTransactionText(
       .replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 1776))
       .replaceAll("٫", ".")
       .replaceAll("٬", ",");
-    const payment = text.split(
+    // split always returns at least one part.
+    const [payment = ""] = text.split(
       /\b(?:(?:available|remaining|current)\s+)?balance\b|الرصيد/i,
-    )[0];
+    );
     const codes = currencyCodes.join("|"),
       pattern = new RegExp(
         `\\b(${codes})\\s*([0-9]+(?:,[0-9]{3})*(?:\\.[0-9]{1,3})?)(?![0-9.])|([0-9]+(?:,[0-9]{3})*(?:\\.[0-9]{1,3})?)\\s*(${codes}|dinars?|riyals?|درهم|دينار|دنانير)(?![\\p{L}\\p{N}])`,
@@ -37,17 +46,18 @@ export function parseTransactionText(
     const matches = [...payment.matchAll(pattern)],
       amounts = matches.map((match) => ({
         currency: (match[1] || match[4] || defaultCurrency).toUpperCase(),
-        value: (match[2] || match[3]).replaceAll(",", ""),
+        // One side of the alternation always matched.
+        value: must(match[2] || match[3], "amount").replaceAll(",", ""),
       }));
     for (const match of amounts)
-      if (!currencyCodes.includes(match.currency))
+      if (!isCurrencyCode(match.currency))
         match.currency = defaultCurrency;
     let amount = "",
       currency = amounts[0]?.currency || defaultCurrency;
-    const warnings = [];
+    const warnings: string[] = [];
     if (amounts.length === 1) {
       try {
-        const fils = toFils(amounts[0].value);
+        const fils = toFils(must(amounts[0], "amount").value);
         if (fils > 0) amount = String(fils / 1000);
       } catch {
         warnings.push("Check the amount precision.");
@@ -134,8 +144,8 @@ export function parseTransactionText(
     };
   });
 }
-export function captureURL(url) {
-  let value;
+export function captureURL(url: string) {
+  let value: URL;
   try {
     value = new URL(url);
   } catch {
@@ -155,8 +165,8 @@ export function captureURL(url) {
     type = value.searchParams.get("type") || "expense";
   if (
     !amount ||
-    !currencyCodes.includes(currency) ||
-    !["expense", "income"].includes(type)
+    !isCurrencyCode(currency) ||
+    !isOneOf(["expense", "income"], type)
   )
     return null;
   try {

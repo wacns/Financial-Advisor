@@ -5,7 +5,7 @@ import * as ImagePicker from "expo-image-picker";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import * as Linking from "expo-linking";
-import { captureURL } from "../domain/capture.js";
+import { captureURL } from "../domain/capture.ts";
 export async function pickFile({ image = false, camera = false } = {}) {
   if (image) {
     if (camera && !(await ImagePicker.requestCameraPermissionsAsync()).granted)

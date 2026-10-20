@@ -16,11 +16,11 @@ import {
 import Field from "./Field";
 import TrendChart from "./TrendChart.jsx";
 import { accountReport, shiftMonth, spendingBreakdown } from "../reports.js";
-import { summary, monthTransactions } from "../finance.js";
+import { summary, monthTransactions } from "../finance.ts";
 import { formatMoney as money, formatDate, toFils } from "../locale.ts";
 import { exportFile, native } from "../platform/runtime";
 import { CustomReports, ExtendedSettings } from "./ManagementScreens.jsx";
-import { backupText } from "../domain/imports.js";
+import { backupText } from "../domain/imports.ts";
 import { recordValue } from "../domain/model.ts";
 import AppUpdates from "./AppUpdates.jsx";
 export function Insights({ workspace: w, month, open }) {

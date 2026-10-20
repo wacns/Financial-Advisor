@@ -1,15 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { applyEntry } from "../../src/application/workspace.js";
-import { blankState, totalBalance } from "../../src/finance.js";
+import { blankState, totalBalance } from "../../src/finance.ts";
 import { normalizeWorkspace } from "../../src/domain/model.ts";
 import {
   commitmentStats,
   commitmentDue,
   commitmentCalendar,
-} from "../../src/domain/commitments.js";
-import { filterTransactions } from "../../src/domain/organizing.js";
-import { backupText, parseBackup } from "../../src/domain/imports.js";
+} from "../../src/domain/commitments.ts";
+import { filterTransactions } from "../../src/domain/organizing.ts";
+import { backupText, parseBackup } from "../../src/domain/imports.ts";
 import { entryForm } from "../../src/application/forms.js";
 const setup = () => {
   let i = 0;

@@ -1,7 +1,20 @@
-import { cycleRange, shiftPeriod } from "./cycles.js";
+import { cycleRange, shiftPeriod } from "./cycles.ts";
 import { recordValue, convert } from "./model.ts";
 import { toFils, bahrainDate, isCivilDate } from "../locale.ts";
-export function reportRange(s, mode, anchor, from, to) {
+import type { Account, Budget, Settings, Transaction, Workspace } from "./types.ts";
+export type ReportRange = {
+  from: string;
+  until: string;
+  to?: string;
+  salaryMonth?: string;
+};
+export function reportRange(
+  s: { settings?: Partial<Pick<Settings, "cycleStartDay">> },
+  mode: string,
+  anchor: string,
+  from?: string,
+  to?: string,
+): ReportRange {
   if (["last7", "last30", "last3months"].includes(mode)) {
     const today = bahrainDate(),
       end = new Date(`${today}T12:00:00Z`);
@@ -49,10 +62,21 @@ export function reportRange(s, mode, anchor, from, to) {
     };
   return { ...cycleRange(s, anchor), salaryMonth: anchor };
 }
+export type ReportOptions = {
+  account?: string;
+  accounts?: string[];
+  group?: string;
+  kind?: string;
+};
 export function reportData(
-  s,
-  range,
-  { account = "all", accounts = [], group = "category", kind = "expense" } = {},
+  s: Workspace,
+  range: ReportRange,
+  {
+    account = "all",
+    accounts = [],
+    group = "category",
+    kind = "expense",
+  }: ReportOptions = {},
 ) {
   const rows = s.transactions.filter(
     (t) =>
@@ -60,19 +84,20 @@ export function reportData(
         ? t.salaryMonth === range.salaryMonth
         : t.date >= range.from && t.date < range.until) &&
       (accounts.length
-        ? accounts.includes(t.accountId) || accounts.includes(t.toAccountId)
+        ? accounts.includes(t.accountId) ||
+          (t.toAccountId !== undefined && accounts.includes(t.toAccountId))
         : account === "all" ||
           t.accountId === account ||
           t.toAccountId === account),
   );
-  const groups = new Map();
+  const groups = new Map<string | undefined, number>();
   let income = 0,
     expenses = 0;
   for (const t of rows) {
     if (t.type === "transfer" || t.type === "adjustment") continue;
+    // Adjustments were skipped just above, so only income and expenses reach this point.
     const value = recordValue(s, t),
-      type =
-        t.type === "adjustment" ? (value < 0 ? "expense" : "income") : t.type;
+      type = t.type;
     if (type === "income") income += toFils(Math.abs(value));
     else expenses += toFils(Math.abs(value));
     if (type !== kind) continue;
@@ -100,12 +125,15 @@ export function reportData(
       .sort((a, b) => b.amount - a.amount),
   };
 }
-export function accountDetails(a, today = bahrainDate()) {
+export function accountDetails(a: Account, today: string = bahrainDate()) {
+  // Missing limits and installments compare as before: undefined > 0 is false, like 0 > 0.
+  const limit = a.limit ?? 0,
+    installment = a.installment ?? 0;
   const days = a.maturity
     ? Math.ceil((Date.parse(a.maturity) - Date.parse(today)) / 86400000)
     : null;
   return {
-    utilization: a.limit > 0 ? (Math.max(0, -a.balance) / a.limit) * 100 : null,
+    utilization: limit > 0 ? (Math.max(0, -a.balance) / limit) * 100 : null,
     valuation: a.cost ? Math.round((a.balance - a.cost) * 1000) / 1000 : null,
     annualInterest: a.apr
       ? Math.round(((Math.abs(a.balance) * a.apr) / 100) * 1000) / 1000
@@ -135,14 +163,19 @@ export function accountDetails(a, today = bahrainDate()) {
           ) / 1000
         : null,
     paymentsRemaining:
-      a.installment > 0
-        ? Math.ceil(Math.max(0, -a.balance) / a.installment)
+      installment > 0
+        ? Math.ceil(Math.max(0, -a.balance) / installment)
         : null,
   };
 }
 
-export function basicBudgetStats(s, b, month, today = bahrainDate()) {
-  const range =
+export function basicBudgetStats(
+  s: Workspace,
+  b: Budget,
+  month: string,
+  today: string = bahrainDate(),
+) {
+  const range: ReportRange =
     b.period === "Yearly"
       ? reportRange(s, "year", month)
       : cycleRange(s, month);

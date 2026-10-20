@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { blankState } from "../../src/finance.js";
+import { blankState } from "../../src/finance.ts";
 import { applyEntry, transactionCSV } from "../../src/application/workspace.js";
 import {
   normalizeWorkspace,
@@ -14,15 +14,15 @@ import {
   validateCycleBudgets,
   accumulatedSavings,
   recurringForecast,
-} from "../../src/domain/cycles.js";
+} from "../../src/domain/cycles.ts";
 import {
   backupText,
   parseBackup,
   importCSV,
-} from "../../src/domain/imports.js";
-import { projectTotals, milestonePaid } from "../../src/domain/projects.js";
-import { reportRange, reportData } from "../../src/domain/reports.js";
-import { parseReceipt } from "../../src/domain/receipt.js";
+} from "../../src/domain/imports.ts";
+import { projectTotals, milestonePaid } from "../../src/domain/projects.ts";
+import { reportRange, reportData } from "../../src/domain/reports.ts";
+import { parseReceipt } from "../../src/domain/receipt.ts";
 import { entryForm } from "../../src/application/forms.js";
 let seq = 0;
 const save = (s, k, d, id) => applyEntry(s, k, d, id, () => `test-${++seq}`);

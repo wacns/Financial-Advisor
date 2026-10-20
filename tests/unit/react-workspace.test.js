@@ -6,7 +6,7 @@ import {
   transactionCSV,
 } from "../../src/application/workspace.js";
 import { entryForm } from "../../src/application/forms.js";
-import { blankState } from "../../src/finance.js";
+import { blankState } from "../../src/finance.ts";
 import { createSecureStorage } from "../../src/platform/secure-storage.js";
 const fixture = () => ({
   ...blankState(),

@@ -1,6 +1,6 @@
-import { accountColors, accountIcons } from "../domain/organizing.js";
-import { commitmentStats, paymentDraft } from "../domain/commitments.js";
-import { categoryPaths } from "../domain/commands.js";
+import { accountColors, accountIcons } from "../domain/organizing.ts";
+import { commitmentStats, paymentDraft } from "../domain/commitments.ts";
+import { categoryPaths } from "../domain/commands.ts";
 import { bahrainDate } from "../locale.ts";
 const f = (label, name, value = "", type = "text", options) => ({
   label,

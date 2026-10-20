@@ -1,5 +1,5 @@
 import { convert, recordValue } from "./domain/model.ts";
-import { cycleRange } from "./domain/cycles.js";
+import { cycleRange } from "./domain/cycles.ts";
 import {
   bahrainDate,
   CURRENCY,
@@ -8,6 +8,14 @@ import {
   toFils,
   isCivilDate,
 } from "./locale.ts";
+import { checkedLater, isOneOf, must } from "./guards.ts";
+import type { TransactionInput } from "./domain/ledger.ts";
+import type {
+  StoredWorkspace,
+  Transaction,
+  TransactionType,
+  Workspace,
+} from "./domain/types.ts";
 export const categories = [
   "Shopping",
   "Food & drink",
@@ -20,7 +28,7 @@ export const categories = [
   "Income",
   "Other",
 ];
-export function totalBalance(state) {
+export function totalBalance(state: Pick<Workspace, "accounts" | "settings">): number {
   return (
     state.accounts
       .filter((account) => account.includeInTotal !== false)
@@ -32,7 +40,7 @@ export function totalBalance(state) {
       ) / 1000
   );
 }
-export function monthTransactions(state, month) {
+export function monthTransactions(state: Workspace, month: string): Transaction[] {
   const { from, until } = cycleRange(state, month);
   return state.transactions
     .filter((t) =>
@@ -46,7 +54,7 @@ export function monthTransactions(state, month) {
         (b.time || "").localeCompare(a.time || ""),
     );
 }
-export function summary(state, month) {
+export function summary(state: Workspace, month: string) {
   const transactions = monthTransactions(state, month);
   return {
     income:
@@ -60,7 +68,11 @@ export function summary(state, month) {
       1000,
   };
 }
-export function categorySpend(state, month, category) {
+export function categorySpend(
+  state: Workspace,
+  month: string,
+  category: string,
+): number {
   return (
     monthTransactions(state, month)
       .filter(
@@ -71,11 +83,14 @@ export function categorySpend(state, month, category) {
       .reduce((s, t) => s + Math.abs(toFils(recordValue(state, t))), 0) / 1000
   );
 }
-export function addTransaction(state, transaction) {
+export function addTransaction(
+  state: Workspace,
+  transaction: TransactionInput,
+): Workspace {
   const amount = Number(transaction.amount);
   if (!Number.isFinite(amount) || amount <= 0 || amount > 1e12)
     throw Error("Enter a valid positive amount.");
-  if (!["income", "expense"].includes(transaction.type))
+  if (!isOneOf(["income", "expense"], transaction.type))
     throw Error("Select a transaction type.");
   if (!isCivilDate(transaction.date)) throw Error("Choose a valid date.");
   if (
@@ -97,12 +112,17 @@ export function addTransaction(state, transaction) {
         ? Math.round(amount * (account.rewardRate || 0) * 1000) / 1000
         : 0
       : transaction.rewardPoints;
-  state.transactions.unshift({ ...transaction, amount, rewardPoints });
+  state.transactions.unshift(
+    checkedLater<Transaction>({ ...transaction, amount, rewardPoints }),
+  );
   return state;
 }
 // A transfer is one ledger record with two account effects. It is neither
 // income nor an expense, so existing budget and summary calculations exclude it.
-export function addTransfer(state, transfer) {
+export function addTransfer(
+  state: Workspace,
+  transfer: TransactionInput,
+): Workspace {
   const source = state.accounts.find((a) => a.id === transfer.accountId);
   const destination = state.accounts.find((a) => a.id === transfer.toAccountId);
   if (!source || !destination) throw Error("Choose two existing accounts.");
@@ -132,21 +152,27 @@ export function addTransfer(state, transfer) {
   toFils(destinationBalance / 1000);
   source.balance = sourceBalance / 1000;
   destination.balance = destinationBalance / 1000;
-  state.transactions.unshift({
-    id: transfer.id,
-    name,
-    type: "transfer",
-    category: "Transfer",
-    amount: fils / 1000,
-    received,
-    currency: source.currency || "BHD",
-    date: transfer.date,
-    accountId: source.id,
-    toAccountId: destination.id,
-  });
+  state.transactions.unshift(
+    checkedLater<Transaction>({
+      id: transfer.id,
+      name,
+      type: "transfer",
+      category: "Transfer",
+      amount: fils / 1000,
+      received,
+      currency: source.currency || "BHD",
+      date: transfer.date,
+      accountId: source.id,
+      toAccountId: destination.id,
+    }),
+  );
   return state;
 }
-export function blankState() {
+/** A new, empty workspace; normalizeWorkspace fills in the remaining collections and settings. */
+export function blankState(): StoredWorkspace & {
+  accounts: NonNullable<StoredWorkspace["accounts"]>;
+  transactions: Transaction[];
+} {
   return {
     accounts: [],
     transactions: [],
@@ -160,17 +186,17 @@ export function blankState() {
     timeZone: TIME_ZONE,
   };
 }
-export function demoState() {
+export function demoState(): StoredWorkspace {
   const month = bahrainDate().slice(0, 7);
   const tx = (
-    id,
-    name,
-    category,
-    amount,
-    day,
-    type = "expense",
+    id: string,
+    name: string,
+    category: string,
+    amount: number,
+    day: number,
+    type: TransactionType = "expense",
     accountId = "current",
-  ) => ({
+  ): Transaction => ({
     id,
     name,
     category,
@@ -223,13 +249,13 @@ export function demoState() {
         const date = new Date(`${month}-01T12:00:00Z`);
         date.setUTCMonth(date.getUTCMonth() - i - 1);
         const period = date.toISOString().slice(0, 7);
-        return [
+        const rows: [string, string, number, number, TransactionType][] = [
           ["Monthly salary", "Income", 1800, 14, "income"],
           ["Manama apartment rent", "Home", 350, 1, "expense"],
           [
             "Weekly groceries",
             "Food & drink",
-            [155, 172, 148, 165, 190][i],
+            must([155, 172, 148, 165, 190][i], "demo amount"),
             8,
             "expense",
           ],
@@ -238,11 +264,12 @@ export function demoState() {
           [
             "City Centre Bahrain",
             "Shopping",
-            [65, 48, 90, 52, 120][i],
+            must([65, 48, 90, 52, 120][i], "demo amount"),
             12,
             "expense",
           ],
-        ].map(([name, category, amount, day, type], j) => ({
+        ];
+        return rows.map(([name, category, amount, day, type], j) => ({
           ...tx(`history-${i}-${j}`, name, category, amount, day, type),
           date: `${period}-${String(day).padStart(2, "0")}`,
         }));

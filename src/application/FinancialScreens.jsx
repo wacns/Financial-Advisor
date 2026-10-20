@@ -20,16 +20,16 @@ import {
   summary,
   categorySpend,
   monthTransactions,
-} from "../finance.js";
+} from "../finance.ts";
 import { formatMoney as money, formatDate, toFils } from "../locale.ts";
-import { upcomingPayments, dueStatus } from "../planning.js";
+import { upcomingPayments, dueStatus } from "../planning.ts";
 import { budgetHealth, shiftMonth } from "../reports.js";
 import TrendChart from "./TrendChart.jsx";
 import { transactionCSV } from "./workspace.js";
 import { exportFile } from "../platform/runtime";
-import { accountDetails, basicBudgetStats } from "../domain/reports.js";
-import { filterTransactions, transactionGroups } from "../domain/organizing.js";
-import { copyTransaction } from "../domain/ledger.js";
+import { accountDetails, basicBudgetStats } from "../domain/reports.ts";
+import { filterTransactions, transactionGroups } from "../domain/organizing.ts";
+import { copyTransaction } from "../domain/ledger.ts";
 import { convert, recordValue } from "../domain/model.ts";
 export function TransactionList({ state, transactions, open, onPin }) {
   const { colors } = useAppearance();

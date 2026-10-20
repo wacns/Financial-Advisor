@@ -1,6 +1,8 @@
-import { accountAppearance } from "./organizing.js";
-import { termDetails } from "./accounts.js";
-import { saveRecurring } from "../planning.js";
+import { accountAppearance } from "./organizing.ts";
+import type { AppearanceInput } from "./organizing.ts";
+import { termDetails } from "./accounts.ts";
+import type { TermInput } from "./accounts.ts";
+import { saveRecurring } from "../planning.ts";
 import {
   clone,
   normalizeWorkspace,
@@ -9,18 +11,26 @@ import {
   text,
   date,
   currencyCodes,
-  convert,
-  accountCurrency,
+  isCurrencyCode,
 } from "./model.ts";
-import { cycleRange, splitWeeks, validateCycleBudgets } from "./cycles.js";
+import { cycleRange, splitWeeks, validateCycleBudgets } from "./cycles.ts";
 import {
   saveTransaction,
   deleteTransaction,
   copyTransaction,
-} from "./ledger.js";
+} from "./ledger.ts";
+import type { TransactionInput } from "./ledger.ts";
 import { bahrainDate, toFils } from "../locale.ts";
-import { categories } from "../finance.js";
-export const categoryPaths = (s) =>
+import { categories } from "../finance.ts";
+import { checkedLater, isOneOf, must } from "../guards.ts";
+import type {
+  CurrencyCode,
+  CycleBudget,
+  CycleBudgetEntry,
+  Warranty,
+  Workspace,
+} from "./types.ts";
+export const categoryPaths = (s: Workspace): string[] =>
   [
     ...new Set([
       ...categories,
@@ -37,39 +47,84 @@ export const categoryPaths = (s) =>
         .filter((value) => typeof value === "string" && value.trim()),
     ]),
   ].filter((c) => !(s.settings?.hiddenCategories || []).includes(c));
-const list = (value) =>
+const list = (value: unknown): string[] =>
   Array.isArray(value)
     ? value
     : String(value || "")
         .split(",")
         .map((x) => x.trim())
         .filter(Boolean);
-const positive = (value) => amount(value, true);
+const positive = (value: unknown) => amount(value, true);
+/** Fields the settings and management forms submit; each command kind reads its own subset. */
+export type FeatureInput = TransactionInput &
+  TermInput &
+  AppearanceInput &
+  Partial<Record<CurrencyCode, unknown>> & {
+    [week: `week${number}`]: unknown;
+    hour?: unknown;
+    interest?: unknown;
+    apr?: unknown;
+    limit?: unknown;
+    cost?: unknown;
+    last4?: unknown;
+    frequency?: unknown;
+    expenses?: unknown;
+    salary?: unknown;
+    advice?: unknown;
+    enabled?: unknown;
+    loanId?: unknown;
+    transactionId?: unknown;
+    balance?: unknown;
+    target?: unknown;
+    saved?: unknown;
+    lender?: unknown;
+    nextDue?: unknown;
+    base?: unknown;
+    language?: unknown;
+    theme?: unknown;
+    cycleStartDay?: unknown;
+    motion?: unknown;
+    parent?: unknown;
+    parentId?: unknown;
+    categoryMode?: string;
+    include?: unknown;
+    exclude?: unknown;
+    key?: string;
+    salaryMonth?: string;
+    purchased?: unknown;
+    expires?: unknown;
+    brand?: unknown;
+    serial?: unknown;
+    retailer?: unknown;
+    notes?: unknown;
+    receipt?: string;
+  };
 export function featureCommand(
-  input,
-  kind,
-  data,
-  id,
-  uuid = () => crypto.randomUUID(),
-) {
+  input: unknown,
+  kind: string,
+  data: FeatureInput,
+  id?: string,
+  uuid: () => string = () => crypto.randomUUID(),
+): Workspace | null {
   const s = normalizeWorkspace(input),
-    row = (key) => {
-      const r = s[key].find((r) => r.id === id);
+    row = <T extends { id: string }>(rows: T[]): T => {
+      const r = rows.find((r) => r.id === id);
       if (!r) throw Error("This record no longer exists.");
       return r;
     };
   if (kind === "reminderPreferences") {
     const hour = Number(data.hour);
+    const frequency = data.frequency;
     if (
       !Number.isInteger(hour) ||
       hour < 0 ||
       hour > 23 ||
-      !["daily", "weekly"].includes(data.frequency)
+      !isOneOf(["daily", "weekly"], frequency)
     )
       throw Error("Choose a reminder hour (0–23) and frequency.");
     s.settings.reminders = {
       hour,
-      frequency: data.frequency,
+      frequency,
       expenses: data.expenses === "yes",
       salary: data.salary === "yes",
       advice: data.advice === "yes",
@@ -123,7 +178,7 @@ export function featureCommand(
   } else if (kind === "deleteTemplate")
     s.templates = s.templates.filter((t) => t.id !== id);
   else if (kind === "reconcile") {
-    const a = row("accounts"),
+    const a = row(s.accounts),
       target = amount(data.balance),
       difference = (toFils(target) - toFils(a.balance)) / 1000;
     if (difference)
@@ -141,7 +196,7 @@ export function featureCommand(
         uuid,
       );
   } else if (kind === "editAccount") {
-    const a = row("accounts");
+    const a = row(s.accounts);
     if (
       data.currency !== a.currency &&
       [...s.transactions, ...s.recurring].some(
@@ -161,21 +216,22 @@ export function featureCommand(
       last4: String(data.last4 || ""),
     });
     if (
-      a.apr < 0 ||
-      a.limit < 0 ||
-      a.cost < 0 ||
+      (a.apr ?? 0) < 0 ||
+      (a.limit ?? 0) < 0 ||
+      (a.cost ?? 0) < 0 ||
       (a.startDate && a.maturity && a.maturity < a.startDate)
     )
       throw Error("Check the account term dates and non-negative amounts.");
     for (const r of s.recurring.filter(
       (r) => r.loanInstallment && r.toAccountId === a.id,
     )) {
-      if (a.type !== "Loan" || !(a.installment > 0))
+      const installment = a.installment;
+      if (a.type !== "Loan" || !(installment !== undefined && installment > 0))
         throw Error(
           "A linked installment requires a loan with a positive installment.",
         );
-      r.amount = a.installment;
-      r.received = a.installment;
+      r.amount = installment;
+      r.received = installment;
     }
     // A balance correction is an explicit adjustment rather than a hidden edit.
     const target = amount(data.balance);
@@ -209,7 +265,7 @@ export function featureCommand(
     s.accounts = s.accounts.filter((a) => a.id !== id);
     if (s.settings.defaultAccountId === id) s.settings.defaultAccountId = "";
   } else if (kind === "editGoal")
-    Object.assign(row("goals"), {
+    Object.assign(row(s.goals), {
       name: text(data.name),
       target: positive(data.target),
       saved: amount(data.saved),
@@ -220,7 +276,7 @@ export function featureCommand(
   else if (kind === "deleteSchedule")
     s.recurring = s.recurring.filter((r) => r.id !== id);
   else if (kind === "editDebt")
-    Object.assign(row("debts"), {
+    Object.assign(row(s.debts), {
       name: text(data.name),
       lender: String(data.lender || ""),
       installment: positive(data.installment),
@@ -233,19 +289,20 @@ export function featureCommand(
       );
     s.debts = s.debts.filter((r) => r.id !== id);
   } else if (kind === "preferences") {
+    const { base, language, theme } = data;
     if (
-      !currencyCodes.includes(data.base) ||
-      !["en", "ar"].includes(data.language) ||
-      !["light", "dark", "system"].includes(data.theme)
+      !isCurrencyCode(base) ||
+      !isOneOf(["en", "ar"], language) ||
+      !isOneOf(["light", "dark", "system"], theme)
     )
       throw Error("Choose supported preferences.");
     const day = Number(data.cycleStartDay);
     if (!Number.isInteger(day) || day < 1 || day > 31)
       throw Error("Cycle day must be 1–31.");
     Object.assign(s.settings, {
-      base: data.base,
-      language: data.language,
-      theme: data.theme,
+      base,
+      language,
+      theme,
       cycleStartDay: day,
       motion: data.motion !== "no",
     });
@@ -267,7 +324,7 @@ export function featureCommand(
       throw Error("This category already exists.");
     if (id) {
       if (id === "Other") throw Error("Other is the reserved fallback.");
-      const replace = (value) =>
+      const replace = (value: string) =>
         value === id
           ? path
           : value?.startsWith(`${id} / `)
@@ -284,7 +341,7 @@ export function featureCommand(
         "budgets",
         "subscriptions",
         "installments",
-      ])
+      ] as const)
         for (const r of s[key]) r.category = replace(r.category);
       for (const style of s.settings.categoryStyles || [])
         style.path = replace(style.path);
@@ -292,7 +349,7 @@ export function featureCommand(
         t.record.category = replace(t.record.category);
       for (const b of s.cycleBudgets)
         for (const c of [b, ...b.children])
-          for (const key of ["include", "exclude"])
+          for (const key of ["include", "exclude"] as const)
             c[key] = c[key].map(replace);
     } else s.settings.categories.push(path);
     s.settings.hiddenCategories = (s.settings.hiddenCategories || []).filter(
@@ -344,16 +401,18 @@ export function featureCommand(
         : null;
     if (kind === "subBudget" && !parent)
       throw Error("Choose a main cycle budget.");
-    const existing = parent
+    // Without a parent, the record being edited is a main cycle budget.
+    const main = parent ? undefined : s.cycleBudgets.find((c) => c.id === id);
+    const existing: CycleBudgetEntry | undefined = parent
       ? parent.children.find((c) => c.id === id)
-      : s.cycleBudgets.find((c) => c.id === id);
+      : main;
     const limit = positive(data.limit),
       weeks = [0, 1, 2, 3].map((i) =>
         data[`week${i + 1}`] === "" || data[`week${i + 1}`] == null
-          ? splitWeeks(limit)[i]
+          ? must(splitWeeks(limit)[i], "weekly allocation")
           : amount(data[`week${i + 1}`]),
       );
-    const record = {
+    const record = checkedLater<CycleBudgetEntry>({
       ...existing,
       id: id || uuid(),
       name: text(data.name),
@@ -362,33 +421,35 @@ export function featureCommand(
       categoryMode: data.categoryMode || "all",
       include: list(data.include),
       exclude: list(data.exclude),
-    };
+    });
     if (parent) {
       parent.children = parent.children.filter((c) => c.id !== record.id);
       parent.children.push(record);
     } else {
       const key = data.key;
-      Object.assign(record, {
-        key,
-        day: existing?.day || s.settings.cycleStartDay,
-        currency: existing?.currency || data.currency || s.settings.base,
-        ...(existing
-          ? { from: existing.from, until: existing.until, to: existing.to }
-          : cycleRange(s, key)),
-        children: existing?.children || [],
-      });
-      s.cycleBudgets = s.cycleBudgets.filter((c) => c.id !== record.id);
-      s.cycleBudgets.push(record);
+      const budget = checkedLater<CycleBudget>(
+        Object.assign(record, {
+          key,
+          day: main?.day || s.settings.cycleStartDay,
+          currency: main?.currency || data.currency || s.settings.base,
+          ...(main
+            ? { from: main.from, until: main.until, to: main.to }
+            : cycleRange(s, String(key))),
+          children: main?.children || [],
+        }),
+      );
+      s.cycleBudgets = s.cycleBudgets.filter((c) => c.id !== budget.id);
+      s.cycleBudgets.push(budget);
     }
     validateCycleBudgets(s);
   } else if (kind === "copyCycle") {
-    const original = row("cycleBudgets"),
+    const original = row(s.cycleBudgets),
       copy = clone(original);
     Object.assign(copy, {
       id: uuid(),
       key: data.key,
       day: s.settings.cycleStartDay,
-      ...cycleRange(s, data.key),
+      ...cycleRange(s, String(data.key)),
     });
     copy.children = copy.children.map((c) => ({ ...c, id: uuid() }));
     s.cycleBudgets.push(copy);
@@ -400,10 +461,10 @@ export function featureCommand(
     if (!b) throw Error("Budget not found.");
     b.children = b.children.filter((c) => c.id !== id);
   } else if (kind === "salaryLink") {
-    const t = row("transactions");
+    const t = row(s.transactions);
     if (t.type !== "income")
       throw Error("Only recorded income can be assigned to a salary month.");
-    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(data.salaryMonth))
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(data.salaryMonth)))
       throw Error("Choose a valid salary month.");
     t.salaryMonth = data.salaryMonth;
   } else if (kind === "warranty") {
@@ -411,7 +472,7 @@ export function featureCommand(
       expires = date(data.expires);
     if (expires <= purchased)
       throw Error("Expiry must be after the purchase date.");
-    const record = {
+    const record: Warranty = {
       id: id || uuid(),
       name: text(data.name),
       category: String(data.category || "Other"),

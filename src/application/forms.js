@@ -1,10 +1,10 @@
 import { accountAppearanceFields, contactFields } from "./enhancementForms.js";
 import { featureForm } from "./featureForms.js";
-import { categoryPaths } from "../domain/commands.js";
+import { categoryPaths } from "../domain/commands.ts";
 import { normalizeWorkspace, currencyCodes } from "../domain/model.ts";
-import { categories } from "../finance.js";
+import { categories } from "../finance.ts";
 import { bahrainDate } from "../locale.ts";
-import { frequencies } from "../planning.js";
+import { frequencies } from "../planning.ts";
 const field = (label, name, type = "text", value = "", options) => ({
   label,
   name,

@@ -1,12 +1,12 @@
 import { normalizeWorkspace, validateWorkspace } from "../domain/model.ts";
-import { validateCycleBudgets } from "../domain/cycles.js";
-import { validateProjects } from "../domain/projects.js";
+import { validateCycleBudgets } from "../domain/cycles.ts";
+import { validateProjects } from "../domain/projects.ts";
 import { syncWidgets } from "../platform/files";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { client } from "./client.js";
 import * as runtime from "../platform/runtime";
-import { blankState, demoState } from "../finance.js";
-import { normalizePlanning } from "../planning.js";
+import { blankState, demoState } from "../finance.ts";
+import { normalizePlanning } from "../planning.ts";
 import { DEMO_STORAGE_KEY, requireBahrainWorkspace } from "../locale.ts";
 import { createNotifications } from "../notifications.js";
 import { finishNativeAuth } from "../auth.js";

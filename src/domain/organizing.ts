@@ -7,7 +7,9 @@ import {
   recordValue,
   currencyCodes,
 } from "./model.ts";
-export const accountIcons = ["▣", "▰", "◆", "◈", "●", "♧", "⌂", "✦"];
+import { isOneOf } from "../guards.ts";
+import type { RateQuote, Rates, Transaction, Workspace } from "./types.ts";
+export const accountIcons = ["▣", "▰", "◆", "◈", "●", "♧", "⌂", "✦"] as const;
 export const accountColors = [
   "#214b39",
   "#23566d",
@@ -15,11 +17,17 @@ export const accountColors = [
   "#9b563b",
   "#54613a",
   "#514c83",
-];
-export function accountAppearance(data) {
+] as const;
+export type AppearanceInput = {
+  color?: string;
+  icon?: string;
+  rewardRate?: unknown;
+  includeInTotal?: boolean | string;
+};
+export function accountAppearance(data: AppearanceInput) {
   const color = data.color || accountColors[0],
     icon = data.icon || accountIcons[0];
-  if (!/^#[a-f0-9]{6}$/i.test(color) || !accountIcons.includes(icon))
+  if (!/^#[a-f0-9]{6}$/i.test(color) || !isOneOf(accountIcons, icon))
     throw Error("Choose a valid account color and icon.");
   const rewardRate = Number(data.rewardRate || 0);
   if (!Number.isFinite(rewardRate) || rewardRate < 0 || rewardRate > 100000)
@@ -32,7 +40,25 @@ export function accountAppearance(data) {
     rewardRate,
   };
 }
-export function organizeCommand(input, kind, data, id, uuid) {
+/** Fields the organizing forms submit; each command kind reads its own subset. */
+export type OrganizeInput = {
+  role?: string;
+  name?: unknown;
+  note?: unknown;
+  color?: string;
+  accountId?: string;
+  source?: string;
+  asOf?: string;
+  rates?: Partial<Rates>;
+  dateFormat?: string;
+};
+export function organizeCommand(
+  input: unknown,
+  kind: string,
+  data: OrganizeInput,
+  id: string | undefined,
+  uuid: () => string,
+): Workspace | null {
   const supported = [
     "payee",
     "deletePayee",
@@ -46,12 +72,13 @@ export function organizeCommand(input, kind, data, id, uuid) {
   if (!supported.includes(kind)) return null;
   const s = normalizeWorkspace(input);
   if (kind === "payee") {
-    if (!["payee", "payer", "both"].includes(data.role))
+    const role = data.role;
+    if (!isOneOf(["payee", "payer", "both"], role))
       throw Error("Choose payee, payer or both.");
     const row = {
       id: id || uuid(),
       name: text(data.name),
-      role: data.role,
+      role,
       note: String(data.note || "").slice(0, 500),
     };
     if (
@@ -114,16 +141,18 @@ export function organizeCommand(input, kind, data, id, uuid) {
       throw Error("Choose an existing default account.");
     s.settings.defaultAccountId = data.accountId || "";
   } else if (kind === "refreshRates") {
+    const { source, asOf } = data;
     if (
-      data.source !== "ExchangeRate-API" ||
-      !isCivilDate(data.asOf) ||
-      data.asOf > bahrainDate()
+      source !== "ExchangeRate-API" ||
+      !isCivilDate(asOf) ||
+      asOf > bahrainDate()
     )
       throw Error("Check the provider and quote date before applying rates.");
     const rates = Object.fromEntries(
       currencyCodes.map((code) => {
         const rate = data.rates?.[code];
         if (
+          rate === undefined ||
           !Number.isFinite(rate) ||
           rate <= 0 ||
           rate > 1e9 ||
@@ -134,26 +163,42 @@ export function organizeCommand(input, kind, data, id, uuid) {
       }),
     );
     s.settings.rates = rates;
-    s.settings.ratesAsOf = data.asOf;
-    s.settings.ratesSource = data.source;
-    s.settings.rateHistory = [
-      ...(s.settings.rateHistory || []).filter((row) => row.asOf !== data.asOf),
-      {
-        asOf: data.asOf,
-        source: data.source,
-        rates,
-        savedAt: new Date().toISOString(),
-      },
-    ].slice(-90);
+    s.settings.ratesAsOf = asOf;
+    s.settings.ratesSource = source;
+    s.settings.rateHistory = (
+      [
+        ...(s.settings.rateHistory || []).filter((row) => row.asOf !== asOf),
+        {
+          asOf,
+          source,
+          rates,
+          savedAt: new Date().toISOString(),
+        },
+      ] satisfies RateQuote[]
+    ).slice(-90);
   } else {
-    if (!["dmy", "mdy", "ymd"].includes(data.dateFormat))
+    const dateFormat = data.dateFormat;
+    if (!isOneOf(["dmy", "mdy", "ymd"], dateFormat))
       throw Error("Choose a date format.");
-    s.settings.dateFormat = data.dateFormat;
+    s.settings.dateFormat = dateFormat;
   }
   return validateWorkspace(s);
 }
+export type TransactionFilter = {
+  query?: string;
+  type?: string;
+  accountIds?: string[];
+  payeeId?: string;
+  label?: string;
+  category?: string;
+  from?: string;
+  to?: string;
+  minimum?: string;
+  maximum?: string;
+  pinned?: boolean;
+};
 export function filterTransactions(
-  s,
+  s: Workspace,
   {
     query = "",
     type = "all",
@@ -166,9 +211,9 @@ export function filterTransactions(
     minimum = "",
     maximum = "",
     pinned = false,
-  } = {},
-  rows = s.transactions,
-) {
+  }: TransactionFilter = {},
+  rows: Transaction[] = s.transactions,
+): Transaction[] {
   if (
     (from && !isCivilDate(from)) ||
     (to && !isCivilDate(to)) ||
@@ -196,7 +241,8 @@ export function filterTransactions(
         (type === "all" || t.type === type) &&
         (!accountIds.length ||
           accountIds.includes(t.accountId) ||
-          accountIds.includes(t.toAccountId)) &&
+          (t.toAccountId !== undefined &&
+            accountIds.includes(t.toAccountId))) &&
         (!payeeId || t.payeeId === payeeId) &&
         (!label || t.labels?.includes(label)) &&
         (!category ||
@@ -216,16 +262,17 @@ export function filterTransactions(
         String(b.time || "").localeCompare(a.time || ""),
     );
 }
-export function transactionGroups(rows) {
-  const groups = new Map();
+export function transactionGroups(rows: Transaction[]) {
+  const groups = new Map<string, Transaction[]>();
   for (const t of rows) {
     const key = t.pinned ? "Pinned" : t.date;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(t);
+    let group = groups.get(key);
+    if (!group) groups.set(key, (group = []));
+    group.push(t);
   }
   return [...groups].map(([date, transactions]) => ({ date, transactions }));
 }
-export function contactSummary(s, id) {
+export function contactSummary(s: Workspace, id: string) {
   const rows = s.transactions.filter((t) => t.payeeId === id);
   return {
     rows,

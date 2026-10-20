@@ -4,7 +4,7 @@ import { Linking } from "react-native";
 import Field from "./Field";
 import { Button, Card, Heading, Label, Muted, Row, Stack } from "./ui.jsx";
 import { currencyCodes, convert } from "../domain/model.ts";
-import { exchangeSnapshot } from "../domain/currency-tools.js";
+import { exchangeSnapshot } from "../domain/currency-tools.ts";
 import { formatMoney as money, bahrainDate } from "../locale.ts";
 export default function CurrencyTools({ workspace: w, open }) {
   const [amount, setAmount] = useState("1"),

@@ -1,9 +1,13 @@
-import { reportData, reportRange } from "./reports.js";
-import { commitmentStats } from "./commitments.js";
+import { reportData, reportRange } from "./reports.ts";
+import { commitmentStats } from "./commitments.ts";
 import { convert, recordValue } from "./model.ts";
-import { totalBalance } from "../finance.js";
+import { totalBalance } from "../finance.ts";
 import { bahrainDate, formatMoney as money, toFils } from "../locale.ts";
-export function assistantSummary(s, month = bahrainDate().slice(0, 7)) {
+import type { Transaction, Workspace } from "./types.ts";
+export function assistantSummary(
+  s: Workspace,
+  month: string = bahrainDate().slice(0, 7),
+) {
   const totals = reportData(s, reportRange(s, "month", month), {
     kind: "expense",
   });
@@ -47,7 +51,7 @@ export function assistantSummary(s, month = bahrainDate().slice(0, 7)) {
         ) / 1000,
   };
 }
-export function localAnswer(s, question, month) {
+export function localAnswer(s: Workspace, question: string, month?: string) {
   const q = question.toLowerCase(),
     summary = assistantSummary(s, month);
   if (/subscription|اشتراك/.test(q))
@@ -68,12 +72,12 @@ export function localAnswer(s, question, month) {
     return `You recorded ${money(summary.expenses)} in expenses for ${summary.month}. Net cash flow is ${money(summary.net)}. Use Insights to choose more accounts, dates and groupings.`;
   return `For ${summary.month}, recorded income is ${money(summary.income)}, expenses are ${money(summary.expenses)}, and net cash flow is ${money(summary.net)}. Ask about spending, income, balances, categories, subscriptions or installments.`;
 }
-export function captureAccount(s, currency) {
+export function captureAccount(s: Workspace, currency: string) {
   return (
     s.accounts.find(
       (a) => a.id === s.settings.defaultAccountId && a.currency === currency,
     ) || s.accounts.find((a) => a.currency === currency)
   );
 }
-export const assistantRecordTotal = (s, records) =>
+export const assistantRecordTotal = (s: Workspace, records: Transaction[]) =>
   records.reduce((n, t) => n + toFils(recordValue(s, t)), 0) / 1000;

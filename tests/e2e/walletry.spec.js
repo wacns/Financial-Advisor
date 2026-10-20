@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { demoState } from "../../src/finance.js";
+import { demoState } from "../../src/finance.ts";
 import { normalizeWorkspace } from "../../src/domain/model.ts";
 async function seedDemo(page, input = demoState()) {
   const state = normalizeWorkspace(input);

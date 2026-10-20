@@ -16,13 +16,13 @@ import {
 import { useAppearance } from "./appearance.jsx";
 import { formatMoney as money, formatDate, bahrainDate } from "../locale.ts";
 import { convert } from "../domain/model.ts";
-import { contactSummary } from "../domain/organizing.js";
+import { contactSummary } from "../domain/organizing.ts";
 import {
   commitmentStats,
   commitmentCalendar,
   commitmentDue,
   installmentAmount,
-} from "../domain/commitments.js";
+} from "../domain/commitments.ts";
 import { TransactionList } from "./FinancialScreens.jsx";
 export { AccountChoices } from "./AccountChoices.jsx";
 export function Contacts({ workspace: w, open }) {

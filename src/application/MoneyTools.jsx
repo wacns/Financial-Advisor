@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Button, Card, Heading, Label, Muted, Row, Stack } from "./ui.jsx";
 import Field from "./Field";
-import { parseTransactionText } from "../domain/capture.js";
+import { parseTransactionText } from "../domain/capture.ts";
 import {
   assistantSummary,
   captureAccount,
   localAnswer,
-} from "../domain/assistant.js";
-import { categoryPaths } from "../domain/commands.js";
+} from "../domain/assistant.ts";
+import { categoryPaths } from "../domain/commands.ts";
 import { currencyCodes } from "../domain/model.ts";
 import {
   recognizeSpeech,

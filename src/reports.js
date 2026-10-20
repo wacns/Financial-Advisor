@@ -1,10 +1,10 @@
-import { basicBudgetStats } from "./domain/reports.js";
+import { basicBudgetStats } from "./domain/reports.ts";
 import { recordValue } from "./domain/model.ts";
-import { cycleRange } from "./domain/cycles.js";
-import { categorySpend, summary } from "./finance.js";
+import { cycleRange } from "./domain/cycles.ts";
+import { categorySpend, summary } from "./finance.ts";
 import { toFils, isCivilDate } from "./locale.ts";
-import { nextOccurrence, upcomingPayments } from "./planning.js";
-import { commitmentCalendar } from "./domain/commitments.js";
+import { nextOccurrence, upcomingPayments } from "./planning.ts";
+import { commitmentCalendar } from "./domain/commitments.ts";
 
 export function shiftMonth(month, offset) {
   const date = new Date(`${month}-01T12:00:00Z`);

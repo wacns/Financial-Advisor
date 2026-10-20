@@ -1,13 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseTransactionText, captureURL } from "../../src/domain/capture.js";
+import { parseTransactionText, captureURL } from "../../src/domain/capture.ts";
 import {
   assistantSummary,
   captureAccount,
   localAnswer,
-} from "../../src/domain/assistant.js";
-import { exchangeSnapshot } from "../../src/domain/currency-tools.js";
-import { blankState } from "../../src/finance.js";
+} from "../../src/domain/assistant.ts";
+import { exchangeSnapshot } from "../../src/domain/currency-tools.ts";
+import { blankState } from "../../src/finance.ts";
 import { applyEntry } from "../../src/application/workspace.js";
 import {
   normalizeWorkspace,
@@ -20,9 +20,9 @@ import {
   validateAssistantOutput,
 } from "../../supabase/functions/financial-assistant/handler.js";
 import { json, hasDuePayment } from "../../supabase/functions/_shared/push.js";
-import { commitmentDue } from "../../src/domain/commitments.js";
+import { commitmentDue } from "../../src/domain/commitments.ts";
 import { calendarEntries } from "../../src/reports.js";
-import { basicBudgetStats } from "../../src/domain/reports.js";
+import { basicBudgetStats } from "../../src/domain/reports.ts";
 const today = "2026-10-20";
 test("budget daily allowance rounds down a fils and closes at the period boundary", () => {
   const s = normalizeWorkspace(blankState());

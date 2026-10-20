@@ -1,18 +1,18 @@
-import { organizeCommand, accountAppearance } from "../domain/organizing.js";
-import { commitmentCommand } from "../domain/commitments.js";
-import { termDetails } from "../domain/accounts.js";
+import { organizeCommand, accountAppearance } from "../domain/organizing.ts";
+import { commitmentCommand } from "../domain/commitments.ts";
+import { termDetails } from "../domain/accounts.ts";
 import { normalizeWorkspace, validateWorkspace } from "../domain/model.ts";
-import { featureCommand } from "../domain/commands.js";
-import { projectCommand, validateProjects } from "../domain/projects.js";
-import { saveTransaction } from "../domain/ledger.js";
-import { addTransaction, addTransfer } from "../finance.js";
+import { featureCommand } from "../domain/commands.ts";
+import { projectCommand, validateProjects } from "../domain/projects.ts";
+import { saveTransaction } from "../domain/ledger.ts";
+import { addTransaction, addTransfer } from "../finance.ts";
 import {
   saveRecurring,
   recordRecurring,
   addDebt,
   recordRepayment,
   saveProject,
-} from "../planning.js";
+} from "../planning.ts";
 import { toFils } from "../locale.ts";
 const positive = (value, label) => {
   const amount = toFils(value) / 1000;

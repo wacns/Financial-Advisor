@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { demoState } from "../../src/finance.js";
+import { demoState } from "../../src/finance.ts";
 import { normalizeWorkspace } from "../../src/domain/model.ts";
 import { DEMO_STORAGE_KEY } from "../../src/locale.ts";
 

@@ -14,7 +14,7 @@ import {
   Stat,
 } from "./ui.jsx";
 import Field from "./Field";
-import { categoryPaths } from "../domain/commands.js";
+import { categoryPaths } from "../domain/commands.ts";
 import {
   budgetStats,
   budgetHistory,
@@ -22,10 +22,10 @@ import {
   accumulatedSavings,
   cycleKey,
   recurringForecast,
-} from "../domain/cycles.js";
-import { backupText, parseBackup, importCSV } from "../domain/imports.js";
-import { reportRange, reportData } from "../domain/reports.js";
-import { parseReceipt } from "../domain/receipt.js";
+} from "../domain/cycles.ts";
+import { backupText, parseBackup, importCSV } from "../domain/imports.ts";
+import { reportRange, reportData } from "../domain/reports.ts";
+import { parseReceipt } from "../domain/receipt.ts";
 import { convert, recordValue } from "../domain/model.ts";
 import { formatMoney as money, bahrainDate, formatDate } from "../locale.ts";
 import { exportFile, native } from "../platform/runtime";

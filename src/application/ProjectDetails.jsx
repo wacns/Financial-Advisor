@@ -14,7 +14,7 @@ import {
   projectTotals,
   milestonePaid,
   milestoneStatus,
-} from "../domain/projects.js";
+} from "../domain/projects.ts";
 import { formatMoney as money } from "../locale.ts";
 import { convert } from "../domain/model.ts";
 import { downloadAttachment } from "../platform/files";

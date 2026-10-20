@@ -34,6 +34,7 @@ export interface Account {
   startDate?: string;
   maturity?: string;
   color?: string;
+  icon?: string;
   includeInTotal?: boolean;
   rewardRate?: number;
 }
@@ -65,6 +66,10 @@ export interface Transaction {
   commitmentId?: string;
   commitmentType?: CommitmentKind;
   commitmentOccurrence?: number;
+  recurringId?: string;
+  scheduledFor?: string;
+  contractId?: string;
+  milestoneId?: string;
 }
 
 /** A transaction-shaped record that has no id or date of its own yet (templates, plans). */
@@ -76,6 +81,7 @@ export interface Budget {
   category: string;
   limit: number;
   currency?: CurrencyCode;
+  period?: string;
 }
 
 export interface Goal {
@@ -95,6 +101,7 @@ export interface Recurring extends Omit<Transaction, "date"> {
   paused?: boolean;
   loanInstallment?: boolean;
   interest?: number;
+  isSalary?: boolean;
 }
 
 export interface Debt {
@@ -119,6 +126,11 @@ export interface Template {
 export interface Warranty {
   id: string;
   name: string;
+  category?: string;
+  brand?: string;
+  serial?: string;
+  retailer?: string;
+  notes?: string;
   purchased: string;
   expires: string;
   receipt?: string;
@@ -140,6 +152,9 @@ export interface ContractVariation {
 export interface Contract {
   id: string;
   name: string;
+  vendor?: string;
+  categoryId: string;
+  notes?: string;
   original: number;
   startDate?: string;
   endDate?: string;
@@ -149,14 +164,19 @@ export interface Contract {
 export interface Milestone {
   id: string;
   name: string;
+  contractId: string;
   amount: number;
   due: string;
+  kind?: string;
+  complete?: boolean;
 }
 
 export interface ProjectDocument {
   id: string;
   name: string;
   file: string;
+  fileName?: string;
+  createdAt?: string;
   contractId?: string;
   transactionId?: string;
 }
@@ -181,14 +201,25 @@ export type CategoryMode = "selected" | "all";
 
 export interface CycleBudgetEntry {
   id: string;
+  name: string;
+  limit: number;
+  /** Four weekly allocations that add up to no more than limit. */
+  weeks: number[];
   include: string[];
   exclude: string[];
   categoryMode: CategoryMode;
 }
 
 export interface CycleBudget extends CycleBudgetEntry {
+  /** The cycle's month, YYYY-MM. */
+  key: string;
+  currency: CurrencyCode;
   day: number;
-  from?: string;
+  from: string;
+  /** First day after the cycle. */
+  until: string;
+  /** Last day of the cycle. */
+  to: string;
   children: CycleBudgetEntry[];
 }
 
@@ -209,15 +240,17 @@ export type CommitmentKind = "subscription" | "installment";
 export type CommitmentStatus = "active" | "paused" | "cancelled";
 
 export interface CommitmentPayment {
+  id?: string;
   index: number;
   date: string;
   due: string;
   amount: number;
   method: "transaction" | "manual";
-  transactionId?: string;
+  /** null for manual payments, which post no transaction. */
+  transactionId?: string | null;
 }
 
-interface CommitmentBase {
+export interface CommitmentBase {
   id: string;
   name: string;
   status: CommitmentStatus;
@@ -229,6 +262,8 @@ interface CommitmentBase {
   interval: number;
   payments: CommitmentPayment[];
   payeeId?: string;
+  provider?: string;
+  note?: string;
 }
 
 export interface Subscription extends CommitmentBase {
@@ -276,6 +311,11 @@ export interface Settings {
   dateFormat?: "dmy" | "mdy" | "ymd" | "";
   rateHistory?: RateQuote[];
   categoryStyles?: CategoryStyle[];
+  /** Deleting a category with no id hides `undefined`, as it always has; see typescript-findings.md. */
+  hiddenCategories?: (string | undefined)[];
+  widgetsEnabled?: boolean;
+  ratesAsOf?: string;
+  ratesSource?: string;
 }
 
 /** A workspace after normalizeWorkspace: every collection and setting is present. */

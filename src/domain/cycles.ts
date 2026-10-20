@@ -1,19 +1,30 @@
 import { bahrainDate, isCivilDate, toFils } from "../locale.ts";
 import { convert, recordValue, currencyCodes, text } from "./model.ts";
-import { commitmentStats } from "./commitments.js";
-export function shiftPeriod(month, n) {
+import { commitmentStats } from "./commitments.ts";
+import type {
+  CycleBudget,
+  CycleBudgetEntry,
+  Recurring,
+  Settings,
+  Subscription,
+  Workspace,
+} from "./types.ts";
+export function shiftPeriod(month: string, n: number): string {
   const d = new Date(`${month}-01T12:00:00Z`);
   d.setUTCMonth(d.getUTCMonth() + n);
   return d.toISOString().slice(0, 7);
 }
-export const addDays = (value, n) =>
+export const addDays = (value: string, n: number): string =>
   new Date(Date.parse(`${value}T12:00:00Z`) + n * 86400000)
     .toISOString()
     .slice(0, 10);
-export function cycleRange(state, key) {
+export function cycleRange(
+  state: { settings?: Partial<Pick<Settings, "cycleStartDay">> },
+  key: string,
+) {
   if (!isCivilDate(`${key}-01`)) throw Error("Choose a valid month.");
   const day = Number(state.settings?.cycleStartDay || 1);
-  function anchored(period) {
+  function anchored(period: string) {
     const last = new Date(`${shiftPeriod(period, 1)}-01T12:00:00Z`);
     last.setUTCDate(0);
     return `${period}-${String(Math.min(day, last.getUTCDate())).padStart(2, "0")}`;
@@ -22,13 +33,19 @@ export function cycleRange(state, key) {
     until = anchored(day === 1 ? shiftPeriod(key, 1) : key);
   return { from, until, to: addDays(until, -1) };
 }
-export function cycleKey(state, today = bahrainDate()) {
+export function cycleKey(
+  state: { settings?: Partial<Pick<Settings, "cycleStartDay">> },
+  today: string = bahrainDate(),
+): string {
   const key = today.slice(0, 7);
   return today >= cycleRange(state, key).until ? shiftPeriod(key, 1) : key;
 }
-export const matchesPath = (path, rule) =>
+export const matchesPath = (path: string, rule: string): boolean =>
   path === rule || path.startsWith(`${rule} / `);
-export function budgetMatches(b, category) {
+export function budgetMatches(
+  b: Partial<Pick<CycleBudgetEntry, "categoryMode" | "include" | "exclude">>,
+  category: string,
+): boolean {
   let selected = b.categoryMode !== "selected",
     depth = -1;
   for (const rule of b.include || [])
@@ -43,13 +60,18 @@ export function budgetMatches(b, category) {
     }
   return selected;
 }
-export function splitWeeks(value) {
+export function splitWeeks(value: unknown): number[] {
   const total = toFils(value),
     q = Math.floor(total / 4),
     r = total % 4;
   return Array.from({ length: 4 }, (_, i) => (q + (i < r ? 1 : 0)) / 1000);
 }
-export function budgetStats(s, b, child = b, today = bahrainDate()) {
+export function budgetStats(
+  s: Workspace,
+  b: CycleBudget,
+  child: CycleBudgetEntry = b,
+  today: string = bahrainDate(),
+) {
   const rows = s.transactions.filter(
     (t) =>
       t.type === "expense" &&
@@ -103,8 +125,8 @@ export function budgetStats(s, b, child = b, today = bahrainDate()) {
     }),
   };
 }
-export function validateCycleBudgets(s) {
-  const keys = new Set();
+export function validateCycleBudgets(s: Workspace): Workspace {
+  const keys = new Set<string>();
   for (const b of s.cycleBudgets || []) {
     if (!currencyCodes.includes(b.currency) || !isCivilDate(`${b.key}-01`))
       throw Error("Invalid budget currency or month.");
@@ -180,7 +202,7 @@ export function validateCycleBudgets(s) {
   }
   return s;
 }
-export function accumulatedSavings(s, today = bahrainDate()) {
+export function accumulatedSavings(s: Workspace, today: string = bahrainDate()) {
   return (s.cycleBudgets || [])
     .filter((b) => b.until <= today)
     .map((b) => ({
@@ -189,14 +211,21 @@ export function accumulatedSavings(s, today = bahrainDate()) {
       amount: convert(s, budgetStats(s, b, b, today).remaining, b.currency),
     }));
 }
-export function recurringForecast(s) {
-  const factors = {
+export type ForecastRow =
+  | (Recurring & { value: number })
+  | (Omit<Subscription, "frequency"> & {
+      type: "expense";
+      frequency: string;
+      value: number;
+    });
+export function recurringForecast(s: Workspace) {
+  const factors: Record<string, number> = {
     daily: 365 / 12,
     weekly: 52 / 12,
     monthly: 1,
     yearly: 1 / 12,
   };
-  const rows = s.recurring
+  const rows: ForecastRow[] = s.recurring
     .filter((r) => !r.paused)
     .map((r) => ({
       ...r,
@@ -247,7 +276,11 @@ export function recurringForecast(s) {
   };
 }
 
-export function budgetHistory(s, b, today = bahrainDate()) {
+export function budgetHistory(
+  s: Workspace,
+  b: CycleBudget,
+  today: string = bahrainDate(),
+) {
   return Array.from({ length: 6 }, (_, i) => {
     const key = shiftPeriod(b.key, i - 6),
       range = cycleRange({ settings: { cycleStartDay: b.day || 1 } }, key),

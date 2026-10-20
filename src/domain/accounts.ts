@@ -1,5 +1,14 @@
 import { amount, date } from "./model.ts";
-export function termDetails(data) {
+export type TermInput = {
+  tenure?: unknown;
+  startDate?: unknown;
+  maturity?: unknown;
+  installment?: unknown;
+  loanOriginal?: unknown;
+  type?: string;
+  balance?: unknown;
+};
+export function termDetails(data: TermInput) {
   const tenure = Number(data.tenure || 0),
     startDate = date(data.startDate, true);
   let maturity = date(data.maturity, true);

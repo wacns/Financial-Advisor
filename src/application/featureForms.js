@@ -4,8 +4,8 @@ import {
   contactFields,
 } from "./enhancementForms.js";
 import { currencyCodes } from "../domain/model.ts";
-import { categoryPaths } from "../domain/commands.js";
-import { cycleKey, splitWeeks } from "../domain/cycles.js";
+import { categoryPaths } from "../domain/commands.ts";
+import { cycleKey, splitWeeks } from "../domain/cycles.ts";
 import { bahrainDate } from "../locale.ts";
 export const f = (label, name, value = "", type = "text", options) => ({
   label,
