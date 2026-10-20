@@ -64,7 +64,7 @@ export function applyEntry(
   state: unknown,
   kind: string,
   data: EntryInput,
-  id: string | null | undefined,
+  id?: string | null,
   uuid: () => string = () => crypto.randomUUID(),
 ): Workspace {
   const next = normalizeWorkspace(state);

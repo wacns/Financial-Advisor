@@ -23,4 +23,4 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
           DESKTOP_UPDATE_URL: ${{ vars.DESKTOP_UPDATE_URL }}
-        run: node scripts/check-update-connections.mjs
+        run: node scripts/check-update-connections.ts

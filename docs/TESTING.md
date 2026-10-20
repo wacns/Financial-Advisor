@@ -14,9 +14,9 @@ npm run build
 
 - `tests/unit/`: Node's test runner, importing application modules from `src/`.
 - `tests/e2e/`: Playwright browser workflows. The default configuration excludes OAuth and uses port 5173.
-- `playwright.auth.config.js`: isolated mocked OAuth suite on port 5174 with fake public configuration.
-- `tests/unit/native-auth.test.js`, `notifications.test.js`, `push-server.test.js`: native callback, device-consent and push-server contracts without real provider sends.
-- `tests/e2e/mobile-shell.spec.js`: Shared React mobile tabs and web notification availability.
+- `playwright.auth.config.ts`: isolated mocked OAuth suite on port 5174 with fake public configuration.
+- `tests/unit/native-auth.test.ts`, `notifications.test.ts`, `push-server.test.ts`: native callback, device-consent and push-server contracts without real provider sends.
+- `tests/e2e/mobile-shell.spec.ts`: Shared React mobile tabs and web notification availability.
 - `artifacts/`, `test-results/`, and `playwright-report/`: generated and ignored by Git.
 
 On Linux hosts with system Chromium, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium` for the browser commands instead of downloading a browser. On fresh Linux CI images, use `npx playwright install --with-deps chromium` to install required system libraries too.
@@ -54,9 +54,9 @@ Two upstream advisories remain in the latest published build-tool dependencies: 
 
 ## v1.5 coverage
 
-`tests/unit/feature-parity.test.js` adds currency/reversal atomicity, reconciliation, hierarchy/template behavior, cycle-day clamping and allocation/overlap checks, salary and forecast conversion, project payments/links/contracts/attachments, malformed backups and full reference backup unit conversion, duplicate-aware CSV imports, receipt ambiguity, flexible report boundaries, foreign-currency debt repayments and linked loan installments.
+`tests/unit/feature-parity.test.ts` adds currency/reversal atomicity, reconciliation, hierarchy/template behavior, cycle-day clamping and allocation/overlap checks, salary and forecast conversion, project payments/links/contracts/attachments, malformed backups and full reference backup unit conversion, duplicate-aware CSV imports, receipt ambiguity, flexible report boundaries, foreign-currency debt repayments and linked loan installments.
 
-`tests/e2e/features.spec.js` exercises edit/template/delete persistence, cycle-budget validation, project agreement/milestone/payment creation, warranty/CSV/previewed backup restore, Arabic/RTL/dark/reporting preferences, all new routes at 360px and real local browser OCR from a generated receipt image. It verifies that OCR review/cancellation never persists a transaction. Existing demo, account, report, calendar and mocked OAuth flows remain in the suite.
+`tests/e2e/features.spec.ts` exercises edit/template/delete persistence, cycle-budget validation, project agreement/milestone/payment creation, warranty/CSV/previewed backup restore, Arabic/RTL/dark/reporting preferences, all new routes at 360px and real local browser OCR from a generated receipt image. It verifies that OCR review/cancellation never persists a transaction. Existing demo, account, report, calendar and mocked OAuth flows remain in the suite.
 
 Native local module source compilation, platform SDK installation and device verification have separate requirements. A Linux session cannot compile Apple Vision/Swift into an iOS app. See the release checklist in MOBILE.md and the coverage distinctions in FEATURE-PARITY.md.
 

@@ -26,7 +26,7 @@ jobs:
         run: |
           node --input-type=module <<'JS'
           import fs from 'node:fs';
-          import {releaseNotes} from './scripts/release-notes.mjs';
+          import {releaseNotes} from './scripts/release-notes.ts';
           const {version} = JSON.parse(fs.readFileSync('desktop/package.json'));
           if (!/^\d+\.\d+\.\d+$/.test(version)) throw Error('Invalid desktop version');
           releaseNotes(version);

@@ -167,7 +167,7 @@ export type AssistantDependencies = {
     usage: unknown,
   ) => Promise<Settlement>;
   quota: (request: Request) => Promise<boolean>;
-  generate: (input: AssistantInput, funding: Funding) => Promise<{ output: unknown; usage: unknown }>;
+  generate: (input: AssistantInput, funding: Funding) => Promise<{ output: unknown; usage?: unknown }>;
   json: (request: Request, data: unknown, status?: number) => Response;
 };
 

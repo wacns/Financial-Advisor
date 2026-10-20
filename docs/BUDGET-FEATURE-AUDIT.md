@@ -6,29 +6,29 @@ Reviewed 20 October 2026 against the uploaded `budget-tracker-features.md` and F
 
 | Uploaded capability | Current status | Evidence and difference |
 | --- | --- | --- |
-| Email/password signup, confirmation, login, logout | Implemented | `src/application/useWorkspace.js`, `src/application/Login.jsx`; Google login also exists. |
-| Auth sessions and token refresh | Implemented | `useWorkspace.js`, `src/auth.js`, `src/platform/runtime.*`; PKCE and native return handling. Workspace reads validate the user. |
+| Email/password signup, confirmation, login, logout | Implemented | `src/application/useWorkspace.ts`, `src/application/Login.tsx`; Google login also exists. |
+| Auth sessions and token refresh | Implemented | `useWorkspace.ts`, `src/auth.ts`, `src/platform/runtime.*`; PKCE and native return handling. Workspace reads validate the user. |
 | Profile/settings bootstrap trigger | Different design | Personal data/settings live in an owned `northline_workspaces` document, normalized when loaded. We do not have the upload's `profiles`/`user_settings` table contract. |
 | Private user data / RLS | Implemented with a different schema | Owner-isolated workspace plus separately protected shared-account tables. Shared accounts have role-aware server mutations; not every personal collection is a separate SQL table. See `supabase/migrations`. |
-| Monthly navigation, income/expense/net summary | Implemented | `src/application/App.jsx`, `FinancialScreens.jsx`, `src/finance.js`; adjustable salary cycles and custom/rolling report ranges go beyond calendar months. |
-| Expense breakdown chart | Implemented | `TrendChart.jsx`, `ReportsSettings.jsx`, `src/domain/reports.js`; categories, accounts, contacts and labels are supported groupings. |
+| Monthly navigation, income/expense/net summary | Implemented | `src/application/App.tsx`, `FinancialScreens.tsx`, `src/finance.ts`; adjustable salary cycles and custom/rolling report ranges go beyond calendar months. |
+| Expense breakdown chart | Implemented | `TrendChart.tsx`, `ReportsSettings.tsx`, `src/domain/reports.ts`; categories, accounts, contacts and labels are supported groupings. |
 | Create default sections and copy recurring entries on visiting a month | Different design | Categories, cycle-budget allocations and recurring schedules are separate from actual transactions. Visiting a month does not create spending or change balances. |
-| Section/category create, rename, delete | Partial equivalent | Category management and sub-budgets exist in `ManagementScreens.jsx`, `src/domain/commands.js`. Safe deletion/rename preserves referenced history; there are no month-owned section cards with cascade deletion. |
+| Section/category create, rename, delete | Partial equivalent | Category management and sub-budgets exist in `ManagementScreens.tsx`, `src/domain/commands.ts`. Safe deletion/rename preserves referenced history; there are no month-owned section cards with cascade deletion. |
 | Duplicate an entire section and every entry | Missing as specified | Individual transaction copy, templates and cycle-budget copy exist. Copying all actual entries would duplicate balances; a future plan-section copy should copy planned lines only. |
 | Entry name, amount, income/expense and date | Implemented | Reviewed transaction forms and ledger commands; also accounts, contacts, tags, receipts and currency. |
 | Entry start/end validity spanning months | Partial | Actual entries have an accounting date. Subscriptions have trial/status fields and installments have finite occurrences, but generic planned lines do not have validity intervals. |
 | Recurring carry-forward | Different design | Bills/salary schedules and commitment schedules project due dates and record a reviewed payment once. They do not clone actuals when a month opens. |
 | Percentage / conditional / parsed text formulas between entries | Missing | No dependency formula engine or formula builder. APR, conversions, forecasts and installment allocation are domain calculations, not this feature. |
-| Global currency selection and device sync | Implemented with additional semantics | `featureForms.js`, `src/domain/model.js`, `src/locale.js`; account currencies are preserved and reporting converts using saved rates. Changing reporting currency does not merely relabel historical numbers. |
-| Light/dark theme | Implemented | `appearance.jsx`; also system theme, Arabic/English and reduced motion. |
+| Global currency selection and device sync | Implemented with additional semantics | `featureForms.ts`, `src/domain/model.ts`, `src/locale.ts`; account currencies are preserved and reporting converts using saved rates. Changing reporting currency does not merely relabel historical numbers. |
+| Light/dark theme | Implemented | `appearance.tsx`; also system theme, Arabic/English and reduced motion. |
 | Font selector / Nunito / Quicksand | Missing | No user-selectable font setting. Existing shared semantic color objects use hex values rather than the upload's HSL/Tailwind system. |
 | Anonymous read-only monthly share links | Missing | Shared accounts require login and provide owner/editor/viewer roles. They are not anonymous links or a way to publish a personal month's data. |
 | Revoke, reactivate and delete public links | Missing | Shared-account invitations are expiring/single-use and membership can be managed. This differs from reactivatable public links. |
 | Current-month CSV export | Partial equivalent | Transaction CSV and selected report CSV exist; current dates/accounts can be filtered. The export schema has actual ledger fields, not planned section/formula/start/end columns. |
 | PDF report export | Missing | PDF attachments can be stored, but generating a PDF budget/report is not implemented. |
-| Save feedback and failed-save recovery | Partial | `useWorkspace.js` waits for successful persistence before committing state; EntryModal disables duplicate submission, retains values on error and shows errors; save messages exist. No dedicated saved/idle indicator state machine matching the upload. |
+| Save feedback and failed-save recovery | Partial | `useWorkspace.ts` waits for successful persistence before committing state; EntryModal disables duplicate submission, retains values on error and shows errors; save messages exist. No dedicated saved/idle indicator state machine matching the upload. |
 | Form drafts restored after refresh / leave-page guard | Missing | EntryModal uses component state; unsaved form edits are not durably restored. Privacy gate/secure mobile storage and saved workspaces do not provide draft persistence. |
-| Stable user dependency preventing refresh data loss | Partial/different | User identity/generation/write guards exist in `useWorkspace.js`; the stronger persistent-draft guarantee has not been implemented or verified. |
+| Stable user dependency preventing refresh data loss | Partial/different | User identity/generation/write guards exist in `useWorkspace.ts`; the stronger persistent-draft guarantee has not been implemented or verified. |
 | Vercel deployment / static routing | Implemented differently | Private GitHub source deploys to Vercel. Hash routes work without route rewrites. Mobile uses Expo/React Native; desktop uses Electron. No Tailwind/Lovable dependency is required. |
 
 ## The upload's planned features

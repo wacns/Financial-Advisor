@@ -18,5 +18,11 @@
     "supabase/functions/_shared/push.*",
     "supabase/functions/financial-assistant/handler.*",
     "supabase/functions/financial-assistant/funding.*"
+  ],
+  "exclude": [
+    "tests/e2e",
+    "scripts/test-desktop.ts",
+    "playwright.config.ts",
+    "playwright.auth.config.ts"
   ]
 }

@@ -199,8 +199,8 @@ export type TransactionFilter = {
   category?: string;
   from?: string;
   to?: string;
-  minimum?: string;
-  maximum?: string;
+  minimum?: string | number;
+  maximum?: string | number;
   pinned?: boolean;
 };
 export function filterTransactions(

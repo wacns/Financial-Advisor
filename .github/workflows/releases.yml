@@ -28,7 +28,7 @@ jobs:
         run: |
           node --input-type=module <<'JS'
           import fs from 'node:fs';
-          import {releaseNotes} from './scripts/release-notes.mjs';
+          import {releaseNotes} from './scripts/release-notes.ts';
           import app from './app.config.ts';
           const pkg = JSON.parse(fs.readFileSync('package.json'));
           const desktop = JSON.parse(fs.readFileSync('desktop/package.json'));
@@ -150,7 +150,7 @@ jobs:
           cd ..
           node --input-type=module <<'JS'
           import fs from 'node:fs';
-          import {releaseNotes} from './scripts/release-notes.mjs';
+          import {releaseNotes} from './scripts/release-notes.ts';
           fs.writeFileSync(`${process.env.RUNNER_TEMP}/release-notes.md`, releaseNotes(process.env.APP_VERSION));
           JS
           TAG="v$APP_VERSION"

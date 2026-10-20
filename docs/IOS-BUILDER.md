@@ -36,7 +36,7 @@ builder ios build --profile unsigned --unsigned
 
 Builder snapshots the current working tree, including uncommitted/untracked files but excluding gitignored files, pushes a temporary ref, dispatches this workflow and downloads the IPA to `dist/`. Review the working tree first. `builder init` is unnecessary for this repository and would overwrite the workflow adaptations; review changes before updating the upstream template.
 
-Generated `ios/`, local `.env` files, signing keys and `GoogleService-Info.plist` are ignored and are not included in a snapshot. The macOS runner regenerates `ios/` from `app.config.js` before installing CocoaPods.
+Generated `ios/`, local `.env` files, signing keys and `GoogleService-Info.plist` are ignored and are not included in a snapshot. The macOS runner regenerates `ios/` from `app.config.ts` before installing CocoaPods.
 
 The app's Expo plugin adds `$RNFirebaseDisableSPM = true` and `$RNFirebaseAsStaticFramework = true` before the generated Podfile's targets. React Native Firebase 26.4 does not support its default Swift Package Manager integration with our static frameworks; these settings select its supported CocoaPods integration, including builds without a Firebase client plist. Keep this configuration in the plugin because generated Podfiles are disposable.
 

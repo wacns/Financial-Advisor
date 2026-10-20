@@ -2,7 +2,7 @@ import type { Provider } from "@supabase/supabase-js";
 import { must } from "./guards.ts";
 // PKCE callbacks return to the app's existing document, so static hosts need no rewrite.
 export const NATIVE_AUTH_REDIRECT = 'com.wacns.financialadvisor://auth/callback';
-type OAuthRequest = {
+export type OAuthRequest = {
   provider: Provider;
   options: {
     redirectTo: string;
