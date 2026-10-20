@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { demoState } from "../../src/finance.js";
-import { normalizeWorkspace } from "../../src/domain/model.js";
+import { normalizeWorkspace } from "../../src/domain/model.ts";
 async function seedDemo(page, input = demoState()) {
   const state = normalizeWorkspace(input);
   await page.addInitScript((value) => {

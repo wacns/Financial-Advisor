@@ -1,7 +1,7 @@
 import { organizeCommand, accountAppearance } from "../domain/organizing.js";
 import { commitmentCommand } from "../domain/commitments.js";
 import { termDetails } from "../domain/accounts.js";
-import { normalizeWorkspace, validateWorkspace } from "../domain/model.js";
+import { normalizeWorkspace, validateWorkspace } from "../domain/model.ts";
 import { featureCommand } from "../domain/commands.js";
 import { projectCommand, validateProjects } from "../domain/projects.js";
 import { saveTransaction } from "../domain/ledger.js";
@@ -13,7 +13,7 @@ import {
   recordRepayment,
   saveProject,
 } from "../planning.js";
-import { toFils } from "../locale.js";
+import { toFils } from "../locale.ts";
 const positive = (value, label) => {
   const amount = toFils(value) / 1000;
   if (amount <= 0) throw Error(`${label} must be greater than zero.`);

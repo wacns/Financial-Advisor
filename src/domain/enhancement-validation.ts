@@ -1,12 +1,13 @@
-import { isCivilDate, toFils } from "../locale.js";
-const fail = (message) => {
+import { isCivilDate, toFils } from "../locale.ts";
+import type { Installment, Subscription, Workspace } from "./types.ts";
+const fail: (message: string) => never = (message) => {
   throw Error(message);
 };
-export function validateEnhancements(s) {
-  const date = (value) => {
+export function validateEnhancements(s: Workspace): Workspace {
+  const date = (value: unknown) => {
     if (!isCivilDate(value)) fail("Choose a valid plan date.");
   };
-  const positive = (value) => {
+  const positive = (value: unknown) => {
     if (toFils(value) <= 0) fail("Plan amounts must be positive.");
   };
   for (const p of s.payees)
@@ -50,12 +51,15 @@ export function validateEnhancements(s) {
         !Number.isFinite(Date.parse(row.savedAt)) ||
         !row.rates ||
         row.rates.BHD !== 1 ||
-        Object.keys(s.settings.rates).some(
-          (code) =>
-            !Number.isFinite(row.rates[code]) ||
-            row.rates[code] <= 0 ||
-            row.rates[code] > 1e9,
-        )
+        Object.keys(s.settings.rates).some((code) => {
+          const rate = row.rates[code];
+          return (
+            rate === undefined ||
+            !Number.isFinite(rate) ||
+            rate <= 0 ||
+            rate > 1e9
+          );
+        })
       )
         fail("Invalid exchange quote history.");
     }
@@ -91,7 +95,7 @@ export function validateEnhancements(s) {
     )
       fail("Invalid account reward rate.");
   }
-  const contact = (t) => {
+  const contact = (t: { payeeId?: string }) => {
     if (t.payeeId && !s.payees.some((p) => p.id === t.payeeId))
       fail("Transaction contact no longer exists.");
   };
@@ -123,11 +127,15 @@ export function validateEnhancements(s) {
     )
       fail("Invalid transaction attachment.");
   }
-  for (const [key, kind] of [
-    ["subscriptions", "subscription"],
-    ["installments", "installment"],
-  ])
-    for (const p of s[key]) {
+  // Subscriptions first, then installments, as before; the tuple tag lets each branch see its own fields.
+  const commitments: (
+    | readonly [Subscription, "subscription"]
+    | readonly [Installment, "installment"]
+  )[] = [
+    ...s.subscriptions.map((p) => [p, "subscription"] as const),
+    ...s.installments.map((p) => [p, "installment"] as const),
+  ];
+  for (const [p, kind] of commitments) {
       if (
         typeof p.name !== "string" ||
         !p.name.trim() ||
@@ -169,7 +177,7 @@ export function validateEnhancements(s) {
         positive(p.amount);
         if (p.trialEnds) date(p.trialEnds);
         if (p.website) {
-          let url;
+          let url: URL;
           try {
             url = new URL(p.website);
           } catch {
@@ -223,7 +231,7 @@ export function validateEnhancements(s) {
     }
   for (const t of s.transactions)
     if (t.commitmentId) {
-      const list =
+      const list: (Subscription | Installment)[] =
         t.commitmentType === "installment"
           ? s.installments
           : t.commitmentType === "subscription"

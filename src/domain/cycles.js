@@ -1,5 +1,5 @@
-import { bahrainDate, isCivilDate, toFils } from "../locale.js";
-import { convert, recordValue, currencyCodes, text } from "./model.js";
+import { bahrainDate, isCivilDate, toFils } from "../locale.ts";
+import { convert, recordValue, currencyCodes, text } from "./model.ts";
 import { commitmentStats } from "./commitments.js";
 export function shiftPeriod(month, n) {
   const d = new Date(`${month}-01T12:00:00Z`);

@@ -1,4 +1,4 @@
-import { currencyCodes } from "./model.js";
+import { currencyCodes } from "./model.ts";
 export function exchangeSnapshot(response) {
   if (
     response.result !== "success" ||

@@ -1,4 +1,4 @@
-import { isCivilDate } from "../locale.js";
+import { isCivilDate } from "../locale.ts";
 export function parseReceipt(value) {
   const lines = String(value)
       .split(/\r?\n/)

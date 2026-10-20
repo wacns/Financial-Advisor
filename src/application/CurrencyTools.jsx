@@ -3,9 +3,9 @@ import React, { useState } from "react";
 import { Linking } from "react-native";
 import Field from "./Field";
 import { Button, Card, Heading, Label, Muted, Row, Stack } from "./ui.jsx";
-import { currencyCodes, convert } from "../domain/model.js";
+import { currencyCodes, convert } from "../domain/model.ts";
 import { exchangeSnapshot } from "../domain/currency-tools.js";
-import { formatMoney as money, bahrainDate } from "../locale.js";
+import { formatMoney as money, bahrainDate } from "../locale.ts";
 export default function CurrencyTools({ workspace: w, open }) {
   const [amount, setAmount] = useState("1"),
     [from, setFrom] = useState("BHD"),

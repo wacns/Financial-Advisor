@@ -14,8 +14,8 @@ import {
   Stat,
 } from "./ui.jsx";
 import { useAppearance } from "./appearance.jsx";
-import { formatMoney as money, formatDate, bahrainDate } from "../locale.js";
-import { convert } from "../domain/model.js";
+import { formatMoney as money, formatDate, bahrainDate } from "../locale.ts";
+import { convert } from "../domain/model.ts";
 import { contactSummary } from "../domain/organizing.js";
 import {
   commitmentStats,

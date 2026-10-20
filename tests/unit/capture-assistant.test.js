@@ -13,7 +13,7 @@ import {
   normalizeWorkspace,
   validateWorkspace,
   defaultRates,
-} from "../../src/domain/model.js";
+} from "../../src/domain/model.ts";
 import {
   assistantHandler,
   validateAssistantInput,

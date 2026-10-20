@@ -1,6 +1,6 @@
 import { cycleRange, shiftPeriod } from "./cycles.js";
-import { recordValue, convert } from "./model.js";
-import { toFils, bahrainDate, isCivilDate } from "../locale.js";
+import { recordValue, convert } from "./model.ts";
+import { toFils, bahrainDate, isCivilDate } from "../locale.ts";
 export function reportRange(s, mode, anchor, from, to) {
   if (["last7", "last30", "last3months"].includes(mode)) {
     const today = bahrainDate(),

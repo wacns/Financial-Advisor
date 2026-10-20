@@ -1,4 +1,4 @@
-import { bahrainDate, isCivilDate, toFils } from "../locale.js";
+import { bahrainDate, isCivilDate, toFils } from "../locale.ts";
 import {
   normalizeWorkspace,
   validateWorkspace,
@@ -6,7 +6,7 @@ import {
   amount,
   recordValue,
   currencyCodes,
-} from "./model.js";
+} from "./model.ts";
 export const accountIcons = ["▣", "▰", "◆", "◈", "●", "♧", "⌂", "✦"];
 export const accountColors = [
   "#214b39",

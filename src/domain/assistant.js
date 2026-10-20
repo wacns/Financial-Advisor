@@ -1,8 +1,8 @@
 import { reportData, reportRange } from "./reports.js";
 import { commitmentStats } from "./commitments.js";
-import { convert, recordValue } from "./model.js";
+import { convert, recordValue } from "./model.ts";
 import { totalBalance } from "../finance.js";
-import { bahrainDate, formatMoney as money, toFils } from "../locale.js";
+import { bahrainDate, formatMoney as money, toFils } from "../locale.ts";
 export function assistantSummary(s, month = bahrainDate().slice(0, 7)) {
   const totals = reportData(s, reportRange(s, "month", month), {
     kind: "expense",

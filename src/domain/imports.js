@@ -4,7 +4,7 @@ import {
   clone,
   defaultRates,
   accountCurrency,
-} from "./model.js";
+} from "./model.ts";
 import { validateCycleBudgets } from "./cycles.js";
 import { validateProjects } from "./projects.js";
 import { saveTransaction } from "./ledger.js";

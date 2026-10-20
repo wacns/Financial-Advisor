@@ -1,4 +1,4 @@
-import { normalizeWorkspace, validateWorkspace } from "../domain/model.js";
+import { normalizeWorkspace, validateWorkspace } from "../domain/model.ts";
 import { validateCycleBudgets } from "../domain/cycles.js";
 import { validateProjects } from "../domain/projects.js";
 import { syncWidgets } from "../platform/files";
@@ -7,7 +7,7 @@ import { client } from "./client.js";
 import * as runtime from "../platform/runtime";
 import { blankState, demoState } from "../finance.js";
 import { normalizePlanning } from "../planning.js";
-import { DEMO_STORAGE_KEY, requireBahrainWorkspace } from "../locale.js";
+import { DEMO_STORAGE_KEY, requireBahrainWorkspace } from "../locale.ts";
 import { createNotifications } from "../notifications.js";
 import { finishNativeAuth } from "../auth.js";
 import { applyEntry, togglePlan } from "./workspace.js";

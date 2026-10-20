@@ -6,7 +6,7 @@ import {
   normalizeWorkspace,
   convert,
   validateWorkspace,
-} from "../../src/domain/model.js";
+} from "../../src/domain/model.ts";
 import {
   cycleRange,
   cycleKey,

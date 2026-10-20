@@ -26,7 +26,7 @@ import {
 } from "./FinancialScreens.jsx";
 import { Bills, Debts, Projects, Calendar } from "./PlanningScreens.jsx";
 import { Insights, Settings } from "./ReportsSettings.jsx";
-import { bahrainDate, isCivilDate, setDisplayPreferences } from "../locale.js";
+import { bahrainDate, isCivilDate, setDisplayPreferences } from "../locale.ts";
 import {
   AdvancedBudgets,
   Categories,

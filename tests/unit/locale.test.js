@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {bahrainDate,formatDate,formatMoney,requireBahrainWorkspace,DEMO_STORAGE_KEY} from '../../src/locale.js';
+import {bahrainDate,formatDate,formatMoney,requireBahrainWorkspace,DEMO_STORAGE_KEY} from '../../src/locale.ts';
 import {blankState,demoState} from '../../src/finance.js';
 
 test('Bahrain civil date crosses midnight and month boundary at UTC+3',()=>{

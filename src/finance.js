@@ -1,4 +1,4 @@
-import { convert, recordValue } from "./domain/model.js";
+import { convert, recordValue } from "./domain/model.ts";
 import { cycleRange } from "./domain/cycles.js";
 import {
   bahrainDate,
@@ -7,7 +7,7 @@ import {
   TIME_ZONE,
   toFils,
   isCivilDate,
-} from "./locale.js";
+} from "./locale.ts";
 export const categories = [
   "Shopping",
   "Food & drink",

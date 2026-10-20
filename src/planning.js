@@ -1,7 +1,7 @@
-import { normalizeWorkspace, convert } from "./domain/model.js";
+import { normalizeWorkspace, convert } from "./domain/model.ts";
 import { addTransfer } from "./finance.js";
 import { addTransaction, categories } from "./finance.js";
-import { bahrainDate, toFils, isCivilDate } from "./locale.js";
+import { bahrainDate, toFils, isCivilDate } from "./locale.ts";
 
 export const frequencies = {
   daily: "Daily",

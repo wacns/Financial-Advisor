@@ -15,8 +15,8 @@ import {
   milestonePaid,
   milestoneStatus,
 } from "../domain/projects.js";
-import { formatMoney as money } from "../locale.js";
-import { convert } from "../domain/model.js";
+import { formatMoney as money } from "../locale.ts";
+import { convert } from "../domain/model.ts";
 import { downloadAttachment } from "../platform/files";
 import { exportFile } from "../platform/runtime";
 export default function ProjectDetails({ workspace: w, project: p, open }) {

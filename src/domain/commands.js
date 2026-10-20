@@ -11,14 +11,14 @@ import {
   currencyCodes,
   convert,
   accountCurrency,
-} from "./model.js";
+} from "./model.ts";
 import { cycleRange, splitWeeks, validateCycleBudgets } from "./cycles.js";
 import {
   saveTransaction,
   deleteTransaction,
   copyTransaction,
 } from "./ledger.js";
-import { bahrainDate, toFils } from "../locale.js";
+import { bahrainDate, toFils } from "../locale.ts";
 import { categories } from "../finance.js";
 export const categoryPaths = (s) =>
   [

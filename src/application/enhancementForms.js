@@ -1,7 +1,7 @@
 import { accountColors, accountIcons } from "../domain/organizing.js";
 import { commitmentStats, paymentDraft } from "../domain/commitments.js";
 import { categoryPaths } from "../domain/commands.js";
-import { bahrainDate } from "../locale.js";
+import { bahrainDate } from "../locale.ts";
 const f = (label, name, value = "", type = "text", options) => ({
   label,
   name,

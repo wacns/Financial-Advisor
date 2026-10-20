@@ -20,8 +20,8 @@ import {
 } from "./ui.jsx";
 import Field from "./Field";
 import EntryModal from "./EntryModal.jsx";
-import { bahrainDate, formatMoney as money } from "../locale.js";
-import { currencyCodes } from "../domain/model.js";
+import { bahrainDate, formatMoney as money } from "../locale.ts";
+import { currencyCodes } from "../domain/model.ts";
 import { exportFile } from "../platform/runtime";
 const field = (label, name, value = "", type = "text", options) => ({
   label,

@@ -1,8 +1,8 @@
 import { basicBudgetStats } from "./domain/reports.js";
-import { recordValue } from "./domain/model.js";
+import { recordValue } from "./domain/model.ts";
 import { cycleRange } from "./domain/cycles.js";
 import { categorySpend, summary } from "./finance.js";
-import { toFils, isCivilDate } from "./locale.js";
+import { toFils, isCivilDate } from "./locale.ts";
 import { nextOccurrence, upcomingPayments } from "./planning.js";
 import { commitmentCalendar } from "./domain/commitments.js";
 

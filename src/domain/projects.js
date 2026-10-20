@@ -1,5 +1,5 @@
-import { amount, text, date, convert, clone } from "./model.js";
-import { toFils, bahrainDate } from "../locale.js";
+import { amount, text, date, convert, clone } from "./model.ts";
+import { toFils, bahrainDate } from "../locale.ts";
 import { saveTransaction } from "./ledger.js";
 const sum = (rows) => rows.reduce((n, value) => n + toFils(value), 0) / 1000;
 export function projectTotals(s, p) {

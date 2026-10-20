@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { blankState, addTransaction } from "../../src/finance.js";
-import { isCivilDate } from "../../src/locale.js";
+import { isCivilDate } from "../../src/locale.ts";
 import {
   normalizePlanning,
   nextOccurrence,

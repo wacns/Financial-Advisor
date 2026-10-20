@@ -1,4 +1,4 @@
-import { amount, date } from "./model.js";
+import { amount, date } from "./model.ts";
 export function termDetails(data) {
   const tenure = Number(data.tenure || 0),
     startDate = date(data.startDate, true);

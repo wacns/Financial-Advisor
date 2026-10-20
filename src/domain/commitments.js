@@ -1,4 +1,4 @@
-import { isCivilDate, bahrainDate, toFils } from "../locale.js";
+import { isCivilDate, bahrainDate, toFils } from "../locale.ts";
 import {
   normalizeWorkspace,
   validateWorkspace,
@@ -6,7 +6,7 @@ import {
   text,
   convert,
   accountCurrency,
-} from "./model.js";
+} from "./model.ts";
 import { saveTransaction } from "./ledger.js";
 export function commitmentDue(plan, index) {
   if (

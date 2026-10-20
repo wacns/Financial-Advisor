@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { demoState } from "../../src/finance.js";
-import { normalizeWorkspace } from "../../src/domain/model.js";
-import { DEMO_STORAGE_KEY } from "../../src/locale.js";
+import { normalizeWorkspace } from "../../src/domain/model.ts";
+import { DEMO_STORAGE_KEY } from "../../src/locale.ts";
 
 for (const viewport of [
   { width: 1280, height: 900 },

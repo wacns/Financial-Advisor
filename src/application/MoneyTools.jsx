@@ -8,7 +8,7 @@ import {
   localAnswer,
 } from "../domain/assistant.js";
 import { categoryPaths } from "../domain/commands.js";
-import { currencyCodes } from "../domain/model.js";
+import { currencyCodes } from "../domain/model.ts";
 import {
   recognizeSpeech,
   speechSupported,

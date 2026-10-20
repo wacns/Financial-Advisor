@@ -1,5 +1,5 @@
-import { bahrainDate, isCivilDate, toFils } from "../locale.js";
-import { currencyCodes } from "./model.js";
+import { bahrainDate, isCivilDate, toFils } from "../locale.ts";
+import { currencyCodes } from "./model.ts";
 function fingerprint(value) {
   // An idempotency hint, not a security credential. Four independent lanes
   // avoid the birthday collisions of a single 32-bit hash in large imports.

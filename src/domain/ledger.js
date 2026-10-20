@@ -1,4 +1,4 @@
-import { toFils } from "../locale.js";
+import { toFils } from "../locale.ts";
 import {
   clone,
   amount,
@@ -6,7 +6,7 @@ import {
   convert,
   text,
   date,
-} from "./model.js";
+} from "./model.ts";
 export function applyEffect(s, t, direction = 1) {
   const account = s.accounts.find((a) => a.id === t.accountId);
   if (!account) throw Error("Choose an existing account.");

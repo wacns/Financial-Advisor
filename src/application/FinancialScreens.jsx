@@ -21,7 +21,7 @@ import {
   categorySpend,
   monthTransactions,
 } from "../finance.js";
-import { formatMoney as money, formatDate, toFils } from "../locale.js";
+import { formatMoney as money, formatDate, toFils } from "../locale.ts";
 import { upcomingPayments, dueStatus } from "../planning.js";
 import { budgetHealth, shiftMonth } from "../reports.js";
 import TrendChart from "./TrendChart.jsx";
@@ -30,7 +30,7 @@ import { exportFile } from "../platform/runtime";
 import { accountDetails, basicBudgetStats } from "../domain/reports.js";
 import { filterTransactions, transactionGroups } from "../domain/organizing.js";
 import { copyTransaction } from "../domain/ledger.js";
-import { convert, recordValue } from "../domain/model.js";
+import { convert, recordValue } from "../domain/model.ts";
 export function TransactionList({ state, transactions, open, onPin }) {
   const { colors } = useAppearance();
   if (!transactions.length)

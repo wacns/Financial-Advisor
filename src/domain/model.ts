@@ -1,6 +1,20 @@
-import { validateEnhancements } from "./enhancement-validation.js";
-import { isCivilDate, toFils } from "../locale.js";
-export const currencyCodes = [
+import { validateEnhancements } from "./enhancement-validation.ts";
+import { isCivilDate, toFils } from "../locale.ts";
+import { must } from "../guards.ts";
+import type {
+  CollectionKey,
+  CurrencyCode,
+  CycleBudget,
+  CycleBudgetEntry,
+  Rates,
+  Settings,
+  StoredCycleBudgetEntry,
+  StoredWorkspace,
+  Transaction,
+  TransactionDraft,
+  Workspace,
+} from "./types.ts";
+export const currencyCodes: CurrencyCode[] = [
   "BHD",
   "USD",
   "EUR",
@@ -12,7 +26,7 @@ export const currencyCodes = [
   "QAR",
   "INR",
 ];
-export const defaultRates = {
+export const defaultRates: Record<CurrencyCode, number> = {
   BHD: 1,
   USD: 0.376,
   EUR: 0.41,
@@ -24,32 +38,45 @@ export const defaultRates = {
   QAR: 0.1033,
   INR: 0.00448,
 };
-export const clone = (value) => JSON.parse(JSON.stringify(value));
-export function normalizeWorkspace(input) {
-  const s = clone(input);
+export const isCurrencyCode = (value: unknown): value is CurrencyCode =>
+  currencyCodes.some((code) => code === value);
+export const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+const collectionKeys: CollectionKey[] = [
+  "accounts",
+  "transactions",
+  "budgets",
+  "goals",
+  "recurring",
+  "debts",
+  "projects",
+  "warranties",
+  "cycleBudgets",
+  "templates",
+  "payees",
+  "tags",
+  "subscriptions",
+  "installments",
+];
+const normalizeCycleEntry = <T extends StoredCycleBudgetEntry>(
+  e: T,
+): T & CycleBudgetEntry => {
+  const include = e.include ?? [];
+  return Object.assign(e, {
+    include,
+    exclude: e.exclude ?? [],
+    categoryMode: e.categoryMode ?? (include.length ? "selected" : "all"),
+  });
+};
+export function normalizeWorkspace(input: unknown): Workspace {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- TS-ESCAPE: stored workspaces are trusted as written here (validateWorkspace checks them before saves and imports); a structural check at this point would reject data that opens today.
+  const s = must(clone(input), "workspace") as StoredWorkspace;
   if (s.currency !== "BHD")
     throw Error(
       "This workspace uses another currency. Import it with explicit account currencies before opening it.",
     );
-  s.schemaVersion = 2;
-  for (const key of [
-    "accounts",
-    "transactions",
-    "budgets",
-    "goals",
-    "recurring",
-    "debts",
-    "projects",
-    "warranties",
-    "cycleBudgets",
-    "templates",
-    "payees",
-    "tags",
-    "subscriptions",
-    "installments",
-  ])
-    s[key] ??= [];
-  s.settings = {
+  // Key order matters for stored JSON: spread keeps existing keys in place and appends
+  // missing ones in the same order the old in-place assignments did.
+  const settings: Settings = {
     base: "BHD",
     language: "en",
     theme: "light",
@@ -59,62 +86,87 @@ export function normalizeWorkspace(input) {
     categories: [],
     ...s.settings,
   };
-  s.settings.rates = { ...defaultRates, ...s.settings.rates, BHD: 1 };
-  for (const a of s.accounts) a.currency ??= "BHD";
-  for (const g of s.goals) g.currency ??= "BHD";
-  for (const b of s.cycleBudgets) {
-    b.children ??= [];
-    b.day ??= Number(b.from?.slice(8)) || 1;
-    for (const e of [b, ...b.children]) {
-      e.include ??= [];
-      e.exclude ??= [];
-      e.categoryMode ??= e.include.length ? "selected" : "all";
-    }
-  }
-  for (const p of s.projects) {
-    p.categories ??= [];
-    p.contracts ??= [];
-    p.milestones ??= [];
-    p.documents ??= [];
-    p.reserve ??= 0;
-    p.currency ??= "BHD";
-  }
-  return s;
+  settings.rates = { ...defaultRates, ...settings.rates, BHD: 1 };
+  return {
+    ...s,
+    currency: s.currency,
+    schemaVersion: 2,
+    accounts: (s.accounts ?? []).map((a) =>
+      Object.assign(a, { currency: a.currency ?? "BHD" }),
+    ),
+    transactions: s.transactions ?? [],
+    budgets: s.budgets ?? [],
+    goals: (s.goals ?? []).map((g) =>
+      Object.assign(g, { currency: g.currency ?? "BHD" }),
+    ),
+    recurring: s.recurring ?? [],
+    debts: s.debts ?? [],
+    projects: (s.projects ?? []).map((p) =>
+      Object.assign(p, {
+        categories: p.categories ?? [],
+        contracts: p.contracts ?? [],
+        milestones: p.milestones ?? [],
+        documents: p.documents ?? [],
+        reserve: p.reserve ?? 0,
+        currency: p.currency ?? "BHD",
+      }),
+    ),
+    warranties: s.warranties ?? [],
+    cycleBudgets: (s.cycleBudgets ?? []).map((b): CycleBudget => {
+      const children = (b.children ?? []).map(normalizeCycleEntry);
+      const day = b.day ?? (Number(b.from?.slice(8)) || 1);
+      return normalizeCycleEntry(Object.assign(b, { children, day }));
+    }),
+    templates: s.templates ?? [],
+    payees: s.payees ?? [],
+    tags: s.tags ?? [],
+    subscriptions: s.subscriptions ?? [],
+    installments: s.installments ?? [],
+    settings,
+  };
 }
 export function convert(
-  s,
-  amount,
-  from = "BHD",
-  to = s.settings?.base || "BHD",
-) {
-  const rates = s.settings?.rates || defaultRates;
-  if (!(rates[from] > 0 && rates[to] > 0))
+  s: { settings?: Partial<Settings> },
+  amount: number | string,
+  from: string = "BHD",
+  to: string = s.settings?.base || "BHD",
+): number {
+  const rates: Rates = s.settings?.rates || defaultRates;
+  const fromRate = rates[from] ?? 0,
+    toRate = rates[to] ?? 0;
+  if (!(fromRate > 0 && toRate > 0))
     throw Error("Set a positive exchange rate for both currencies.");
-  return Math.round((toFils(amount) * rates[from]) / rates[to]) / 1000;
+  return Math.round((toFils(amount) * fromRate) / toRate) / 1000;
 }
-export const accountCurrency = (s, id) =>
-  s.accounts.find((a) => a.id === id)?.currency || "BHD";
-export const recordValue = (s, t, to = s.settings?.base || "BHD") =>
+export const accountCurrency = (
+  s: Pick<Workspace, "accounts">,
+  id: string | undefined,
+): CurrencyCode => s.accounts.find((a) => a.id === id)?.currency || "BHD";
+export const recordValue = (
+  s: Pick<Workspace, "accounts" | "settings">,
+  t: Pick<Transaction, "amount" | "currency" | "accountId">,
+  to: string = s.settings?.base || "BHD",
+): number =>
   convert(s, t.amount, t.currency || accountCurrency(s, t.accountId), to);
-export function text(value, label = "Name", max = 80) {
+export function text(value: unknown, label = "Name", max = 80): string {
   const result = String(value || "").trim();
   if (!result || result.length > max)
     throw Error(`${label} must contain 1–${max} characters.`);
   return result;
 }
-export function amount(value, positive = false) {
+export function amount(value: unknown, positive = false): number {
   if (value == null || value === "" || typeof value === "boolean")
     throw Error("Enter an amount.");
   const n = toFils(value) / 1000;
   if (positive && n <= 0) throw Error("Amount must be greater than zero.");
   return n;
 }
-export function date(value, optional = false) {
+export function date(value: unknown, optional = false): string {
   if (optional && !value) return "";
   if (!isCivilDate(value)) throw Error("Choose a valid date.");
   return value;
 }
-export function validateWorkspace(s) {
+export function validateWorkspace(s: Workspace | null | undefined): Workspace {
   if (
     !s ||
     s.currency !== "BHD" ||
@@ -122,26 +174,12 @@ export function validateWorkspace(s) {
     !Array.isArray(s.transactions)
   )
     throw Error("Invalid backup. Nothing was changed.");
-  for (const key of [
-    "accounts",
-    "transactions",
-    "budgets",
-    "goals",
-    "recurring",
-    "debts",
-    "projects",
-    "warranties",
-    "cycleBudgets",
-    "templates",
-    "payees",
-    "tags",
-    "subscriptions",
-    "installments",
-  ]) {
-    if (!Array.isArray(s[key]) || s[key].length > 50000)
+  for (const key of collectionKeys) {
+    const rows = s[key];
+    if (!Array.isArray(rows) || rows.length > 50000)
       throw Error(`Invalid ${key} collection.`);
-    const ids = new Set();
-    for (const row of s[key]) {
+    const ids = new Set<string>();
+    for (const row of rows) {
       if (
         !row ||
         typeof row.id !== "string" ||
@@ -167,7 +205,7 @@ export function validateWorkspace(s) {
     throw Error("Cycle day must be 1–31.");
   for (const [currency, rate] of Object.entries(s.settings.rates))
     if (
-      !currencyCodes.includes(currency) ||
+      !isCurrencyCode(currency) ||
       !Number.isFinite(Number(rate)) ||
       Number(rate) <= 0 ||
       Number(rate) > 1e9
@@ -188,13 +226,15 @@ export function validateWorkspace(s) {
       r.hour < 0 ||
       r.hour > 23 ||
       !["daily", "weekly"].includes(r.frequency) ||
-      ["expenses", "salary", "advice"].some((k) => typeof r[k] !== "boolean")
+      (["expenses", "salary", "advice"] as const).some(
+        (k) => typeof r[k] !== "boolean",
+      )
     )
       throw Error("Invalid reminder preferences.");
   }
   if (typeof s.settings.motion !== "boolean")
     throw Error("Invalid motion setting.");
-  const nonnegative = (value) => {
+  const nonnegative = (value: unknown) => {
     if (amount(value) < 0) throw Error("Amounts cannot be negative.");
   };
   for (const a of s.accounts) {
@@ -202,7 +242,13 @@ export function validateWorkspace(s) {
     amount(a.balance);
     if (!currencyCodes.includes(a.currency))
       throw Error("Unsupported account currency.");
-    for (const key of ["apr", "limit", "cost", "installment", "loanOriginal"])
+    for (const key of [
+      "apr",
+      "limit",
+      "cost",
+      "installment",
+      "loanOriginal",
+    ] as const)
       if (a[key] != null) nonnegative(a[key]);
     date(a.startDate, true);
     date(a.maturity, true);
@@ -211,7 +257,7 @@ export function validateWorkspace(s) {
     if (a.last4 && !/^\d{4}$/.test(a.last4))
       throw Error("Last four digits must contain four digits.");
   }
-  const validateTransaction = (t, template = false) => {
+  const validateTransaction = (t: TransactionDraft, template = false) => {
     if (!template) date(t.date);
     amount(t.amount);
     text(t.name, "Description");
@@ -339,14 +385,20 @@ export function validateWorkspace(s) {
       throw Error("Project target must follow its start.");
     if (!currencyCodes.includes(p.currency))
       throw Error("Invalid project currency.");
-    for (const key of ["categories", "contracts", "milestones", "documents"]) {
+    for (const key of [
+      "categories",
+      "contracts",
+      "milestones",
+      "documents",
+    ] as const) {
+      const rows: { id: string; name: string }[] = p[key];
       if (
-        !Array.isArray(p[key]) ||
-        p[key].length > 2000 ||
-        new Set(p[key].map((r) => r.id)).size !== p[key].length
+        !Array.isArray(rows) ||
+        rows.length > 2000 ||
+        new Set(rows.map((r) => r.id)).size !== rows.length
       )
         throw Error("Invalid project collection.");
-      for (const r of p[key]) {
+      for (const r of rows) {
         if (typeof r.id !== "string") throw Error("Invalid project record ID.");
         text(r.name);
       }

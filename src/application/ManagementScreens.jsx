@@ -26,8 +26,8 @@ import {
 import { backupText, parseBackup, importCSV } from "../domain/imports.js";
 import { reportRange, reportData } from "../domain/reports.js";
 import { parseReceipt } from "../domain/receipt.js";
-import { convert, recordValue } from "../domain/model.js";
-import { formatMoney as money, bahrainDate, formatDate } from "../locale.js";
+import { convert, recordValue } from "../domain/model.ts";
+import { formatMoney as money, bahrainDate, formatDate } from "../locale.ts";
 import { exportFile, native } from "../platform/runtime";
 import {
   pickFile,

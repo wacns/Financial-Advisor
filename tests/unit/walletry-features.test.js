@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { applyEntry } from "../../src/application/workspace.js";
 import { blankState, totalBalance } from "../../src/finance.js";
-import { normalizeWorkspace } from "../../src/domain/model.js";
+import { normalizeWorkspace } from "../../src/domain/model.ts";
 import {
   commitmentStats,
   commitmentDue,
