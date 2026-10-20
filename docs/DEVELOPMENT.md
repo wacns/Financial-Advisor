@@ -27,8 +27,27 @@ FinancialAdvisor uses React 19, React Native 0.88, Expo SDK 58 and React Native 
 | `app.config.ts`, `plugins/` | Reproducible Expo native configuration |
 | `supabase/functions/` | Existing authenticated FCM registration and reminder backend |
 
-Keep financial rules in pure JavaScript modules. Shared screens use React Native primitives, never HTML strings or imperative DOM mutation. Platform-specific behavior lives behind `.web` / `.native` modules; import those without the suffix so Vite/Metro choose the right implementation. Native code must not import `react-dom`, browser globals or Vite `import.meta.env`. Do not reintroduce Ionic or Capacitor.
+Keep financial rules in pure TypeScript modules. Shared screens use React Native primitives, never HTML strings or imperative DOM mutation. Platform-specific behavior lives behind `.web` / `.native` modules; import those without the suffix so Vite/Metro choose the right implementation. Native code must not import `react-dom`, browser globals or Vite `import.meta.env`. Do not reintroduce Ionic or Capacitor.
 
 Native projects are generated and ignored. Change `app.config.ts` or a config plugin, then regenerate; manual changes inside `android/` or `ios/` disappear on clean prebuild. Preserve the existing `northline_workspaces` schema, BHD data and browser demo key. Installed Capacitor demo/session storage is separate from React Native storage; signed-in cloud data remains available after signing in again.
+
+## TypeScript
+
+All source, scripts, tests and configuration are TypeScript. Node 24 runs `.ts` files directly (type stripping), Vite and Metro compile them for the app, and Deno runs the Supabase functions. Only the desktop shell is compiled ahead of time: `desktop/src/*.cts` becomes `desktop/{main,preload,policy}.cjs` through `npm run desktop:compile`, and the output is gitignored.
+
+`npm run typecheck` (part of `npm run lint`) checks each project with its own settings:
+
+| Config | Covers |
+| --- | --- |
+| `tsconfig.base.json` | Shared strict settings: `strict`, `noUncheckedIndexedAccess`, `erasableSyntaxOnly`, `verbatimModuleSyntax`; no JavaScript allowed |
+| `tsconfig.web.json` | `src/` as the website sees it: DOM types, resolves `.web` files, excludes `*.native.*` |
+| `tsconfig.native.json` | `src/` and `native-entry.ts` as Metro sees them: Expo types, resolves `.native` files, excludes `*.web.*` |
+| `tsconfig.node.json` | Unit tests, scripts, tool configs, Expo plugins and the Node-importable Supabase function modules |
+| `tsconfig.e2e.json` | Playwright specs and configs and the desktop smoke test (Node plus DOM types) |
+| `desktop/tsconfig.policy.json` | The desktop URL policy that unit tests import; `desktop/tsconfig.json` compiles the whole shell |
+
+Deno type-checks the functions separately: `deno check supabase/functions/*/index.ts`.
+
+Platform variants (`Name.web.tsx` / `Name.native.tsx`) export the same contract from `src/platform/contracts.ts`. Each variant checks itself with `import type * as Self from "./Name.web.tsx"` and `export type Check = Satisfies<Contract, typeof Self>`. Callers import them without the suffix. Read values whose shape is not known yet (JSON, request bodies, provider responses) as `unknown`, and narrow them with the helpers in `src/guards.ts` (`field`, `isOneOf`, `matches`, `must`). The Supabase functions use their own copy in `supabase/functions/_shared/guards.ts`. Lint rejects `any`, non-null `!`, `@ts-` comments and type assertions. Where a value really is used unchecked, add an `eslint-disable-next-line` with a `TS-ESCAPE:` reason saying why that is safe. `grep -rn TS-ESCAPE` lists every one.
 
 Use public Supabase publishable keys in client environment variables, never service-role or Firebase service-account secrets. Dependencies and lockfile are pinned. See [MOBILE.md](MOBILE.md) for platform setup and [TESTING.md](TESTING.md) before pushing.

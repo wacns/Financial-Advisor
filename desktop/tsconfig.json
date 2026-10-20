@@ -5,7 +5,6 @@
     // policy.cjs (with .d.cts types) instead of being stripped like the rest of the repo.
     "noEmit": false,
     "declaration": true,
-    "allowJs": false,
     "allowImportingTsExtensions": false,
     "verbatimModuleSyntax": false,
     "erasableSyntaxOnly": false,

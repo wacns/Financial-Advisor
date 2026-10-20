@@ -4,8 +4,6 @@
     "noUncheckedIndexedAccess": true,
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true,
-    "allowJs": true,
-    "checkJs": false,
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,

@@ -12,8 +12,9 @@ npm run test:oauth
 npm run build
 ```
 
-- `tests/unit/`: Node's test runner, importing application modules from `src/`.
-- `tests/e2e/`: Playwright browser workflows. The default configuration excludes OAuth and uses port 5173.
+- `npm run lint`: runs `npm run typecheck` (every tsconfig, see [DEVELOPMENT.md](DEVELOPMENT.md#typescript)) and then ESLint. A type error fails it.
+- `tests/unit/`: Node's test runner, running the `.ts` tests directly and importing application modules from `src/`. Shared fixture helpers live in `tests/support.ts`.
+- `tests/e2e/`: Playwright browser workflows, type-checked with `tsconfig.e2e.json`. The default configuration excludes OAuth and uses port 5173.
 - `playwright.auth.config.ts`: isolated mocked OAuth suite on port 5174 with fake public configuration.
 - `tests/unit/native-auth.test.ts`, `notifications.test.ts`, `push-server.test.ts`: native callback, device-consent and push-server contracts without real provider sends.
 - `tests/e2e/mobile-shell.spec.ts`: Shared React mobile tabs and web notification availability.

@@ -25,46 +25,6 @@ export default [
     ],
   },
   {
-    files: ["src/**/*.{js,jsx}"],
-    languageOptions: {
-      ecmaVersion: "latest",
-      sourceType: "module",
-      parserOptions: { ecmaFeatures: { jsx: true } },
-      globals: {
-        process: "readonly",
-        window: "readonly",
-        document: "readonly",
-        location: "readonly",
-        history: "readonly",
-        localStorage: "readonly",
-        URL: "readonly",
-        URLSearchParams: "readonly",
-        Blob: "readonly",
-        FileReader: "readonly", atob: "readonly",
-        crypto: "readonly",
-        setTimeout: "readonly",
-        clearTimeout: "readonly",
-      },
-    },
-    plugins: { "react-hooks": hooks },
-    rules: {
-      ...correctness,
-      "no-undef": "error",
-      "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "error",
-    },
-  },
-  {
-    files: ["**/*.{js,mjs,cjs}"],
-    ignores: ["src/**"],
-    languageOptions: { ecmaVersion: "latest" },
-    rules: correctness,
-  },
-  {
-    files: ["**/*.cjs"],
-    languageOptions: { sourceType: "commonjs" },
-  },
-  {
     files: ["**/*.{ts,tsx,mts,cts}"],
     languageOptions: {
       parser: tseslint.parser,
