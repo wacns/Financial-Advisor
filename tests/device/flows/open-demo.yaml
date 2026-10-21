@@ -1,17 +1,13 @@
-# Shared step: wait for the app (unlocking it on iOS), then open the demo workspace if the
-# welcome screen shows. "Explore the demo" sits below the sign-in form, so scroll to it.
+# Shared step: from a launched, unlocked app, open the demo workspace if the welcome screen
+# shows. "Explore the demo" sits below the sign-in form, so scroll to it.
 appId: com.wacns.financialadvisor
 ---
 - extendedWaitUntil:
-    visible: "Welcome to FinancialAdvisor\\.|Add transaction|Enter iPhone Passcode.*|.*Face ID.*"
-    timeout: 120000
-- runFlow: unlock-ios.yaml
-- extendedWaitUntil:
-    visible: "Welcome to FinancialAdvisor\\.|Add transaction"
+    visible: 'Welcome to FinancialAdvisor\.|Add transaction'
     timeout: 60000
 - runFlow:
     when:
-      visible: "Welcome to FinancialAdvisor\\."
+      visible: 'Welcome to FinancialAdvisor\.'
     commands:
       - scrollUntilVisible:
           element: "Explore the demo.*"

@@ -9,14 +9,10 @@
 appId: com.wacns.financialadvisor
 name: Add, keep, edit and delete an expense
 ---
-- launchApp:
-    clearState: true
+- runFlow: start-app.yaml
 - runFlow: open-demo.yaml
 - assertVisible: '.*7,826\.500.*'
-- runFlow:
-    file: open-page.yaml
-    env:
-      PAGE: Settings
+- runFlow: open-settings.yaml
 - scrollUntilVisible:
     element: "Quick expense"
     timeout: 60000
@@ -45,8 +41,7 @@ name: Add, keep, edit and delete an expense
 - takeScreenshot: entry-added
 
 # Restart the app: the entry and the balance are still there.
-- stopApp
-- launchApp
+- runFlow: restart-app.yaml
 - runFlow: open-demo.yaml
 - assertVisible: '.*7,825\.250.*'
 - tapOn: "Activity"

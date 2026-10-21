@@ -2,13 +2,9 @@
 appId: com.wacns.financialadvisor
 name: Settings, reminders and app updates
 ---
-- launchApp:
-    clearState: true
+- runFlow: start-app.yaml
 - runFlow: open-demo.yaml
-- runFlow:
-    file: open-page.yaml
-    env:
-      PAGE: Settings
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Make yourself at home."
     timeout: 20000

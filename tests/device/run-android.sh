@@ -9,9 +9,19 @@ flows=tests/device/flows
 mkdir -p "$out"
 : > "$out/results.tsv"
 echo "== $label: $apk"
+# The emulator can report boot completed while its system services are still starting
+# ("Can't find service: package"), so wait for the package manager, and retry the install.
+for _ in $(seq 60); do adb shell pm path android > /dev/null 2>&1 && break; sleep 5; done
 adb uninstall "$app" > /dev/null 2>&1 || true
 adb shell locksettings clear --old 1111 > /dev/null 2>&1 || true
-adb install -r "$apk" || { echo -e "install\tfail" >> "$out/results.tsv"; exit 0; }
+installed=false
+for attempt in 1 2 3; do
+  if adb install -r "$apk"; then installed=true; break; fi
+  echo "install attempt $attempt failed; waiting for the emulator"
+  adb wait-for-device
+  for _ in $(seq 60); do adb shell pm path android > /dev/null 2>&1 && break; sleep 5; done
+done
+$installed || { echo -e "install\tfail" >> "$out/results.tsv"; exit 0; }
 
 # The receipt the OCR flow picks, added to the photo library.
 adb push tests/device/receipt.png /sdcard/Pictures/receipt.png > /dev/null

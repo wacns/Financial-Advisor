@@ -3,13 +3,9 @@
 appId: com.wacns.financialadvisor
 name: Receipt OCR from the photo library
 ---
-- launchApp:
-    clearState: true
+- runFlow: start-app.yaml
 - runFlow: open-demo.yaml
-- runFlow:
-    file: open-page.yaml
-    env:
-      PAGE: Receipt scanner
+- runFlow: open-receipts.yaml
 - scrollUntilVisible:
     element: "Choose receipt image"
     timeout: 60000
