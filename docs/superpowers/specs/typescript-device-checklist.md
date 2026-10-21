@@ -21,6 +21,28 @@ except the lock cover noted under Android.
 The iOS native project could not be generated on Windows, so the config plugin's
 iOS changes have only been type-checked. Check the iOS build closely.
 
+## Automated emulator run
+
+The **Device checks** workflow (`.github/workflows/device-checks.yml`) runs on every push
+to this branch. It works through the steps below with Maestro (`tests/device/flows`) in demo
+mode:
+
+- **Android emulator (API 34):** builds a release APK, runs every flow, then runs the
+  released v1.7.1 APK through the same flows so each step compares new with old.
+- **iOS simulator:** builds the release app. This also covers the iOS project generation
+  that Windows can't do, and the Xcode path test that fails only on Windows. Then it runs
+  the flows that don't need a passcode.
+- **Results:** a pass/fail table per platform in the run summary. Screenshots and logs are
+  in the `device-results-*` artifacts. The app blocks screen capture, so Android
+  screenshots may be black; the flows check on-screen text instead.
+
+An emulator can't check these, so they still need a real phone, or the owner's decision
+that the emulator results are enough:
+
+- Google sign-in with a real account (the run uses demo mode).
+- Push notifications. The test notification needs a signed-in account and a real device token.
+- Biometric unlock. The Android run unlocks with an emulator PIN, and the iOS simulator has no passcode.
+
 ## Mobile updates after merge
 
 Over-the-air mobile updates need new binaries after this branch. The app uses Expo's

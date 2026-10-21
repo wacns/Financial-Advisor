@@ -1,0 +1,21 @@
+# Checklist: Settings opens, with the reminders and app-updates sections a phone shows.
+appId: com.wacns.financialadvisor
+name: Settings, reminders and app updates
+---
+- launchApp:
+    clearState: true
+- runFlow: open-demo.yaml
+- tapOn: "More"
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Make yourself at home."
+    timeout: 20000
+- takeScreenshot: settings-top
+- scrollUntilVisible:
+    element: "Payment reminders"
+    timeout: 30000
+- takeScreenshot: settings-reminders
+- scrollUntilVisible:
+    element: "App updates"
+    timeout: 30000
+- takeScreenshot: settings-updates

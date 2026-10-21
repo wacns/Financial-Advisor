@@ -1,0 +1,189 @@
+# Runs the device checklist (docs/superpowers/specs/typescript-device-checklist.md) on an
+# Android emulator and an iOS simulator, using the Maestro flows in tests/device/flows.
+# Android also runs the released v1.7.1 APK through the same flows for comparison.
+# Nothing is signed, published or released. Demo mode only: no real account is used.
+name: Device checks
+run-name: Device checks — ${{ github.ref_name }}
+on:
+  push:
+    branches: [typescript-conversion]
+permissions:
+  contents: read
+concurrency:
+  group: device-checks-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  MAESTRO_VERSION: cli-2.10.0
+  MAESTRO_SHA256: 29b675e10cc12080e445e9bfb2e2b4e4dfb9c0f2e30d5884120d258b5e1cd991
+  MAESTRO_CLI_NO_ANALYTICS: '1'
+  EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+  EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+  EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
+  APP_UPDATE_CHANNEL: preview
+  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: '.nvmrc', cache: npm }
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with: { distribution: temurin, java-version: '21' }
+      - name: Use the runner's installed Android SDK
+        run: |
+          test -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+      - uses: gradle/actions/setup-gradle@07d1f8453baaff67fb503883367f8b13e6158a54 # v6
+      - run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0' 'ndk;27.1.12297006'
+      - run: npm ci
+      - name: Restore optional Firebase client config
+        env: { FIREBASE_CONFIG: '${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}' }
+        shell: bash
+        run: |
+          if [ -n "$FIREBASE_CONFIG" ]; then
+            printf '%s' "$FIREBASE_CONFIG" | base64 --decode > "$RUNNER_TEMP/google-services.json"
+            jq -e . "$RUNNER_TEMP/google-services.json" > /dev/null
+            echo "GOOGLE_SERVICES_JSON=$RUNNER_TEMP/google-services.json" >> "$GITHUB_ENV"
+          fi
+      - run: npx expo prebuild --platform android --no-install
+      # The Expo testing key signs this APK, as for preview releases. x86_64 only: the emulator's ABI.
+      - name: Build the release APK
+        working-directory: android
+        run: ./gradlew :app:assembleRelease --build-cache --no-daemon --max-workers=2 -PreactNativeArchitectures=x86_64 -Dorg.gradle.jvmargs='-Xmx4g -XX:MaxMetaspaceSize=1g' -Pkotlin.compiler.execution.strategy=in-process
+      - name: Download the released v1.7.1 APK for comparison
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=https://github.com/wacns/financial-advisor-releases/releases/download/v1.7.1
+          name=FinancialAdvisor-1.7.1-android-preview.apk
+          curl -fsSL -o "$RUNNER_TEMP/$name" "$base/$name"
+          curl -fsSL -o "$RUNNER_TEMP/MOBILE-SHA256SUMS.txt" "$base/MOBILE-SHA256SUMS.txt"
+          (cd "$RUNNER_TEMP" && grep " \*\?$name\$" MOBILE-SHA256SUMS.txt | sed 's/ \*/  /' | sha256sum -c -)
+          echo "V171_APK=$RUNNER_TEMP/$name" >> "$GITHUB_ENV"
+      - name: Install Maestro
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL -o "$RUNNER_TEMP/maestro.zip" "https://github.com/mobile-dev-inc/maestro/releases/download/$MAESTRO_VERSION/maestro.zip"
+          echo "$MAESTRO_SHA256  $RUNNER_TEMP/maestro.zip" | sha256sum -c -
+          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/maestro/bin" >> "$GITHUB_PATH"
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run the checklist flows (this branch, then v1.7.1)
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash tests/device/run-android.sh branch android/app/build/outputs/apk/release/app-release.apk device-results/android-branch && bash tests/device/run-android.sh v1.7.1 "$V171_APK" device-results/android-v1.7.1
+      - name: Summary
+        if: always()
+        run: bash tests/device/summary.sh "Android emulator (API 34)" "This branch=device-results/android-branch" "v1.7.1=device-results/android-v1.7.1" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: device-results-android
+          path: device-results/
+          retention-days: 14
+      # A flow that fails on this branch but passes on v1.7.1 is a regression. One that fails
+      # on both is a problem with the flow or the emulator, reported as a warning.
+      - name: Compare with v1.7.1
+        if: always()
+        shell: bash
+        run: |
+          status=0
+          while IFS=$'\t' read -r flow result; do
+            old=$(awk -F'\t' -v f="$flow" '$1 == f { print $2 }' device-results/android-v1.7.1/results.tsv 2>/dev/null)
+            if [ "$result" = fail ] && [ "$old" = pass ]; then echo "::error::$flow fails on this branch but passes on v1.7.1"; status=1
+            elif [ "$result" = fail ]; then echo "::warning::$flow fails on this branch and on v1.7.1 ($old); check the flow"; status=1
+            fi
+          done < device-results/android-branch/results.tsv
+          exit $status
+
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - uses: maxim-lobanov/setup-xcode@1242409711ff5721add51979e9e11e23ebb7e5a4 # v1
+        with: { xcode-version: latest-stable }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: '.nvmrc', cache: npm }
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with: { distribution: temurin, java-version: '21' }
+      - run: npm ci
+      # This test fails only on Windows (path separators); a Mac runs it for real.
+      - run: npx tsc -p desktop/tsconfig.policy.json && node --test tests/unit/ios-inputs.test.ts
+      - name: Restore optional Firebase iOS client configuration
+        env: { FIREBASE_IOS_CONFIG_B64: '${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}' }
+        run: |
+          set -euo pipefail
+          if [ -n "$FIREBASE_IOS_CONFIG_B64" ]; then
+            printf '%s' "$FIREBASE_IOS_CONFIG_B64" | base64 --decode > "$RUNNER_TEMP/GoogleService-Info.plist"
+            plutil -lint "$RUNNER_TEMP/GoogleService-Info.plist"
+            echo "GOOGLE_SERVICE_INFO_PLIST=$RUNNER_TEMP/GoogleService-Info.plist" >> "$GITHUB_ENV"
+          fi
+      - name: Generate and check the iOS project
+        env: { CI: '1' }
+        run: |
+          set -euo pipefail
+          npx expo prebuild --platform ios --no-install
+          node scripts/verify-ios-inputs.ts ios
+          xcrun swiftc -typecheck -sdk "$(xcrun --sdk iphoneos --show-sdk-path)" -target arm64-apple-ios16.0 native/ios/FinancialAdvisorIntents.swift
+      - run: pod install
+        working-directory: ios
+      - name: Pick and boot an iPhone simulator
+        run: |
+          set -euo pipefail
+          udid=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
+          test -n "$udid" && test "$udid" != null
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          echo "SIM_UDID=$udid" >> "$GITHUB_ENV"
+      - name: Build the release app for the simulator
+        run: |
+          set -euo pipefail
+          workspace=$(ls -d ios/*.xcworkspace | head -n 1)
+          scheme=$(basename "$workspace" .xcworkspace)
+          xcodebuild -workspace "$workspace" -scheme "$scheme" -configuration Release -sdk iphonesimulator \
+            -destination "id=$SIM_UDID" -derivedDataPath build/ios CODE_SIGNING_ALLOWED=NO build | tail -n 50
+          app=$(ls -d build/ios/Build/Products/Release-iphonesimulator/*.app | head -n 1)
+          test -d "$app"
+          echo "IOS_APP=$app" >> "$GITHUB_ENV"
+      - name: Install Maestro
+        run: |
+          set -euo pipefail
+          curl -fsSL -o "$RUNNER_TEMP/maestro.zip" "https://github.com/mobile-dev-inc/maestro/releases/download/$MAESTRO_VERSION/maestro.zip"
+          echo "$MAESTRO_SHA256  $RUNNER_TEMP/maestro.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/maestro/bin" >> "$GITHUB_PATH"
+      - name: Run the checklist flows
+        run: bash tests/device/run-ios.sh branch "$IOS_APP" "$SIM_UDID" device-results/ios-branch
+      - name: Summary
+        if: always()
+        run: bash tests/device/summary.sh "iOS simulator (no v1.7.1 comparison, since the release IPA is built for devices)" "This branch=device-results/ios-branch" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: device-results-ios
+          path: device-results/
+          retention-days: 14
+      - name: Fail on any failed flow
+        if: always()
+        run: |
+          if grep -q $'\tfail$' device-results/ios-branch/results.tsv 2>/dev/null; then
+            grep $'\tfail$' device-results/ios-branch/results.tsv | cut -f1 | sed 's/^/::error::fails on iOS: /'
+            exit 1
+          fi

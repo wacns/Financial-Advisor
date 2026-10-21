@@ -1,0 +1,17 @@
+# Checklist (Android): with a device PIN set, the app opens locked, unlocks with the PIN,
+# and goes to the background. The runner script sets PIN 1111 before this flow.
+appId: com.wacns.financialadvisor
+name: Device lock on launch
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: ".*PIN.*|Unlock FinancialAdvisor|Your workspace is locked\\."
+    timeout: 60000
+- takeScreenshot: lock-prompt
+- runFlow: unlock-with-pin.yaml
+- extendedWaitUntil:
+    visible: "Explore the demo.*"
+    timeout: 60000
+- takeScreenshot: lock-unlocked
+- pressKey: Home

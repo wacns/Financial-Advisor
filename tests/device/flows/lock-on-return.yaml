@@ -1,0 +1,16 @@
+# Checklist (Android): after more than 60 seconds away, returning to the app locks it
+# again and the PIN unlocks it. The runner script waits 65 seconds after lock-on-launch.
+appId: com.wacns.financialadvisor
+name: Device lock on return
+---
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: ".*PIN.*|Unlock FinancialAdvisor|Your workspace is locked\\."
+    timeout: 60000
+- takeScreenshot: return-locked
+- runFlow: unlock-with-pin.yaml
+- extendedWaitUntil:
+    visible: "Explore the demo.*"
+    timeout: 60000
+- takeScreenshot: return-unlocked

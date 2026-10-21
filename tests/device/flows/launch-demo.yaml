@@ -1,0 +1,19 @@
+# Checklist: the app opens to the login screen with no error, and the demo workspace loads
+# with its usual accounts and balances.
+appId: com.wacns.financialadvisor
+name: Launch and open the demo workspace
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Explore the demo.*"
+    timeout: 120000
+- takeScreenshot: launch-login
+- runFlow: open-demo.yaml
+# Demo total: 1,240.500 + 6,500.250 + 85.750.
+- assertVisible: '.*7,826\.500.*'
+- takeScreenshot: launch-overview
+- tapOn: "Activity"
+- assertVisible: "Alosra supermarket"
+- assertVisible: "Monthly salary"
+- takeScreenshot: launch-activity

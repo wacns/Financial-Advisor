@@ -1,0 +1,14 @@
+# Shared step: wait for the app, then open the demo workspace if the login screen shows.
+appId: com.wacns.financialadvisor
+---
+- extendedWaitUntil:
+    visible: "Explore the demo.*|Add transaction"
+    timeout: 120000
+- runFlow:
+    when:
+      visible: "Explore the demo.*"
+    commands:
+      - tapOn: "Explore the demo.*"
+- extendedWaitUntil:
+    visible: "Add transaction"
+    timeout: 60000
