@@ -18,6 +18,11 @@ name: Launch and open the demo workspace
 - assertVisible: '.*7,826\.500.*'
 - takeScreenshot: launch-overview
 - tapOn: "Activity"
-- assertVisible: "Alosra supermarket"
-- assertVisible: "Monthly salary"
+- assertVisible: '13 transactions.*'
+- scrollUntilVisible:
+    element: "Alosra supermarket"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "Monthly salary"
+    timeout: 30000
 - takeScreenshot: launch-activity

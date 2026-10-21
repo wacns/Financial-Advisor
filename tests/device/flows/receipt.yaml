@@ -6,11 +6,13 @@ name: Receipt OCR from the photo library
 - launchApp:
     clearState: true
 - runFlow: open-demo.yaml
-- tapOn: "More"
-- tapOn: "Receipt scanner"
-- extendedWaitUntil:
-    visible: "Choose receipt image"
-    timeout: 20000
+- runFlow:
+    file: open-page.yaml
+    env:
+      PAGE: Receipt scanner
+- scrollUntilVisible:
+    element: "Choose receipt image"
+    timeout: 60000
 - tapOn: "Choose receipt image"
 # The system photo picker: Android labels photos "Photo taken on …", iOS "Photo, …".
 - extendedWaitUntil:

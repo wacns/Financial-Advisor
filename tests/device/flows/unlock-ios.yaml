@@ -1,8 +1,16 @@
 # Shared step (iOS): the simulator reports a device credential, so the privacy lock asks to
-# unlock at launch. run-ios.sh enrolls Face ID and keeps sending matching faces; if the
-# passcode sheet shows instead, enter the simulator passcode.
+# unlock at launch. run-ios.sh enrolls Face ID and keeps sending matching faces; give the
+# prompt time to clear. If the passcode sheet shows instead, enter the simulator passcode.
 appId: com.wacns.financialadvisor
 ---
+- runFlow:
+    when:
+      platform: iOS
+      visible: ".*Face ID.*"
+    commands:
+      - extendedWaitUntil:
+          notVisible: ".*Face ID.*"
+          timeout: 45000
 - runFlow:
     when:
       platform: iOS
@@ -16,3 +24,6 @@ appId: com.wacns.financialadvisor
       visible: "Unlock workspace"
     commands:
       - tapOn: "Unlock workspace"
+      - extendedWaitUntil:
+          notVisible: ".*Face ID.*|Unlock workspace"
+          timeout: 45000

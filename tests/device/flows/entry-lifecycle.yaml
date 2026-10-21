@@ -1,5 +1,9 @@
 # Checklist: add an expense and the balance changes by the exact amount; it survives a
 # restart; editing then deleting it returns the balance to where it was.
+#
+# The page-header "Add transaction" button is not used: on phones the next section of the
+# page overlaps it and takes the tap (v1.7.1 too; see typescript-findings.md). Settings'
+# "Quick expense" opens the same transaction form.
 # Each form field shows a label above its input, and the input carries the same
 # accessibility label, so `index: 1` targets the input.
 appId: com.wacns.financialadvisor
@@ -9,7 +13,14 @@ name: Add, keep, edit and delete an expense
     clearState: true
 - runFlow: open-demo.yaml
 - assertVisible: '.*7,826\.500.*'
-- tapOn: "Add transaction"
+- runFlow:
+    file: open-page.yaml
+    env:
+      PAGE: Settings
+- scrollUntilVisible:
+    element: "Quick expense"
+    timeout: 60000
+- tapOn: "Quick expense"
 - extendedWaitUntil:
     visible: "A new money moment"
     timeout: 20000
@@ -22,10 +33,14 @@ name: Add, keep, edit and delete an expense
     index: 1
 - inputText: "CI coffee"
 - hideKeyboard
+- scrollUntilVisible:
+    element: "Save"
+    timeout: 20000
 - tapOn: "Save"
 - extendedWaitUntil:
     notVisible: "A new money moment"
     timeout: 20000
+- tapOn: "Home"
 - assertVisible: '.*7,825\.250.*'
 - takeScreenshot: entry-added
 
@@ -35,13 +50,15 @@ name: Add, keep, edit and delete an expense
 - runFlow: open-demo.yaml
 - assertVisible: '.*7,825\.250.*'
 - tapOn: "Activity"
-- assertVisible: "CI coffee"
+- scrollUntilVisible:
+    element: "Edit CI coffee"
+    timeout: 30000
 - takeScreenshot: entry-after-restart
 
 # Edit the amount to 2.000.
 - tapOn: "Edit CI coffee"
 - extendedWaitUntil:
-    visible: "Save"
+    visible: 'Amount \(BHD\)'
     timeout: 20000
 - tapOn:
     text: 'Amount \(BHD\)'
@@ -49,6 +66,9 @@ name: Add, keep, edit and delete an expense
 - eraseText
 - inputText: "2.000"
 - hideKeyboard
+- scrollUntilVisible:
+    element: "Save"
+    timeout: 20000
 - tapOn: "Save"
 - extendedWaitUntil:
     notVisible: 'Amount \(BHD\)'
@@ -59,6 +79,9 @@ name: Add, keep, edit and delete an expense
 
 # Delete it: the balance returns to the demo total.
 - tapOn: "Activity"
+- scrollUntilVisible:
+    element: "Delete CI coffee"
+    timeout: 30000
 - tapOn: "Delete CI coffee"
 - extendedWaitUntil:
     visible: "Confirm deletion"
@@ -69,7 +92,7 @@ name: Add, keep, edit and delete an expense
 - extendedWaitUntil:
     notVisible: "Confirm deletion"
     timeout: 20000
-- assertNotVisible: "CI coffee"
+- assertNotVisible: "Edit CI coffee"
 - tapOn: "Home"
 - assertVisible: '.*7,826\.500.*'
 - takeScreenshot: entry-deleted

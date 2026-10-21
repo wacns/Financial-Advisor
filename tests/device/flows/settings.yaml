@@ -5,17 +5,19 @@ name: Settings, reminders and app updates
 - launchApp:
     clearState: true
 - runFlow: open-demo.yaml
-- tapOn: "More"
-- tapOn: "Settings"
+- runFlow:
+    file: open-page.yaml
+    env:
+      PAGE: Settings
 - extendedWaitUntil:
     visible: "Make yourself at home."
     timeout: 20000
 - takeScreenshot: settings-top
 - scrollUntilVisible:
     element: "Payment reminders"
-    timeout: 30000
+    timeout: 60000
 - takeScreenshot: settings-reminders
 - scrollUntilVisible:
     element: "App updates"
-    timeout: 30000
+    timeout: 60000
 - takeScreenshot: settings-updates

@@ -1,14 +1,15 @@
-# Shared step: answer the system credential prompt with the test PIN.
+# Shared step (Android): answer the system credential prompt ("Unlock FinancialAdvisor"
+# with a PIN pad) with the test PIN.
 appId: com.wacns.financialadvisor
 ---
 - runFlow:
     when:
       visible: "Unlock workspace"
-      notVisible: ".*PIN.*"
+      notVisible: "Unlock FinancialAdvisor"
     commands:
       - tapOn: "Unlock workspace"
 - extendedWaitUntil:
-    visible: ".*PIN.*"
+    visible: "Unlock FinancialAdvisor"
     timeout: 30000
 - inputText: "1111"
 - pressKey: Enter
