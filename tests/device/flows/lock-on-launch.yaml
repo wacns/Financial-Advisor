@@ -11,7 +11,7 @@ name: Device lock on launch
 - takeScreenshot: lock-prompt
 - runFlow: unlock-with-pin.yaml
 - extendedWaitUntil:
-    visible: "Explore the demo.*"
+    visible: 'Welcome to FinancialAdvisor\.'
     timeout: 60000
 - takeScreenshot: lock-unlocked
 - pressKey: Home

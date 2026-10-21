@@ -13,6 +13,14 @@ xcrun simctl uninstall "$udid" "$app" > /dev/null 2>&1 || true
 xcrun simctl install "$udid" "$app_path" || { echo -e "install\tfail" >> "$out/results.tsv"; exit 0; }
 xcrun simctl addmedia "$udid" tests/device/receipt.png || true
 
+# The simulator reports a device credential, so the privacy lock asks to unlock at launch.
+# Enroll Face ID and keep answering its prompts with a matching face while the flows run.
+xcrun simctl spawn "$udid" notifyutil -s com.apple.BiometricKit.enrollmentChanged '1' || true
+xcrun simctl spawn "$udid" notifyutil -p com.apple.BiometricKit.enrollmentChanged || true
+( while true; do xcrun simctl spawn "$udid" notifyutil -p com.apple.BiometricKit_Sim.pearl.match > /dev/null 2>&1; sleep 2; done ) &
+matcher=$!
+trap 'kill "$matcher" 2> /dev/null || true' EXIT
+
 run() {
   local name=$1
   if maestro --device "$udid" test --test-output-dir "$out/$name" "$flows/$name.yaml" > "$out/$name.log" 2>&1; then

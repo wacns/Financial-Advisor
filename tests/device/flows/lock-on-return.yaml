@@ -11,6 +11,6 @@ name: Device lock on return
 - takeScreenshot: return-locked
 - runFlow: unlock-with-pin.yaml
 - extendedWaitUntil:
-    visible: "Explore the demo.*"
+    visible: 'Welcome to FinancialAdvisor\.'
     timeout: 60000
 - takeScreenshot: return-unlocked

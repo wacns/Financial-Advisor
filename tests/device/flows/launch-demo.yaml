@@ -6,8 +6,12 @@ name: Launch and open the demo workspace
 - launchApp:
     clearState: true
 - extendedWaitUntil:
-    visible: "Explore the demo.*"
+    visible: 'Welcome to FinancialAdvisor\.|Enter iPhone Passcode.*|.*Face ID.*'
     timeout: 120000
+- runFlow: unlock-ios.yaml
+- extendedWaitUntil:
+    visible: 'Welcome to FinancialAdvisor\.'
+    timeout: 60000
 - takeScreenshot: launch-login
 - runFlow: open-demo.yaml
 # Demo total: 1,240.500 + 6,500.250 + 85.750.
