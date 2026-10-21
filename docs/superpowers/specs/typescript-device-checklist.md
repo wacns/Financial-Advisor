@@ -23,25 +23,28 @@ iOS changes have only been type-checked. Check the iOS build closely.
 
 ## Automated emulator run
 
-The **Device checks** workflow (`.github/workflows/device-checks.yml`) runs on every push
-to this branch. It works through the steps below with Maestro (`tests/device/flows`) in demo
-mode:
+The **Device checks** workflow (`.github/workflows/device-checks.yml`) runs when a push to
+this branch changes app, native or test files. It works through the steps below with Maestro
+(`tests/device/flows`) in demo mode:
 
-- **Android emulator (API 34):** builds a release APK, runs every flow, then runs the
-  released v1.7.1 APK through the same flows so each step compares new with old.
-- **iOS simulator:** builds the release app. This also covers the iOS project generation
-  that Windows can't do, and the Xcode path test that fails only on Windows. Then it runs
-  the flows that don't need a passcode.
-- **Results:** a pass/fail table per platform in the run summary. Screenshots and logs are
-  in the `device-results-*` artifacts. The app blocks screen capture, so Android
-  screenshots may be black; the flows check on-screen text instead.
+- **Android emulator (API 34), every run:** builds a release APK and runs every flow. Any
+  flow that fails is then run on the released v1.7.1 APK too, which tells a regression
+  (fails only on the branch) from a problem with the flow (fails on both).
+- **iOS simulator, only when the commit message contains `[ios]`:** builds the release app
+  and runs the flows that don't need the Android PIN. This also covers the iOS project
+  generation that Windows can't do, and the Xcode path test that fails only on Windows. A
+  macOS minute is billed as 10 Linux minutes, so iOS is opt-in.
+- **Results:** a pass/fail table per platform in the run summary. Logs and screen hierarchies
+  upload as `device-results-*` artifacts only when something fails, and are kept 3 days.
+  The app blocks screen capture, so screenshots are black and are not uploaded; the flows
+  check on-screen text instead.
 
 An emulator can't check these, so they still need a real phone, or the owner's decision
 that the emulator results are enough:
 
 - Google sign-in with a real account (the run uses demo mode).
 - Push notifications. The test notification needs a signed-in account and a real device token.
-- Biometric unlock. The Android run unlocks with an emulator PIN, and the iOS simulator has no passcode.
+- Real biometric unlock. The Android run unlocks with an emulator PIN, and the iOS run with a simulated Face ID match.
 
 ## Mobile updates after merge
 

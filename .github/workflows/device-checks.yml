@@ -1,12 +1,33 @@
 # Runs the device checklist (docs/superpowers/specs/typescript-device-checklist.md) on an
 # Android emulator and an iOS simulator, using the Maestro flows in tests/device/flows.
-# Android also runs the released v1.7.1 APK through the same flows for comparison.
-# Nothing is signed, published or released. Demo mode only: no real account is used.
+# Android reruns any failed flow on the released v1.7.1 APK, to tell a regression from a
+# problem with the flow. Nothing is signed, published or released. Demo mode only: no real
+# account is used.
+#
+# Keeping Actions minutes low:
+# - Runs only when app, native or test files change.
+# - iOS runs only when the commit message contains [ios]: a macOS minute is billed as
+#   10 Linux minutes, and its build alone takes about 16 minutes.
+# - v1.7.1 runs only for the flows that failed, so a passing run is a single pass.
+# - Results upload only when something fails, kept 3 days, without the screenshots (the
+#   app blocks screen capture, so they are black; the screen hierarchy is what helps).
 name: Device checks
 run-name: Device checks — ${{ github.ref_name }}
 on:
   push:
     branches: [typescript-conversion]
+    paths:
+      - 'src/**'
+      - 'tests/device/**'
+      - 'app.config.ts'
+      - 'native-entry.ts'
+      - 'plugins/**'
+      - 'modules/**'
+      - 'native/**'
+      - 'eas.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/device-checks.yml'
 permissions:
   contents: read
 concurrency:
@@ -26,7 +47,7 @@ env:
 jobs:
   android:
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 60
     steps:
       # The build plus an emulator system image does not fit in the runner's free space.
       - name: Free disk space
@@ -90,7 +111,7 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Run the checklist flows (this branch, then v1.7.1)
+      - name: Run the checklist flows (this branch, then v1.7.1 for any failures)
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 34
@@ -99,16 +120,18 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: bash tests/device/run-android.sh branch "$RUNNER_TEMP/branch.apk" device-results/android-branch && bash tests/device/run-android.sh v1.7.1 "$V171_APK" device-results/android-v1.7.1
+          script: bash tests/device/android-ci.sh "$RUNNER_TEMP/branch.apk" "$V171_APK"
       - name: Summary
         if: always()
         run: bash tests/device/summary.sh "Android emulator (API 34)" "This branch=device-results/android-branch" "v1.7.1=device-results/android-v1.7.1" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: always()
+        if: failure()
         with:
           name: device-results-android
-          path: device-results/
-          retention-days: 14
+          path: |
+            device-results/
+            !device-results/**/*.png
+          retention-days: 3
       # A flow that fails on this branch but passes on v1.7.1 is a regression. One that fails
       # on both is a problem with the flow or the emulator, reported as a warning.
       - name: Compare with v1.7.1
@@ -125,8 +148,9 @@ jobs:
           exit $status
 
   ios:
+    if: contains(github.event.head_commit.message, '[ios]')
     runs-on: macos-15
-    timeout-minutes: 150
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { persist-credentials: false }
@@ -191,11 +215,13 @@ jobs:
         if: always()
         run: bash tests/device/summary.sh "iOS simulator (no v1.7.1 comparison, since the release IPA is built for devices)" "This branch=device-results/ios-branch" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: always()
+        if: failure()
         with:
           name: device-results-ios
-          path: device-results/
-          retention-days: 14
+          path: |
+            device-results/
+            !device-results/**/*.png
+          retention-days: 3
       - name: Fail on any failed flow
         if: always()
         run: |

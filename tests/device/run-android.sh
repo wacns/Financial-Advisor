@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Runs the device checklist flows against one APK on the running Android emulator.
-# Usage: run-android.sh LABEL APK OUTDIR. Writes OUTDIR/results.tsv (flow, pass|fail); a
-# failing flow does not stop the others, so one run reports the whole checklist.
+# Usage: run-android.sh LABEL APK OUTDIR [FLOW...]. Runs the named flows (default: all).
+# Writes OUTDIR/results.tsv (flow, pass|fail); a failing flow does not stop the others, so
+# one run reports the whole checklist.
 set -uo pipefail
 label=$1 apk=$2 out=$3
+shift 3
+selected=" ${*:-launch-demo entry-lifecycle settings receipt lock-on-launch lock-on-return} "
 app=com.wacns.financialadvisor
 flows=tests/device/flows
 mkdir -p "$out"
@@ -30,6 +33,7 @@ adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:
 
 run() {
   local name=$1
+  case "$selected" in *" $name "*) ;; *) return 0;; esac
   if maestro test --test-output-dir "$out/$name" "$flows/$name.yaml" > "$out/$name.log" 2>&1; then
     echo -e "$name\tpass" >> "$out/results.tsv"
   else
@@ -43,8 +47,11 @@ run entry-lifecycle
 run settings
 run receipt
 # The privacy lock only engages when the device has a credential.
-adb shell locksettings set-pin 1111 > /dev/null
-run lock-on-launch
-sleep 65
-run lock-on-return
+case "$selected" in
+  *" lock-on-launch "*|*" lock-on-return "*)
+    adb shell locksettings set-pin 1111 > /dev/null
+    run lock-on-launch
+    case "$selected" in *" lock-on-return "*) sleep 65; run lock-on-return;; esac
+    ;;
+esac
 adb shell locksettings clear --old 1111 > /dev/null 2>&1 || true
