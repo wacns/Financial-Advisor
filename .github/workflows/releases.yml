@@ -115,8 +115,9 @@ jobs:
           "$ANDROID_HOME/build-tools/37.0.0/aapt" dump badging "$APK" | sed -n '1,5p'
           cp "$APK" "installers/FinancialAdvisor-$APP_VERSION-android-$ANDROID_SIGNATURE.apk"
           cp android/app/build/outputs/bundle/release/app-release.aab "installers/FinancialAdvisor-$APP_VERSION-android-$ANDROID_SIGNATURE.aab"
+      # Kept 1 day: the publish job downloads these in the same run, and published installers live in the releases repo.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with: { name: android-installers, path: 'installers/*', retention-days: 7, if-no-files-found: error }
+        with: { name: android-installers, path: 'installers/*', retention-days: 1, if-no-files-found: error }
   ios:
     needs: verify
     permissions: { contents: write }

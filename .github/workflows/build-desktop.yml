@@ -47,4 +47,5 @@ jobs:
             release-desktop/*.blockmap
             !release-desktop/builder*.yml
           if-no-files-found: error
-          retention-days: 7
+          # Kept 1 day: the publish job downloads these in the same run, and published installers live in the releases repo.
+          retention-days: 1
