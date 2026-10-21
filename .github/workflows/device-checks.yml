@@ -16,6 +16,8 @@ env:
   MAESTRO_VERSION: cli-2.10.0
   MAESTRO_SHA256: 29b675e10cc12080e445e9bfb2e2b4e4dfb9c0f2e30d5884120d258b5e1cd991
   MAESTRO_CLI_NO_ANALYTICS: '1'
+  # The iOS driver is built and started on first use; a cold CI simulator needs longer than the default.
+  MAESTRO_DRIVER_STARTUP_TIMEOUT: '600000'
   EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
   EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
   EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
@@ -26,6 +28,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
+      # The build plus an emulator system image does not fit in the runner's free space.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/share/swift /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force > /dev/null || true
+          df -h /
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { persist-credentials: false }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
@@ -54,6 +62,11 @@ jobs:
       - name: Build the release APK
         working-directory: android
         run: ./gradlew :app:assembleRelease --build-cache --no-daemon --max-workers=2 -PreactNativeArchitectures=x86_64 -Dorg.gradle.jvmargs='-Xmx4g -XX:MaxMetaspaceSize=1g' -Pkotlin.compiler.execution.strategy=in-process
+      - name: Keep the APK and drop build intermediates
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/branch.apk"
+          rm -rf android/app/build android/app/.cxx android/build
+          df -h /
       - name: Download the released v1.7.1 APK for comparison
         shell: bash
         run: |
@@ -86,7 +99,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: bash tests/device/run-android.sh branch android/app/build/outputs/apk/release/app-release.apk device-results/android-branch && bash tests/device/run-android.sh v1.7.1 "$V171_APK" device-results/android-v1.7.1
+          script: bash tests/device/run-android.sh branch "$RUNNER_TEMP/branch.apk" device-results/android-branch && bash tests/device/run-android.sh v1.7.1 "$V171_APK" device-results/android-v1.7.1
       - name: Summary
         if: always()
         run: bash tests/device/summary.sh "Android emulator (API 34)" "This branch=device-results/android-branch" "v1.7.1=device-results/android-v1.7.1" >> "$GITHUB_STEP_SUMMARY"
@@ -144,10 +157,13 @@ jobs:
           xcrun swiftc -typecheck -sdk "$(xcrun --sdk iphoneos --show-sdk-path)" -target arm64-apple-ios16.0 native/ios/FinancialAdvisorIntents.swift
       - run: pod install
         working-directory: ios
+      # An iPhone on the newest installed iOS runtime, which is the one the selected Xcode tests against.
       - name: Pick and boot an iPhone simulator
         run: |
           set -euo pipefail
-          udid=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
+          runtime=$(xcrun simctl list runtimes available -j | jq -r '[.runtimes[] | select(.platform == "iOS")] | sort_by(.version | split(".") | map(tonumber)) | last | .identifier')
+          echo "Runtime: $runtime"
+          udid=$(xcrun simctl list devices available -j | jq -r --arg r "$runtime" '[(.devices[$r] // [])[] | select(.name | startswith("iPhone"))][0].udid')
           test -n "$udid" && test "$udid" != null
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
