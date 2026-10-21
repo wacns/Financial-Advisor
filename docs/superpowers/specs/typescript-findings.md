@@ -34,7 +34,7 @@ comments and type assertions unless an escape comment covers them. It has no
 type-aware rules, though, so an implicit `any` (for example the result of
 `JSON.parse`) reaching a typed variable isn't flagged. Those reads were found by
 review and are marked too: `clone`, `prepare-desktop` and the e2e request bodies.
-Lint can't show that the list is complete; the review checked by hand that it is.
+Lint can't show that the list is complete. The review checked every `JSON.parse` and `.json()` read by hand, but not every other source of implicit `any`.
 
 | File:line | Why it is unchecked |
 |---|---|
