@@ -6,7 +6,7 @@ import { json } from "../../supabase/functions/_shared/push.ts";
 import { startChatGPTSignIn, NATIVE_AUTH_REDIRECT } from "../../src/auth.ts";
 import type { AuthClient, OAuthRequest } from "../../src/auth.ts";
 import type { AssistantDependencies } from "../../supabase/functions/financial-assistant/handler.ts";
-import { field } from "../../src/guards.ts";
+import { field, must } from "../../src/guards.ts";
 import { fake } from "../support.ts";
 
 const id = "60000000-0000-4000-8000-000000000001";
@@ -108,7 +108,8 @@ test("public capabilities reveal no credit balance and authenticated status neve
     request({ action: "capabilities", userId: "victim" }),
   );
   assert.equal(response.status, 200);
-  assert.equal(field(await response.json(), "balance"), undefined);
+  // must(): a null body failed this read before, so it must not pass it now.
+  assert.equal(field(must(await response.json(), "response body"), "balance"), undefined);
   assert.equal((await handler(request({ action: "status" }))).status, 401);
   const signed = harness();
   assert.equal(

@@ -108,7 +108,7 @@ export function parseBackup(content: string): Workspace {
   if (content.length > 16000000)
     throw Error("Backup must be smaller than 16 MB.");
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- TS-ESCAPE: backup files are trusted as written while converting; normalizeWorkspace, validateWorkspace, validateCycleBudgets and validateProjects check the result below.
-  const raw = JSON.parse(content.replace(/^﻿/, "")) as BackupFile;
+  const raw = JSON.parse(content.replace(/^\uFEFF/, "")) as BackupFile;
   if (
     !raw.format &&
     raw.version === 1 &&
@@ -312,7 +312,7 @@ export function importCSV(
   uuid: () => string = () => crypto.randomUUID(),
 ) {
   if (content.length > 16000000) throw Error("CSV must be smaller than 16 MB.");
-  const rows = parseCSV(content.replace(/^﻿/, "")),
+  const rows = parseCSV(content.replace(/^\uFEFF/, "")),
     header = rows
       .shift()
       ?.map((c) =>

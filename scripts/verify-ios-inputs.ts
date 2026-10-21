@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import xcode from "xcode";
 import type { PbxObjects } from "xcode";
+import { must } from "../src/guards.ts";
 
 /** An object entry of a pbxproj section; the "<id>_comment" strings beside them are skipped. */
 const entry = <T>(section: Record<string, T | string | undefined> | undefined, id: string | undefined): T | undefined => {
@@ -35,7 +36,8 @@ export function sourceInputs(objects: PbxObjects, mainGroup: string, root: strin
   return Object.values(objects.PBXSourcesBuildPhase || {})
     .filter((phase) => typeof phase === "object")
     .flatMap((phase) => phase.files || [])
-    .map((file) => entry(objects.PBXBuildFile, file.value)?.fileRef)
+    // A project without a PBXBuildFile section failed this check before, and still does.
+    .map((file) => entry(must(objects.PBXBuildFile, "PBXBuildFile section"), file.value)?.fileRef)
     .map((id) => paths.get(id))
     .filter((file): file is string => Boolean(file));
 }

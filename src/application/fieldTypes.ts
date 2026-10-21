@@ -8,8 +8,11 @@ export type FieldProps = {
   name?: string;
   /** The form's current value; forms hold whatever they were opened with. */
   value?: unknown;
-  /** Receives the new text, or the chosen option's value for selects. */
-  onChange: (value: string) => void;
+  /**
+   * Receives the new text, or the chosen option's value for selects. The native picker
+   * also passes the option's index, as it always has (see typescript-findings.md).
+   */
+  onChange: (value: string, index?: number) => void;
   /** text, select, textarea, number, date, month, email or password. */
   type?: string;
   options?: readonly FieldOption[];

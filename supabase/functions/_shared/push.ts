@@ -70,8 +70,10 @@ export function hasDuePayment(input: unknown, date: string): boolean {
       const paid = new Set((plan.payments || []).map(p => p.index));
       let index = 0; while (paid.has(index)) index++;
       if (key === 'installments' && index >= Number(plan.count)) return false;
+      // The pattern test coerces to text, so a non-text firstDue can pass it; .split then failed, and still does.
+      if (typeof plan.firstDue !== 'string') throw Error('A stored plan has a first due date that is not text.');
       // A matched date always has three parts; NaN defaults match the old undefined arithmetic.
-      const [year = NaN,month = NaN,day = NaN] = String(plan.firstDue).split('-').map(Number), step = index * Number(plan.interval);
+      const [year = NaN,month = NaN,day = NaN] = plan.firstDue.split('-').map(Number), step = index * Number(plan.interval);
       let due;
       if (plan.frequency === 'daily' || plan.frequency === 'weekly') due = new Date(Date.UTC(year,month-1,day+step*(plan.frequency === 'weekly' ? 7 : 1)));
       else {

@@ -40,6 +40,7 @@ export const defaultRates: Record<CurrencyCode, number> = {
 };
 export const isCurrencyCode = (value: unknown): value is CurrencyCode =>
   currencyCodes.some((code) => code === value);
+// TS-ESCAPE: a JSON round trip returns the same shape it was given (functions and undefined fields aside, as before).
 export const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 const collectionKeys: CollectionKey[] = [
   "accounts",

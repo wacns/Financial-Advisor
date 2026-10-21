@@ -105,7 +105,8 @@ export default function EntryModal({
                 ),
                 value: values[field.name],
                 disabled: busy,
-                onChange: (value: string, fileName?: string) =>
+                // FileField passes a file name; the native picker passes an option index here.
+                onChange: (value: string, fileName?: string | number) =>
                   setValues((previous) => ({
                     ...previous,
                     [field.name]: value,

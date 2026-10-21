@@ -171,8 +171,9 @@ test("assistant summary is aggregate only and cloud input strips extra fields", 
     question: " totals ",
     summary: { ...summary, transactions: ["private"], owner: "forged" },
   });
-  assert.equal(field(clean.summary, "transactions"), undefined);
-  assert.equal(field(clean.summary, "owner"), undefined);
+  // must(): a missing summary failed these reads before, so it must not pass them now.
+  assert.equal(field(must(clean.summary, "summary"), "transactions"), undefined);
+  assert.equal(field(must(clean.summary, "summary"), "owner"), undefined);
   assert.throws(
     () => validateAssistantInput({ consent: false, question: "Hi" }),
     /Allow cloud/,

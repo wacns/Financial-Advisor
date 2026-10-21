@@ -33,8 +33,9 @@ export default function Field({
           <Picker<unknown>
             accessibilityLabel={label}
             selectedValue={value}
-            // Option values are strings, so String() changes nothing; no caller reads the index.
-            onValueChange={(item) => onChange(String(item))}
+            // Option values are strings, so String() changes nothing. The index is passed on
+            // unchanged: EntryModal reads it as fileName (recorded in typescript-findings.md).
+            onValueChange={(item, index) => onChange(String(item), index)}
             enabled={!disabled}
             style={{ color: colors.ink }}
           >

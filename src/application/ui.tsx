@@ -9,16 +9,22 @@ import {
 } from "./appearance.tsx";
 export const colors = lightColors;
 /**
- * Renders an unchecked value as React would: strings, numbers, booleans and empty values as is.
- * Anything else (which React would refuse to render) is shown as text.
+ * Renders an unchecked value exactly as React rendered it before it was typed: strings, numbers,
+ * booleans and empty values as is, arrays item by item, functions as nothing, and any other
+ * object fails the render the way React does.
  */
-export const display = (value: unknown): ReactNode =>
-  value == null ||
-  typeof value === "string" ||
-  typeof value === "number" ||
-  typeof value === "boolean"
-    ? value
-    : String(value);
+export const display = (value: unknown): ReactNode => {
+  if (
+    value == null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  )
+    return value;
+  if (Array.isArray(value)) return value.map(display);
+  if (typeof value === "function") return null;
+  throw Error(`Objects are not valid as a React child (found: ${String(value)}).`);
+};
 export function Label({ children, style, ...props }: TextProps) {
   const { colors, language, t } = useAppearance();
   if (Platform.OS !== "web" && props.accessibilityRole === "status") {

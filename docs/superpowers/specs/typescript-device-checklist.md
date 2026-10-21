@@ -21,6 +21,17 @@ except the lock cover noted under Android.
 The iOS native project could not be generated on Windows, so the config plugin's
 iOS changes have only been type-checked. Check the iOS build closely.
 
+## Mobile updates after merge
+
+Over-the-air mobile updates need new binaries after this branch. The app uses Expo's
+`fingerprint` runtime policy, and the conversion changes the fingerprint inputs: the
+config plugin file (`.cjs` → `.ts`), the resolved Expo config, the `package.json`
+scripts and `.gitignore`. Comparing `npx fingerprint fingerprint:generate` before and
+after gives a different hash on Android and iOS. An update published from the merged
+code reaches only binaries built from it. Installed v1.7.1 apps keep running but stop
+receiving updates until users install the new APK/IPA. Plan the first release after
+the merge as a full binary release, not a `Publish mobile update` run.
+
 ## Builds
 
 Check out the branch first: `git checkout typescript-conversion`, then `npm ci` and

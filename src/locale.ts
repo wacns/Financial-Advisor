@@ -103,7 +103,8 @@ export function toFils(value: unknown): number {
 }
 
 export function requireBahrainWorkspace<T>(state: T): T {
-  if (field(state, "currency") !== CURRENCY) {
+  // A missing workspace used to fail reading .currency; it still fails, with a clear message.
+  if (field(must(state, "workspace"), "currency") !== CURRENCY) {
     throw Error(
       "This workspace uses another currency. Its records have been preserved; currency conversion is required before opening it in FinancialAdvisor.",
     );
