@@ -201,7 +201,8 @@ jobs:
         run: |
           status=0
           while IFS=$'\t' read -r flow result; do
-            old=$(awk -F'\t' -v f="$flow" '$1 == f { print $2 }' device-results/android-v1.7.1/results.tsv 2>/dev/null)
+            # v1.7.1 only runs for flows that failed here, so its results may not exist.
+            old=$(awk -F'\t' -v f="$flow" '$1 == f { print $2 }' device-results/android-v1.7.1/results.tsv 2>/dev/null || true)
             if [ "$result" = fail ] && [ "$old" = pass ]; then echo "::error::$flow fails on this branch but passes on v1.7.1"; status=1
             elif [ "$result" = fail ]; then echo "::warning::$flow fails on this branch and on v1.7.1 ($old); check the flow"; status=1
             fi
