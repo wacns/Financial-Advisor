@@ -1,0 +1,15 @@
+# Shared step (Android): answer the system credential prompt ("Unlock FinancialAdvisor"
+# with a PIN pad) with the test PIN.
+appId: com.wacns.financialadvisor
+---
+- runFlow:
+    when:
+      visible: "Unlock workspace"
+      notVisible: "Unlock FinancialAdvisor"
+    commands:
+      - tapOn: "Unlock workspace"
+- extendedWaitUntil:
+    visible: "Unlock FinancialAdvisor"
+    timeout: 30000
+- inputText: "1111"
+- pressKey: Enter

@@ -665,7 +665,7 @@ jobs:
           echo "Prebuilding $BUNDLE_ID into '$IOS_PATH'..."
 
           ${JS_EXEC:-npx} expo prebuild --platform ios --no-install
-          if [ -f scripts/verify-ios-inputs.mjs ]; then node scripts/verify-ios-inputs.mjs "$IOS_PATH"; fi
+          if [ -f scripts/verify-ios-inputs.ts ]; then node scripts/verify-ios-inputs.ts "$IOS_PATH"; fi
           if [ -f native/ios/FinancialAdvisorIntents.swift ]; then
             xcrun swiftc -typecheck -sdk "$(xcrun --sdk iphoneos --show-sdk-path)" -target arm64-apple-ios16.0 native/ios/FinancialAdvisorIntents.swift
           fi
@@ -1334,7 +1334,8 @@ jobs:
         with:
           name: ipa
           path: build/*.ipa
-          retention-days: 7
+          # Kept 1 day: the publish job downloads these in the same run, and published installers live in the releases repo.
+          retention-days: 1
           if-no-files-found: error
 
       # Flutter builds through its own tree, so DerivedData can be absent and a

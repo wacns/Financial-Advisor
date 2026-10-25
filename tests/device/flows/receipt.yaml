@@ -1,0 +1,35 @@
+# Checklist: choose a receipt image; on-device OCR reads it into a review field and
+# nothing is saved. The runner script adds tests/device/receipt.png to the photo library first.
+appId: com.wacns.financialadvisor
+name: Receipt OCR from the photo library
+---
+- runFlow: start-app.yaml
+- runFlow: open-demo.yaml
+- runFlow: open-receipts.yaml
+- scrollUntilVisible:
+    element: "Choose receipt image"
+    timeout: 60000
+- tapOn: "Choose receipt image"
+# The system photo picker. The receipt is the newest photo: Android labels it "Photo taken
+# on <date>", and iOS "Photo, <month> <day>, <time>" (older photos also carry a year; iOS
+# puts a narrow no-break space before AM/PM). A plain "Photo.*" would match the picker's
+# "Photos" tab.
+- extendedWaitUntil:
+    visible: 'Photo taken on .*|Photo, [A-Za-z]+ [0-9]+, [0-9]+:[0-9]+.[AP]M'
+    timeout: 30000
+- tapOn:
+    text: 'Photo taken on .*|Photo, [A-Za-z]+ [0-9]+, [0-9]+:[0-9]+.[AP]M'
+    index: 0
+- runFlow:
+    when:
+      platform: iOS
+      visible: "Add|Choose"
+    commands:
+      - tapOn: "Add|Choose"
+- extendedWaitUntil:
+    visible: '.*12\.500.*'
+    timeout: 120000
+- takeScreenshot: receipt-recognized
+# Recognized text is only a draft: the demo total is unchanged.
+- tapOn: "Home"
+- assertVisible: '.*7,826\.500.*'

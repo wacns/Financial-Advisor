@@ -6,9 +6,11 @@ import {
   jsonSchema,
   Output,
 } from "npm:ai@7.0.140";
-import { json } from "../_shared/push.js";
-import { assistantHandler, outputSchema } from "./handler.js";
-import { adminClient } from "../_shared/client.ts";
+import { json } from "../_shared/push.ts";
+import { assistantHandler, outputSchema } from "./handler.ts";
+import { adminClient, secret } from "../_shared/client.ts";
+import type { Funding } from "./funding.ts";
+type HostedFunding = Extract<Funding, { mode: "hosted" }>;
 
 const gateway = createGateway({
   apiKey: Deno.env.get("AI_GATEWAY_API_KEY") || "",
@@ -26,8 +28,8 @@ const hostedConfigured =
   /^[a-z0-9._-]{1,80}$/i.test(pricingVersion);
 const userClient = (request: Request) =>
   createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
+    secret("SUPABASE_URL"),
+    secret("SUPABASE_ANON_KEY"),
     {
       auth: { persistSession: false, autoRefreshToken: false },
       global: {
@@ -77,14 +79,7 @@ Deno.serve(
       if (error) throw error;
       return data;
     },
-    reserve: async (
-      user: { id: string },
-      funding: {
-        requestId: string;
-        priceCredits: number;
-        pricingVersion: string;
-      },
-    ) => {
+    reserve: async (user: { id: string }, funding: HostedFunding) => {
       const { data, error } = await admin.rpc("fa_ai_credits", {
         p_action: "reserve",
         p_user: user.id,
@@ -97,39 +92,39 @@ Deno.serve(
     },
     settle: async (
       user: { id: string },
-      funding: { requestId: string },
+      funding: HostedFunding,
       action: string,
-      usage: { inputTokens?: number; outputTokens?: number } = {},
+      usage: unknown = {},
     ) => {
+      const tokens = (key: string) => {
+        const value: unknown =
+          typeof usage === "object" && usage !== null
+            ? Reflect.get(usage, key)
+            : undefined;
+        return value || 0;
+      };
       const { data, error } = await admin.rpc("fa_ai_credits", {
         p_action: action,
         p_user: user.id,
         p_request: funding.requestId,
+        // The same values as usage?.inputTokens || 0, without assuming the provider's shape.
         p_usage: {
-          inputTokens: usage?.inputTokens || 0,
-          outputTokens: usage?.outputTokens || 0,
+          inputTokens: tokens("inputTokens"),
+          outputTokens: tokens("outputTokens"),
         },
       });
       if (error) throw error;
       return data;
     },
-    generate: async (
-      input: unknown,
-      funding: {
-        mode: string;
-        provider?: string;
-        apiKey?: string;
-        model?: string;
-      },
-    ) => {
+    generate: async (input: unknown, funding: Funding) => {
       const ownOpenAI =
         funding.mode === "byok" && funding.provider === "openai";
       const selected =
         funding.mode !== "byok"
           ? gateway(model)
           : ownOpenAI
-            ? createOpenAI({ apiKey: funding.apiKey }).responses(funding.model!)
-            : createGateway({ apiKey: funding.apiKey })(funding.model!);
+            ? createOpenAI({ apiKey: funding.apiKey }).responses(funding.model)
+            : createGateway({ apiKey: funding.apiKey })(funding.model);
       const { output, usage } = await generateText({
         model: selected,
         maxOutputTokens: 1500,

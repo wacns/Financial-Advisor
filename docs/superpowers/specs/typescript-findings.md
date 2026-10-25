@@ -1,0 +1,86 @@
+# TypeScript conversion — findings
+
+This file lists real bugs that typing surfaced. The conversion keeps the current
+behavior for each one; the owner decides on fixes separately.
+
+| File:line | What goes wrong | Found in task |
+|---|---|---|
+| `src/platform/PrivacyGate.native.tsx` cover style | **Visible on phones.** React Native 0.88 removed `StyleSheet.absoluteFillObject`, so `...StyleSheet.absoluteFillObject` spreads nothing and the lock cover is laid out as an ordinary block at the top instead of covering the whole screen. App content is still hidden (`display: none`) while locked, so nothing private shows; the cover just doesn't fill the screen. The fix would be `StyleSheet.absoluteFill`. | 7 |
+| `src/locale.ts` `isCivilDate` | It tests `String(value)`, so a non-string whose text is a valid date (for example the array `["2026-01-01"]`) passes, and `date()` in `src/domain/model.ts` then returns that non-string as the date. Only reachable with malformed stored or imported data. | 3 |
+| `src/domain/commands.ts` `deleteCategory` | Called without an id, it adds `undefined` to `settings.hiddenCategories`; nothing validates that list. The UI always passes an id, so this is only reachable from other callers. The type now says `(string \| undefined)[]` to match. | 4 |
+| `src/domain/ledger.ts` `applyEffect` | A transfer to a missing account debits the source account before it throws. Every command works on a clone and discards it on error, so users never see the half-applied state; direct callers of `saveTransaction` would. | 4 |
+| `src/application/Field.native.tsx` select picker | **Phones only.** `@react-native-picker/picker` calls `onValueChange(value, index)`, and EntryModal's `onChange(value, fileName)` reads that second argument as a file name. Choosing any option except the first in a native select stores `fileName: <option index>` (a number) in the form, and the `...data` spreads carry it into saved transactions, accounts and project documents. In a project-document form, choosing an agreement after picking a file replaces the file name with the index. The conversion first dropped the index, which fixed this by accident. The final review caught it, and the old call is restored. The fix would be `onValueChange={(item) => onChange(String(item))}`. | final review |
+| `src/application/ui.tsx` `display()` | Not a bug in the old code, but a constraint: AI and capture drafts are unchecked, and React threw when a draft field was an object. `display()` now behaves the same way (arrays render item by item, objects throw), so a malformed AI draft still breaks that screen as before. | final review |
+| `src/application/App.tsx` page header | **Phones, likely.** The header `Row` (`flexWrap: "wrap"` plus `gap`) wraps the month picker and the page's action button ("Add transaction" on Home and Activity) onto a second line on a narrow screen. The emulator and simulator layout data then places the next section (the total-balance card, or the search box) over that button: on an iPhone 17 Pro simulator the button spans y 507–551 and the card starts at y 471. Taps on the button never opened the form, on Android and iOS, for both this branch and the released v1.7.1, so this predates the conversion. It isn't confirmed by eye, because the app blocks screenshots. Check it on a real phone. The device checks open the expense form from Settings → **Quick expense** instead. | device checks |
+
+## Shims
+
+None. Every tool loads the TypeScript files directly: Expo reads `app.config.ts` and
+the `.ts` config plugin, electron-builder reads `electron-builder.config.ts`, ESLint
+reads `eslint.config.ts`, and Playwright reads its `.ts` configs. `git ls-files` lists
+no `.js`, `.jsx`, `.mjs` or `.cjs` files. `allowJs` is gone from every tsconfig, and
+the JavaScript-only lint blocks are gone from `eslint.config.ts`. The desktop shell's
+`desktop/*.cjs` files are compiler output from `desktop/src/*.cts` and are gitignored.
+
+## Escape hatches
+
+Each `TS-ESCAPE` comment marks a place where a value is used without being checked at
+runtime. All of them were already used unchecked before the conversion. There are
+22 in total: 15 in the app, the desktop shell, the functions and the build
+tooling, and 7 in tests. Regenerate the list with
+`grep -rn "TS-ESCAPE" --include=*.ts --include=*.tsx --include=*.cts .`.
+
+Lint enforces part of this. It rejects explicit `any`, non-null `!`, `@ts-`
+comments and type assertions unless an escape comment covers them. It has no
+type-aware rules, though, so an implicit `any` (for example the result of
+`JSON.parse`) reaching a typed variable isn't flagged. Those reads were found by
+review and are marked too: `clone`, `prepare-desktop` and the e2e request bodies.
+Lint can't show that the list is complete. The review checked every `JSON.parse` and `.json()` read by hand, but not every other source of implicit `any`.
+
+| File:line | Why it is unchecked |
+|---|---|
+| `desktop/src/main.cts:11` | runtime-config.json is generated by scripts/prepare-desktop and read unchecked, as before. |
+| `electron-builder.config.ts:4` | desktop/update-feed.json is this repository's own file and is read unchecked, as before. |
+| `scripts/prepare-desktop.ts:8` | desktop/update-feed.json is this repository's own file and is read unchecked, as before. |
+| `scripts/prepare-desktop.ts:11` | src/public-client.json is this repository's own file and is read unchecked, as before. |
+| `scripts/trusted.ts:4` | release tooling reads its own files and GitHub API responses unchecked, as before. |
+| `src/application/assistantClient.ts:85` | the status response comes from this project's own financial-assistant function and was always read without validation. |
+| `src/application/sharedAccounts.ts:46` | fa_shared is this project's own database function; its results were always read without validation. |
+| `src/domain/commitments.ts:40` | callers pass a plan with the kind of the collection it came from; the pair is not checked at runtime, as before. |
+| `src/domain/imports.ts:110` | backup files are trusted as written while converting; normalizeWorkspace, validateWorkspace, validateCycleBudgets and validateProjects check the result below. |
+| `src/domain/model.ts:43` | a JSON round trip returns the same shape it was given (functions and undefined fields aside, as before). |
+| `src/domain/model.ts:72` | stored workspaces are trusted as written here (validateWorkspace checks them before saves and imports); a structural check at this point would reject data that opens today. |
+| `src/guards.ts:11` | drafts are checked by validateWorkspace before any workspace is saved. |
+| `src/platform/safe-area.web.tsx:10` | react-native-web passes CSS env() padding through to the page; React Native's style types only model numbers and percentages. |
+| `src/platform/secure-storage.ts:36` | manifests are only ever written by setItem below and are read back unchecked, as before. |
+| `supabase/functions/_shared/push.ts:58` | stored workspaces are read as written, the same trust the app's normalizeWorkspace gives them. |
+| `tests/e2e/oauth.spec.ts:46` | the token request comes from the Supabase client under test; the assertions below read it as sent. |
+| `tests/e2e/oauth.spec.ts:68` | the app under test writes this record; the test stores its workspace as sent. |
+| `tests/e2e/reports.spec.ts:207` | the demo workspace the app saved; the assertions below read it as stored. |
+| `tests/e2e/walletry.spec.ts:45` | the demo workspace the app saved; the assertion below reads it as stored. |
+| `tests/e2e/walletry.spec.ts:340` | the shared-account RPC the app under test sends; the assertions below read it as sent. |
+| `tests/support.ts:21` | test fixtures leave out fields the code under test never reads. |
+| `tests/support.ts:27` | test doubles implement only the calls each test makes. |
+
+## Output comparison
+
+Compared with `.baseline/` (built at `59406c1`, before the conversion). Asset names
+with content hashes are matched by name without the hash.
+
+| Output | Files | Total size | Changes |
+|---|---|---|---|
+| `dist/` (web) | 22 → 22 | 48,622,837 → 48,626,526 bytes | main bundle `assets/index-*.js` 795,377 → 799,067 bytes (+0.46%); `index.html` −1 byte |
+| `dist-native/` (Expo export) | 21 → 21 | 53,942,133 → 53,967,730 bytes | Android bundle 3,074,612 → 3,087,428 (+0.42%); iOS bundle 3,058,853 → 3,071,634 (+0.42%) |
+
+No module was added or removed, and no file changed by more than 5%.
+
+- **Bundle growth (about 4 KB web, 13 KB native bytecode):** this comes from the new
+  runtime checks: `must()` and its labels (79 calls in `src`), `field()` reads and
+  guards like `isOneOf`. Type annotations themselves are removed at build time and add
+  nothing.
+- **`index.html`:** it now loads `/src/main.tsx`, so the built file has a different
+  asset hash. The one-byte difference is a line ending: the source file was rewritten
+  with LF when its entry changed, and the baseline copy had CRLF. A CI checkout on
+  Linux produces LF in both cases.
+- **Desktop package:** Task 12 already checked that the packaged file set matches the
+  baseline (`.baseline/desktop-files.txt`).

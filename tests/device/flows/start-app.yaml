@@ -1,0 +1,15 @@
+# Shared step: launch the app with a clean state and wait until it is past the privacy lock.
+# On the iOS simulator the lock asks for Face ID, which run-ios.sh answers with a matching
+# face; about one launch in four the simulated prompt never clears, so relaunch and retry.
+appId: com.wacns.financialadvisor
+---
+- retry:
+    maxRetries: 3
+    commands:
+      - launchApp:
+          clearState: true
+      - runFlow: dismiss-system-dialog.yaml
+      - runFlow: unlock-ios.yaml
+      - extendedWaitUntil:
+          visible: 'Welcome to FinancialAdvisor\.|Add transaction'
+          timeout: 40000

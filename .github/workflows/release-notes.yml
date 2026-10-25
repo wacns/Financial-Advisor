@@ -27,9 +27,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_NOTES_VERSION: ${{ inputs.version }}
-        run: node scripts/generate-release-history.mjs
+        run: node scripts/generate-release-history.ts
       - name: Publish public changelog and update existing release notes
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           RELEASE_NOTES_VERSION: ${{ inputs.version }}
-        run: node scripts/publish-release-notes.mjs
+        run: node scripts/publish-release-notes.ts

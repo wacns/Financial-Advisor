@@ -1,0 +1,19 @@
+# Shared step: from a launched, unlocked app, open the demo workspace if the welcome screen
+# shows. "Explore the demo" sits below the sign-in form, so scroll to it.
+appId: com.wacns.financialadvisor
+---
+- runFlow: dismiss-system-dialog.yaml
+- extendedWaitUntil:
+    visible: 'Welcome to FinancialAdvisor\.|Add transaction'
+    timeout: 60000
+- runFlow:
+    when:
+      visible: 'Welcome to FinancialAdvisor\.'
+    commands:
+      - scrollUntilVisible:
+          element: "Explore the demo.*"
+          timeout: 30000
+      - tapOn: "Explore the demo.*"
+- extendedWaitUntil:
+    visible: "Add transaction"
+    timeout: 60000

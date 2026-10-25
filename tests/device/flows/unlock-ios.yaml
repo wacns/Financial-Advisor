@@ -1,0 +1,19 @@
+# Shared step (iOS): the simulator reports a device credential, so the privacy lock asks to
+# unlock at launch. run-ios.sh enrolls Face ID and keeps sending matching faces, and
+# start-app.yaml relaunches if the prompt sticks. If the passcode sheet shows instead,
+# enter the simulator passcode; if the app shows its own lock screen, ask again.
+appId: com.wacns.financialadvisor
+---
+- runFlow:
+    when:
+      platform: iOS
+      visible: "Enter iPhone Passcode.*"
+    commands:
+      - inputText: "1111"
+      - pressKey: Enter
+- runFlow:
+    when:
+      platform: iOS
+      visible: "Unlock workspace"
+    commands:
+      - tapOn: "Unlock workspace"

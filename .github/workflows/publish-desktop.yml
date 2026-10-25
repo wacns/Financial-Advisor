@@ -31,14 +31,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_NOTES_VERSION: ${{ inputs.version }}
-        run: node scripts/generate-release-history.mjs
+        run: node scripts/generate-release-history.ts
       - name: Publish installers and update feed
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           DESKTOP_RELEASE_VERSION: ${{ inputs.version }}
-        run: node scripts/publish-desktop.mjs installers
+        run: node scripts/publish-desktop.ts installers
       - name: Publish changelog and release notes
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           RELEASE_NOTES_VERSION: ${{ inputs.version }}
-        run: node scripts/publish-release-notes.mjs
+        run: node scripts/publish-release-notes.ts

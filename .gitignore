@@ -32,3 +32,9 @@ ios/App/CapApp-SPM/symlinks/
 /desktop/web/
 /desktop/runtime-config.json
 /release-desktop/
+
+/.baseline/
+/.superpowers/
+
+/desktop/*.cjs
+/desktop/*.d.cts

@@ -30,8 +30,8 @@ Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in the root `.env.lo
 ├── public/                    # Static assets served unchanged
 ├── src/application/           # Shared React screens, components, forms and state
 ├── src/platform/              # Web/native auth, storage, exports and push adapters
-├── app.config.js              # Expo identity, platform configuration and plugins
-├── native-entry.js            # Expo entry (iOS / Android)
+├── app.config.ts              # Expo identity, platform configuration and plugins
+├── native-entry.ts            # Expo entry (iOS / Android)
 ├── eas.json                   # Development, preview and release build profiles
 ├── tests/
 │   ├── unit/                  # Node unit tests
@@ -39,11 +39,11 @@ Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in the root `.env.lo
 ├── supabase/                  # Migrations, native push functions and scheduler setup
 ├── plugins/                   # Reproducible native notification configuration
 ├── docs/                      # Feature, authentication, testing and deployment guides
-├── index.html                 # Vite web entry (src/main.jsx)
+├── index.html                 # Vite web entry (src/main.tsx)
 ├── package.json               # Commands and pinned dependencies
 ├── package-lock.json          # Reproducible npm installs
-├── playwright.config.js       # Demo/browser test configuration
-├── playwright.auth.config.js  # Isolated mocked OAuth configuration
+├── playwright.config.ts       # Demo/browser test configuration
+├── playwright.auth.config.ts  # Isolated mocked OAuth configuration
 ├── vercel.json                # Build and deployment configuration
 ├── .env.example               # Public client configuration template
 ├── .nvmrc                     # Node.js version

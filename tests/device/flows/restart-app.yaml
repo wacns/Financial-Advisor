@@ -1,0 +1,14 @@
+# Shared step: stop and relaunch the app keeping its data, then wait until it is past the
+# privacy lock (retrying the iOS simulator's occasionally stuck Face ID prompt).
+appId: com.wacns.financialadvisor
+---
+- retry:
+    maxRetries: 3
+    commands:
+      - stopApp
+      - launchApp
+      - runFlow: dismiss-system-dialog.yaml
+      - runFlow: unlock-ios.yaml
+      - extendedWaitUntil:
+          visible: 'Welcome to FinancialAdvisor\.|Add transaction'
+          timeout: 40000

@@ -1,0 +1,21 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    // Electron loads CommonJS, so desktop/src/*.cts compiles to desktop/main.cjs, preload.cjs and
+    // policy.cjs (with .d.cts types) instead of being stripped like the rest of the repo.
+    "noEmit": false,
+    "declaration": true,
+    "allowImportingTsExtensions": false,
+    "verbatimModuleSyntax": false,
+    "erasableSyntaxOnly": false,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "rootDir": "src",
+    "outDir": ".",
+    "lib": ["es2023"],
+    "types": ["node"]
+  },
+  "include": ["src/*.cts"],
+  // Set explicitly: by default the output folder (this one) would be excluded.
+  "exclude": ["node_modules", "web"]
+}

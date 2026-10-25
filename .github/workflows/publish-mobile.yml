@@ -49,15 +49,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_NOTES_VERSION: ${{ inputs.release_version }}
-        run: node scripts/generate-release-history.mjs
+        run: node scripts/generate-release-history.ts
       - name: Publish verified mobile installers to public repository
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           MOBILE_RELEASE_VERSION: ${{ inputs.version }}
           PUBLIC_RELEASE_VERSION: ${{ inputs.release_version }}
-        run: node scripts/publish-mobile.mjs mobile-installers
+        run: node scripts/publish-mobile.ts mobile-installers
       - name: Publish changelog and release notes
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           RELEASE_NOTES_VERSION: ${{ inputs.release_version }}
-        run: node scripts/publish-release-notes.mjs
+        run: node scripts/publish-release-notes.ts
