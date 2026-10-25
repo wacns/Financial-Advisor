@@ -1,0 +1,84 @@
+# Dependabot version updates. Security updates are separate (repository settings) and are
+# raised whenever an advisory affects a dependency.
+#
+# - Expo SDK 58 pins the versions of Expo packages and of the React Native libraries it
+#   manages (node_modules/expo/bundledNativeModules.json). Exact pins there get no version
+#   updates, ~ ranges get patch updates only; the rest arrives with an Expo SDK upgrade
+#   (npx expo install --fix).
+# - @react-native-firebase packages require each other's exact version, so they always
+#   update together, majors included.
+# - Versions in package.json are exact pins; Dependabot keeps them exact.
+version: 2
+updates:
+  # The app: web, mobile, scripts, tests and tooling.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: sunday
+      time: '06:00'
+      timezone: Asia/Bahrain
+    open-pull-requests-limit: 5
+    groups:
+      expo-sdk:
+        patterns:
+          - 'expo'
+          - 'expo-*'
+          - '@expo/*'
+          - 'react'
+          - 'react-dom'
+          - 'react-native'
+          - 'react-native-web'
+          - 'react-native-safe-area-context'
+          - '@react-native-async-storage/*'
+          - '@react-native-picker/*'
+          - '@react-native/*'
+      firebase:
+        patterns:
+          - '@react-native-firebase/*'
+      tooling:
+        dependency-type: development
+        update-types: [minor, patch]
+    ignore:
+      # Expo pins these to exact versions (react 19.3.0, react-native 0.88.0, ...), so even a
+      # patch update would leave the SDK; they change only with an SDK upgrade.
+      - dependency-name: 'react'
+      - dependency-name: 'react-dom'
+      - dependency-name: 'react-native'
+      - dependency-name: '@react-native-async-storage/*'
+      - dependency-name: '@react-native-picker/*'
+      - dependency-name: '@react-native/*'
+      # Expo allows patch updates of these (~ ranges); minor and major come with an SDK upgrade.
+      - dependency-name: 'expo'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      - dependency-name: 'expo-*'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      - dependency-name: '@expo/*'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      - dependency-name: 'react-native-web'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      - dependency-name: 'react-native-safe-area-context'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+
+  # The Electron desktop shell's own packages (electron-updater).
+  - package-ecosystem: npm
+    directory: /desktop
+    schedule:
+      interval: weekly
+      day: sunday
+      time: '06:00'
+      timezone: Asia/Bahrain
+    open-pull-requests-limit: 3
+
+  # Actions are pinned by commit; Dependabot updates the pin and its version comment.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: sunday
+      time: '06:00'
+      timezone: Asia/Bahrain
+    open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns: ['*']
