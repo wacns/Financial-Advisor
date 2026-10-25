@@ -9,8 +9,8 @@
 # - iOS runs only when the commit message contains [ios]: a macOS minute is billed as
 #   10 Linux minutes, and its build alone takes about 16 minutes.
 # - v1.7.1 runs only for the flows that failed, so a passing run is a single pass.
-# - Results upload only when something fails, kept 3 days, without the screenshots (the
-#   app blocks screen capture, so they are black; the screen hierarchy is what helps).
+# - Results are kept 3 days, without the screenshots (the app blocks screen capture, so
+#   they are black; the screen hierarchy is what helps).
 name: Device checks
 run-name: Device checks — ${{ github.ref_name }}
 on:
@@ -125,7 +125,7 @@ jobs:
         if: always()
         run: bash tests/device/summary.sh "Android emulator (API 34)" "This branch=device-results/android-branch" "v1.7.1=device-results/android-v1.7.1" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: failure()
+        if: always() && hashFiles('device-results/**/results.tsv') != ''
         with:
           name: device-results-android
           path: |
@@ -215,7 +215,7 @@ jobs:
         if: always()
         run: bash tests/device/summary.sh "iOS simulator (no v1.7.1 comparison, since the release IPA is built for devices)" "This branch=device-results/ios-branch" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: failure()
+        if: always() && hashFiles('device-results/**/results.tsv') != ''
         with:
           name: device-results-ios
           path: |

@@ -27,6 +27,8 @@ run() {
     echo -e "$name\tpass" >> "$out/results.tsv"
   else
     echo -e "$name\tfail" >> "$out/results.tsv"
+    # Show where the flow stopped in the job log itself, not only in the uploaded results.
+    grep -E "COMPLETED|FAILED|Assertion is false|Element not found|Error" "$out/$name.log" | tail -n 12 | sed "s/^/  [$name] /"
     xcrun simctl spawn "$udid" log show --last 5m --predicate 'process == "FinancialAdvisor"' > "$out/$name.syslog.txt" 2>&1 || true
   fi
   echo "$name: $(tail -n 1 "$out/results.tsv" | cut -f2)"
