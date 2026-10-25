@@ -11,7 +11,9 @@ name: Launch and open the demo workspace
 - assertVisible: '.*7,826\.500.*'
 - takeScreenshot: launch-overview
 - tapOn: "Activity"
-- assertVisible: '13 transactions.*'
+- scrollUntilVisible:
+    element: '13 transactions.*'
+    timeout: 30000
 - scrollUntilVisible:
     element: "Alosra supermarket"
     timeout: 30000

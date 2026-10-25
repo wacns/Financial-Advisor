@@ -9,7 +9,7 @@ appId: com.wacns.financialadvisor
     times: 15
     commands:
       - swipe:
-          start: 50%, 45%
-          end: 50%, 22%
+          start: 50%, 34%
+          end: 50%, 17%
           duration: 600
 - tapOn: "Receipt scanner"
