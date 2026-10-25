@@ -8,9 +8,12 @@
 # side by side on their own emulator or simulator, then a summary job with one table.
 #
 # Keeping time and Actions minutes low:
-# - Runs only when app, native or test files change.
-# - iOS runs only when the commit message contains [ios]: a macOS minute is billed as
-#   10 Linux minutes on a private repository (a public one pays nothing).
+# - Runs on pull requests to main (Dependabot's included: Vercel only builds the website,
+#   so this is where native updates get checked) and on pushes to main, only when app,
+#   native or test files change.
+# - iOS is opt-in: a pull request with the "ios" label or "[ios]" in its title, or a push
+#   whose commit message contains [ios]. A macOS minute is billed as 10 Linux minutes on a
+#   private repository (a public one pays nothing).
 # - The built APK and simulator app are cached by a hash of everything that goes into them
 #   (APP_INPUTS below), so a push that changes only tests/device reuses the last build.
 #   When the app does change, Gradle's build cache and (iOS) ccache and CocoaPods caches
@@ -22,8 +25,24 @@
 name: Device checks
 run-name: Device checks — ${{ github.ref_name }}
 on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - 'src/**'
+      - 'assets/**'
+      - 'tests/device/**'
+      - 'app.config.ts'
+      - 'native-entry.ts'
+      - 'plugins/**'
+      - 'modules/**'
+      - 'native/**'
+      - 'eas.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/device-checks.yml'
   push:
-    branches: [typescript-conversion]
+    branches: [main]
     paths:
       - 'src/**'
       - 'assets/**'
@@ -269,7 +288,10 @@ jobs:
 
   # Builds the simulator app unless a build of these exact app files is cached.
   ios-build:
-    if: contains(github.event.head_commit.message, '[ios]')
+    if: >-
+      contains(github.event.head_commit.message, '[ios]') ||
+      contains(github.event.pull_request.title, '[ios]') ||
+      contains(github.event.pull_request.labels.*.name, 'ios')
     runs-on: macos-15
     timeout-minutes: 60
     outputs:
