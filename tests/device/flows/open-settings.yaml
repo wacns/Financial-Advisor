@@ -1,17 +1,24 @@
 # Shared step: open Settings from the phone navigation drawer ("More"). The drawer is its
-# own scroll area just below the header (at most 390 points: about 12-37% of the screen
-# height on the emulator and 15-60% on the simulator), so swipe inside it, from 34% to 17%,
-# rather than in the middle of the screen, which would scroll the page behind it.
+# own small scroll area between the header ("Toggle navigation") and the page heading
+# ("YOUR MONEY, …"), so swipe inside it (from 34% to 17% of the screen height), slowly to
+# avoid a fling. iOS reports drawer items scrolled out of that window as visible, at
+# positions over the page, so an item only counts once it sits between those two anchors.
 appId: com.wacns.financialadvisor
 ---
 - tapOn: "More"
 - repeat:
     while:
-      notVisible: "Settings"
+      notVisible:
+        text: "Settings"
+        below: "Toggle navigation"
+        above: "YOUR MONEY.*"
     times: 15
     commands:
       - swipe:
           start: 50%, 34%
           end: 50%, 17%
-          duration: 600
-- tapOn: "Settings"
+          duration: 1500
+- tapOn:
+    text: "Settings"
+    below: "Toggle navigation"
+    above: "YOUR MONEY.*"

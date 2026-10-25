@@ -15,6 +15,10 @@ echo "== $label: $apk"
 # The emulator can report boot completed while its system services are still starting
 # ("Can't find service: package"), so wait for the package manager, and retry the install.
 for _ in $(seq 60); do adb shell pm path android > /dev/null 2>&1 && break; sleep 5; done
+# A slow CI emulator can raise "Pixel Launcher isn't responding" over the app; hide those
+# system dialogs and close any that are already open.
+adb shell settings put global hide_error_dialogs 1 > /dev/null 2>&1 || true
+adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null 2>&1 || true
 adb uninstall "$app" > /dev/null 2>&1 || true
 adb shell locksettings clear --old 1111 > /dev/null 2>&1 || true
 installed=false

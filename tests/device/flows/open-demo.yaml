@@ -2,6 +2,7 @@
 # shows. "Explore the demo" sits below the sign-in form, so scroll to it.
 appId: com.wacns.financialadvisor
 ---
+- runFlow: dismiss-system-dialog.yaml
 - extendedWaitUntil:
     visible: 'Welcome to FinancialAdvisor\.|Add transaction'
     timeout: 60000

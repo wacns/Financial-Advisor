@@ -1,0 +1,9 @@
+# Shared step (Android): a slow CI emulator can show "<app> isn't responding" over the
+# screen, usually for the launcher. Keep waiting, which leaves every app running.
+appId: com.wacns.financialadvisor
+---
+- runFlow:
+    when:
+      visible: ".*isn't responding"
+    commands:
+      - tapOn: "Wait"

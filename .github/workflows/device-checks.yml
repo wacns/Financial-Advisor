@@ -7,10 +7,15 @@
 # Keeping Actions minutes low:
 # - Runs only when app, native or test files change.
 # - iOS runs only when the commit message contains [ios]: a macOS minute is billed as
-#   10 Linux minutes, and its build alone takes about 16 minutes.
+#   10 Linux minutes on a private repository.
+# - The built APK and simulator app are cached by a hash of everything that goes into them
+#   (APP_INPUTS below), so a push that changes only tests/device reuses the last build.
+#   When the app does change, Gradle's build cache and (iOS) ccache and CocoaPods caches
+#   speed the rebuild. The Android emulator boots from a cached snapshot.
 # - v1.7.1 runs only for the flows that failed, so a passing run is a single pass.
 # - Results are kept 3 days, without the screenshots (the app blocks screen capture, so
 #   they are black; the screen hierarchy is what helps).
+# Bump CACHE_VERSION to force fresh builds, for example after changing a build step.
 name: Device checks
 run-name: Device checks — ${{ github.ref_name }}
 on:
@@ -18,6 +23,7 @@ on:
     branches: [typescript-conversion]
     paths:
       - 'src/**'
+      - 'assets/**'
       - 'tests/device/**'
       - 'app.config.ts'
       - 'native-entry.ts'
@@ -34,6 +40,7 @@ concurrency:
   group: device-checks-${{ github.ref }}
   cancel-in-progress: true
 env:
+  CACHE_VERSION: v1
   MAESTRO_VERSION: cli-2.10.0
   MAESTRO_SHA256: 29b675e10cc12080e445e9bfb2e2b4e4dfb9c0f2e30d5884120d258b5e1cd991
   MAESTRO_CLI_NO_ANALYTICS: '1'
@@ -57,7 +64,15 @@ jobs:
           df -h /
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { persist-credentials: false }
+      # APP_INPUTS: everything the APK is built from.
+      - name: Restore the APK built from these app files
+        id: apk
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ${{ runner.temp }}/apk
+          key: android-apk-${{ env.CACHE_VERSION }}-${{ hashFiles('src/**', 'assets/**', 'modules/**', 'native/**', 'plugins/**', 'app.config.ts', 'native-entry.ts', 'package.json', 'package-lock.json', 'eas.json', 'firebase.json', 'tsconfig*.json') }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        if: steps.apk.outputs.cache-hit != 'true'
         with: { node-version-file: '.nvmrc', cache: npm }
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with: { distribution: temurin, java-version: '21' }
@@ -67,9 +82,13 @@ jobs:
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
       - uses: gradle/actions/setup-gradle@07d1f8453baaff67fb503883367f8b13e6158a54 # v6
-      - run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0' 'ndk;27.1.12297006'
-      - run: npm ci
+        if: steps.apk.outputs.cache-hit != 'true'
+      - if: steps.apk.outputs.cache-hit != 'true'
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0' 'ndk;27.1.12297006'
+      - if: steps.apk.outputs.cache-hit != 'true'
+        run: npm ci
       - name: Restore optional Firebase client config
+        if: steps.apk.outputs.cache-hit != 'true'
         env: { FIREBASE_CONFIG: '${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}' }
         shell: bash
         run: |
@@ -78,16 +97,27 @@ jobs:
             jq -e . "$RUNNER_TEMP/google-services.json" > /dev/null
             echo "GOOGLE_SERVICES_JSON=$RUNNER_TEMP/google-services.json" >> "$GITHUB_ENV"
           fi
-      - run: npx expo prebuild --platform android --no-install
+      - if: steps.apk.outputs.cache-hit != 'true'
+        run: npx expo prebuild --platform android --no-install
       # The Expo testing key signs this APK, as for preview releases. x86_64 only: the emulator's ABI.
       - name: Build the release APK
+        if: steps.apk.outputs.cache-hit != 'true'
         working-directory: android
         run: ./gradlew :app:assembleRelease --build-cache --no-daemon --max-workers=2 -PreactNativeArchitectures=x86_64 -Dorg.gradle.jvmargs='-Xmx4g -XX:MaxMetaspaceSize=1g' -Pkotlin.compiler.execution.strategy=in-process
       - name: Keep the APK and drop build intermediates
+        if: steps.apk.outputs.cache-hit != 'true'
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/branch.apk"
+          mkdir -p "$RUNNER_TEMP/apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/apk/branch.apk"
           rm -rf android/app/build android/app/.cxx android/build
           df -h /
+      # Saved right away, so the build is reused even when a later step fails.
+      - name: Save the APK for later runs
+        if: steps.apk.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ${{ runner.temp }}/apk
+          key: ${{ steps.apk.outputs.cache-primary-key }}
       - name: Download the released v1.7.1 APK for comparison
         shell: bash
         run: |
@@ -111,6 +141,36 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      # A booted emulator snapshot, so later runs skip the cold boot (the pattern the
+      # emulator runner documents). Test runs never save over it.
+      - name: Restore the emulator snapshot
+        id: avd
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ env.CACHE_VERSION }}-api34-google_apis-x86_64-pixel_6
+      - name: Create the emulator snapshot
+        if: steps.avd.outputs.cache-hit != 'true'
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Created the emulator snapshot."
+      - name: Save the emulator snapshot
+        if: steps.avd.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: ${{ steps.avd.outputs.cache-primary-key }}
       - name: Run the checklist flows (this branch, then v1.7.1 for any failures)
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
@@ -118,9 +178,10 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_6
+          force-avd-creation: false
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: bash tests/device/android-ci.sh "$RUNNER_TEMP/branch.apk" "$V171_APK"
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash tests/device/android-ci.sh "$RUNNER_TEMP/apk/branch.apk" "$V171_APK"
       - name: Summary
         if: always()
         run: bash tests/device/summary.sh "Android emulator (API 34)" "This branch=device-results/android-branch" "v1.7.1=device-results/android-v1.7.1" >> "$GITHUB_STEP_SUMMARY"
@@ -151,19 +212,39 @@ jobs:
     if: contains(github.event.head_commit.message, '[ios]')
     runs-on: macos-15
     timeout-minutes: 75
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 2G
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { persist-credentials: false }
       - uses: maxim-lobanov/setup-xcode@1242409711ff5721add51979e9e11e23ebb7e5a4 # v1
         with: { xcode-version: latest-stable }
+      # Part of the build cache keys: a new Xcode means a fresh build.
+      - name: Read the Xcode version
+        id: xcode
+        # "Xcode 26.2" and "Build version 17C52" become "26.2-17C52".
+        run: echo "version=$(xcodebuild -version | awk 'NR==1{v=$2} NR==2{b=$3} END{print v "-" b}')" >> "$GITHUB_OUTPUT"
+      # APP_INPUTS plus the Xcode version: everything the simulator app is built from.
+      - name: Restore the app built from these app files
+        id: app
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: build/ios-app
+          key: ios-app-${{ env.CACHE_VERSION }}-xcode${{ steps.xcode.outputs.version }}-${{ hashFiles('src/**', 'assets/**', 'modules/**', 'native/**', 'plugins/**', 'app.config.ts', 'native-entry.ts', 'package.json', 'package-lock.json', 'eas.json', 'firebase.json', 'tsconfig*.json', 'scripts/verify-ios-inputs.ts') }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        if: steps.app.outputs.cache-hit != 'true'
         with: { node-version-file: '.nvmrc', cache: npm }
+      # Maestro runs on Java.
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with: { distribution: temurin, java-version: '21' }
-      - run: npm ci
+      - if: steps.app.outputs.cache-hit != 'true'
+        run: npm ci
       # This test fails only on Windows (path separators); a Mac runs it for real.
-      - run: npx tsc -p desktop/tsconfig.policy.json && node --test tests/unit/ios-inputs.test.ts
+      - if: steps.app.outputs.cache-hit != 'true'
+        run: npx tsc -p desktop/tsconfig.policy.json && node --test tests/unit/ios-inputs.test.ts
       - name: Restore optional Firebase iOS client configuration
+        if: steps.app.outputs.cache-hit != 'true'
         env: { FIREBASE_IOS_CONFIG_B64: '${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}' }
         run: |
           set -euo pipefail
@@ -173,14 +254,62 @@ jobs:
             echo "GOOGLE_SERVICE_INFO_PLIST=$RUNNER_TEMP/GoogleService-Info.plist" >> "$GITHUB_ENV"
           fi
       - name: Generate and check the iOS project
+        if: steps.app.outputs.cache-hit != 'true'
         env: { CI: '1' }
         run: |
           set -euo pipefail
           npx expo prebuild --platform ios --no-install
           node scripts/verify-ios-inputs.ts ios
           xcrun swiftc -typecheck -sdk "$(xcrun --sdk iphoneos --show-sdk-path)" -target arm64-apple-ios16.0 native/ios/FinancialAdvisorIntents.swift
-      - run: pod install
+      - name: Restore CocoaPods and the compiler cache
+        if: steps.app.outputs.cache-hit != 'true'
+        id: build-caches
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            ios/Pods
+            .ccache
+          key: ios-build-caches-${{ env.CACHE_VERSION }}-xcode${{ steps.xcode.outputs.version }}-${{ hashFiles('package-lock.json', 'app.config.ts', 'plugins/**', 'modules/**') }}-${{ github.sha }}
+          restore-keys: |
+            ios-build-caches-${{ env.CACHE_VERSION }}-xcode${{ steps.xcode.outputs.version }}-${{ hashFiles('package-lock.json', 'app.config.ts', 'plugins/**', 'modules/**') }}-
+            ios-build-caches-${{ env.CACHE_VERSION }}-xcode${{ steps.xcode.outputs.version }}-
+      # USE_CCACHE makes React Native's pod setup compile through ccache.
+      - name: Install pods with ccache
+        if: steps.app.outputs.cache-hit != 'true'
         working-directory: ios
+        env: { USE_CCACHE: '1' }
+        run: |
+          brew install ccache
+          ccache --zero-stats
+          pod install
+      - name: Build the release app for the simulator
+        if: steps.app.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          workspace=$(ls -d ios/*.xcworkspace | head -n 1)
+          scheme=$(basename "$workspace" .xcworkspace)
+          xcodebuild -workspace "$workspace" -scheme "$scheme" -configuration Release -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build/ios CODE_SIGNING_ALLOWED=NO build | tail -n 50
+          ccache --show-stats || true
+          app=$(ls -d build/ios/Build/Products/Release-iphonesimulator/*.app | head -n 1)
+          test -d "$app"
+          mkdir -p build/ios-app
+          cp -R "$app" build/ios-app/
+      # Saved right away, so the build is reused even when a later step fails.
+      - name: Save the app for later runs
+        if: steps.app.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: build/ios-app
+          key: ${{ steps.app.outputs.cache-primary-key }}
+      - name: Save CocoaPods and the compiler cache
+        if: steps.app.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            ios/Pods
+            .ccache
+          key: ${{ steps.build-caches.outputs.cache-primary-key }}
       # An iPhone on the newest installed iOS runtime, which is the one the selected Xcode tests against.
       - name: Pick and boot an iPhone simulator
         run: |
@@ -192,16 +321,7 @@ jobs:
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
           echo "SIM_UDID=$udid" >> "$GITHUB_ENV"
-      - name: Build the release app for the simulator
-        run: |
-          set -euo pipefail
-          workspace=$(ls -d ios/*.xcworkspace | head -n 1)
-          scheme=$(basename "$workspace" .xcworkspace)
-          xcodebuild -workspace "$workspace" -scheme "$scheme" -configuration Release -sdk iphonesimulator \
-            -destination "id=$SIM_UDID" -derivedDataPath build/ios CODE_SIGNING_ALLOWED=NO build | tail -n 50
-          app=$(ls -d build/ios/Build/Products/Release-iphonesimulator/*.app | head -n 1)
-          test -d "$app"
-          echo "IOS_APP=$app" >> "$GITHUB_ENV"
+          echo "IOS_APP=$(ls -d build/ios-app/*.app | head -n 1)" >> "$GITHUB_ENV"
       - name: Install Maestro
         run: |
           set -euo pipefail

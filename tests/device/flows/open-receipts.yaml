@@ -1,15 +1,22 @@
 # Shared step: open the receipt scanner from the phone navigation drawer ("More"), swiping
-# inside the drawer as open-settings.yaml does.
+# inside the drawer and counting the item only once it sits inside the drawer's window,
+# as open-settings.yaml explains.
 appId: com.wacns.financialadvisor
 ---
 - tapOn: "More"
 - repeat:
     while:
-      notVisible: "Receipt scanner"
+      notVisible:
+        text: "Receipt scanner"
+        below: "Toggle navigation"
+        above: "YOUR MONEY.*"
     times: 15
     commands:
       - swipe:
           start: 50%, 34%
           end: 50%, 17%
-          duration: 600
-- tapOn: "Receipt scanner"
+          duration: 1500
+- tapOn:
+    text: "Receipt scanner"
+    below: "Toggle navigation"
+    above: "YOUR MONEY.*"
