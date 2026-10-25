@@ -1,9 +1,12 @@
 # Dependabot version updates. Security updates are separate (repository settings) and are
-# raised whenever an advisory affects a dependency, whatever this file says.
+# raised whenever an advisory affects a dependency.
 #
-# - Expo and React Native packages must stay on the versions one Expo SDK expects, so they
-#   are updated together, and major versions are left to an SDK upgrade (npx expo install
-#   --fix), not individual bumps.
+# - Expo SDK 58 pins the versions of Expo packages and of the React Native libraries it
+#   manages (node_modules/expo/bundledNativeModules.json). Exact pins there get no version
+#   updates, ~ ranges get patch updates only; the rest arrives with an Expo SDK upgrade
+#   (npx expo install --fix).
+# - @react-native-firebase packages require each other's exact version, so they always
+#   update together, majors included.
 # - Versions in package.json are exact pins; Dependabot keeps them exact.
 version: 2
 updates:
@@ -22,30 +25,40 @@ updates:
           - 'expo'
           - 'expo-*'
           - '@expo/*'
-          - 'react-native'
-          - 'react-native-*'
-          - '@react-native/*'
-          - '@react-native-*/*'
           - 'react'
           - 'react-dom'
-          - 'react-test-renderer'
-        update-types: [minor, patch]
+          - 'react-native'
+          - 'react-native-web'
+          - 'react-native-safe-area-context'
+          - '@react-native-async-storage/*'
+          - '@react-native-picker/*'
+          - '@react-native/*'
+      firebase:
+        patterns:
+          - '@react-native-firebase/*'
       tooling:
         dependency-type: development
         update-types: [minor, patch]
     ignore:
-      - dependency-name: 'expo'
-        update-types: ['version-update:semver-major']
-      - dependency-name: 'expo-*'
-        update-types: ['version-update:semver-major']
-      - dependency-name: '@expo/*'
-        update-types: ['version-update:semver-major']
-      - dependency-name: 'react-native'
-        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      # Expo pins these to exact versions (react 19.3.0, react-native 0.88.0, ...), so even a
+      # patch update would leave the SDK; they change only with an SDK upgrade.
       - dependency-name: 'react'
-        update-types: ['version-update:semver-major']
       - dependency-name: 'react-dom'
-        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-native'
+      - dependency-name: '@react-native-async-storage/*'
+      - dependency-name: '@react-native-picker/*'
+      - dependency-name: '@react-native/*'
+      # Expo allows patch updates of these (~ ranges); minor and major come with an SDK upgrade.
+      - dependency-name: 'expo'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      - dependency-name: 'expo-*'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      - dependency-name: '@expo/*'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      - dependency-name: 'react-native-web'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      - dependency-name: 'react-native-safe-area-context'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
 
   # The Electron desktop shell's own packages (electron-updater).
   - package-ecosystem: npm
