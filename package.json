@@ -28,7 +28,7 @@
     "typecheck": "tsc -p desktop/tsconfig.policy.json && tsc -p tsconfig.web.json && tsc -p tsconfig.native.json && tsc -p tsconfig.node.json && tsc -p tsconfig.e2e.json"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-async-storage/async-storage": "3.1.1",
     "@react-native-firebase/app": "26.4.0",
     "@react-native-firebase/messaging": "26.4.0",
     "@react-native-picker/picker": "2.11.4",
