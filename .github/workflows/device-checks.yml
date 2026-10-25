@@ -231,7 +231,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: build/ios-app
-          key: ios-app-${{ env.CACHE_VERSION }}-xcode${{ steps.xcode.outputs.version }}-${{ hashFiles('src/**', 'assets/**', 'modules/**', 'native/**', 'plugins/**', 'app.config.ts', 'native-entry.ts', 'package.json', 'package-lock.json', 'eas.json', 'firebase.json', 'tsconfig*.json', 'scripts/verify-ios-inputs.ts') }}
+          key: ios-app-adhoc-${{ env.CACHE_VERSION }}-xcode${{ steps.xcode.outputs.version }}-${{ hashFiles('src/**', 'assets/**', 'modules/**', 'native/**', 'plugins/**', 'app.config.ts', 'native-entry.ts', 'package.json', 'package-lock.json', 'eas.json', 'firebase.json', 'tsconfig*.json', 'scripts/verify-ios-inputs.ts') }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         if: steps.app.outputs.cache-hit != 'true'
         with: { node-version-file: '.nvmrc', cache: npm }
@@ -282,6 +282,9 @@ jobs:
           brew install ccache
           ccache --zero-stats
           pod install
+      # Signed ad hoc ("Sign to Run Locally"), which needs no Apple account. Turning signing off
+      # entirely also drops the entitlements, and the keychain (expo-secure-store) then fails
+      # with "A required entitlement isn't present".
       - name: Build the release app for the simulator
         if: steps.app.outputs.cache-hit != 'true'
         run: |
@@ -289,7 +292,7 @@ jobs:
           workspace=$(ls -d ios/*.xcworkspace | head -n 1)
           scheme=$(basename "$workspace" .xcworkspace)
           xcodebuild -workspace "$workspace" -scheme "$scheme" -configuration Release -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' -derivedDataPath build/ios CODE_SIGNING_ALLOWED=NO build | tail -n 50
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build/ios CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO build | tail -n 50
           ccache --show-stats || true
           app=$(ls -d build/ios/Build/Products/Release-iphonesimulator/*.app | head -n 1)
           test -d "$app"

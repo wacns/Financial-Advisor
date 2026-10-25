@@ -13,10 +13,14 @@ name: Settings, backup and app updates
 - scrollUntilVisible:
     element: "Your data, in your hands"
     timeout: 60000
-- assertVisible: "Download backup"
+- scrollUntilVisible:
+    element: "Download backup"
+    timeout: 30000
 - takeScreenshot: settings-backup
 - scrollUntilVisible:
     element: "App updates"
     timeout: 60000
-- assertVisible: "Check for updates"
+- scrollUntilVisible:
+    element: "Check for updates"
+    timeout: 30000
 - takeScreenshot: settings-updates
