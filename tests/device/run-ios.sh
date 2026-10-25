@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Runs the device checklist flows against one .app on a booted iOS simulator.
-# Usage: run-ios.sh LABEL APP_PATH UDID OUTDIR. Writes OUTDIR/results.tsv like run-android.sh.
+# Usage: run-ios.sh LABEL APP_PATH UDID OUTDIR [FLOW...]. Runs the named flows (default: all)
+# and writes OUTDIR/results.tsv like run-android.sh.
 # The simulator has no passcode, so the privacy-lock flows run on Android only.
 set -uo pipefail
 label=$1 app_path=$2 udid=$3 out=$4
+shift 4
+selected=" ${*:-launch-demo entry-lifecycle settings receipt} "
 app=com.wacns.financialadvisor
 flows=tests/device/flows
 mkdir -p "$out"
@@ -23,6 +26,7 @@ trap 'kill "$matcher" 2> /dev/null || true' EXIT
 
 run() {
   local name=$1
+  case "$selected" in *" $name "*) ;; *) return 0;; esac
   if maestro --device "$udid" test --test-output-dir "$out/$name" "$flows/$name.yaml" > "$out/$name.log" 2>&1; then
     echo -e "$name\tpass" >> "$out/results.tsv"
   else

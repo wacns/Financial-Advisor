@@ -1,13 +1,16 @@
 # Runs the device checklist (docs/superpowers/specs/typescript-device-checklist.md) on an
 # Android emulator and an iOS simulator, using the Maestro flows in tests/device/flows.
 # Android reruns any failed flow on the released v1.7.1 APK, to tell a regression from a
-# problem with the flow. Nothing is signed, published or released. Demo mode only: no real
-# account is used.
+# problem with the flow. Nothing is signed for release, published or released. Demo mode
+# only: no real account is used.
 #
-# Keeping Actions minutes low:
+# Layout: one build job per platform, then one test job per checklist flow, all running
+# side by side on their own emulator or simulator, then a summary job with one table.
+#
+# Keeping time and Actions minutes low:
 # - Runs only when app, native or test files change.
 # - iOS runs only when the commit message contains [ios]: a macOS minute is billed as
-#   10 Linux minutes on a private repository.
+#   10 Linux minutes on a private repository (a public one pays nothing).
 # - The built APK and simulator app are cached by a hash of everything that goes into them
 #   (APP_INPUTS below), so a push that changes only tests/device reuses the last build.
 #   When the app does change, Gradle's build cache and (iOS) ccache and CocoaPods caches
@@ -52,31 +55,48 @@ env:
   APP_UPDATE_CHANNEL: preview
   ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 jobs:
-  android:
+  # Builds the APK unless a build of these exact app files is cached, and makes sure the
+  # emulator snapshot exists, so every test job starts from both.
+  android-build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 45
+    outputs:
+      apk-key: ${{ steps.apk.outputs.cache-primary-key }}
     steps:
-      # The build plus an emulator system image does not fit in the runner's free space.
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/share/swift /opt/hostedtoolcache/CodeQL
-          sudo docker image prune --all --force > /dev/null || true
-          df -h /
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { persist-credentials: false }
       # APP_INPUTS: everything the APK is built from.
-      - name: Restore the APK built from these app files
+      - name: Look for an APK built from these app files
         id: apk
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/apk
           key: android-apk-${{ env.CACHE_VERSION }}-${{ hashFiles('src/**', 'assets/**', 'modules/**', 'native/**', 'plugins/**', 'app.config.ts', 'native-entry.ts', 'package.json', 'package-lock.json', 'eas.json', 'firebase.json', 'tsconfig*.json') }}
+          lookup-only: true
+      - name: Look for the emulator snapshot
+        id: avd
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ env.CACHE_VERSION }}-api34-google_apis-x86_64-pixel_6
+          lookup-only: true
+      # The build plus an emulator system image does not fit in the runner's free space.
+      - name: Free disk space
+        if: steps.apk.outputs.cache-hit != 'true' || steps.avd.outputs.cache-hit != 'true'
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/share/swift /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force > /dev/null || true
+          df -h /
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         if: steps.apk.outputs.cache-hit != 'true'
         with: { node-version-file: '.nvmrc', cache: npm }
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        if: steps.apk.outputs.cache-hit != 'true' || steps.avd.outputs.cache-hit != 'true'
         with: { distribution: temurin, java-version: '21' }
       - name: Use the runner's installed Android SDK
+        if: steps.apk.outputs.cache-hit != 'true' || steps.avd.outputs.cache-hit != 'true'
         run: |
           test -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
@@ -111,13 +131,84 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/apk/branch.apk"
           rm -rf android/app/build android/app/.cxx android/build
           df -h /
-      # Saved right away, so the build is reused even when a later step fails.
-      - name: Save the APK for later runs
+      - name: Save the APK for the test jobs and later runs
         if: steps.apk.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/apk
           key: ${{ steps.apk.outputs.cache-primary-key }}
+      - name: Enable KVM for the emulator
+        if: steps.avd.outputs.cache-hit != 'true'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      # A booted emulator snapshot, so the test jobs skip the cold boot (the pattern the
+      # emulator runner documents). Test runs never save over it.
+      - name: Create the emulator snapshot
+        if: steps.avd.outputs.cache-hit != 'true'
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Created the emulator snapshot."
+      - name: Save the emulator snapshot
+        if: steps.avd.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: ${{ steps.avd.outputs.cache-primary-key }}
+
+  android-test:
+    needs: android-build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: launch, flows: launch-demo }
+          - { name: entry, flows: entry-lifecycle }
+          - { name: settings, flows: settings }
+          - { name: receipt, flows: receipt }
+          # lock-on-return needs the background state lock-on-launch leaves behind.
+          - { name: lock, flows: lock-on-launch lock-on-return }
+    name: android (${{ matrix.name }})
+    steps:
+      # The emulator system image does not fit in the runner's free space.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/share/swift /opt/hostedtoolcache/CodeQL
+          df -h /
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - name: Restore the APK
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ${{ runner.temp }}/apk
+          key: ${{ needs.android-build.outputs.apk-key }}
+          fail-on-cache-miss: true
+      - name: Restore the emulator snapshot
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ env.CACHE_VERSION }}-api34-google_apis-x86_64-pixel_6
+      # Maestro runs on Java.
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with: { distribution: temurin, java-version: '21' }
+      - name: Use the runner's installed Android SDK
+        run: |
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
       - name: Download the released v1.7.1 APK for comparison
         shell: bash
         run: |
@@ -141,37 +232,7 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      # A booted emulator snapshot, so later runs skip the cold boot (the pattern the
-      # emulator runner documents). Test runs never save over it.
-      - name: Restore the emulator snapshot
-        id: avd
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: |
-            ~/.android/avd/*
-            ~/.android/adb*
-          key: avd-${{ env.CACHE_VERSION }}-api34-google_apis-x86_64-pixel_6
-      - name: Create the emulator snapshot
-        if: steps.avd.outputs.cache-hit != 'true'
-        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
-        with:
-          api-level: 34
-          target: google_apis
-          arch: x86_64
-          profile: pixel_6
-          force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          disable-animations: false
-          script: echo "Created the emulator snapshot."
-      - name: Save the emulator snapshot
-        if: steps.avd.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: |
-            ~/.android/avd/*
-            ~/.android/adb*
-          key: ${{ steps.avd.outputs.cache-primary-key }}
-      - name: Run the checklist flows (this branch, then v1.7.1 for any failures)
+      - name: Run ${{ matrix.flows }} (this branch, then v1.7.1 if it fails)
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 34
@@ -181,14 +242,11 @@ jobs:
           force-avd-creation: false
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: bash tests/device/android-ci.sh "$RUNNER_TEMP/apk/branch.apk" "$V171_APK"
-      - name: Summary
-        if: always()
-        run: bash tests/device/summary.sh "Android emulator (API 34)" "This branch=device-results/android-branch" "v1.7.1=device-results/android-v1.7.1" >> "$GITHUB_STEP_SUMMARY"
+          script: bash tests/device/android-ci.sh "$RUNNER_TEMP/apk/branch.apk" "$V171_APK" ${{ matrix.flows }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always() && hashFiles('device-results/**/results.tsv') != ''
         with:
-          name: device-results-android
+          name: device-results-android-${{ matrix.name }}
           path: |
             device-results/
             !device-results/**/*.png
@@ -209,10 +267,14 @@ jobs:
           done < device-results/android-branch/results.tsv
           exit $status
 
-  ios:
+  # Builds the simulator app unless a build of these exact app files is cached.
+  ios-build:
     if: contains(github.event.head_commit.message, '[ios]')
     runs-on: macos-15
-    timeout-minutes: 75
+    timeout-minutes: 60
+    outputs:
+      app-key: ${{ steps.app.outputs.cache-primary-key }}
+      xcode: ${{ steps.xcode.outputs.version }}
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       CCACHE_MAXSIZE: 2G
@@ -227,18 +289,16 @@ jobs:
         # "Xcode 26.2" and "Build version 17C52" become "26.2-17C52".
         run: echo "version=$(xcodebuild -version | awk 'NR==1{v=$2} NR==2{b=$3} END{print v "-" b}')" >> "$GITHUB_OUTPUT"
       # APP_INPUTS plus the Xcode version: everything the simulator app is built from.
-      - name: Restore the app built from these app files
+      - name: Look for an app built from these app files
         id: app
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: build/ios-app
           key: ios-app-adhoc-${{ env.CACHE_VERSION }}-xcode${{ steps.xcode.outputs.version }}-${{ hashFiles('src/**', 'assets/**', 'modules/**', 'native/**', 'plugins/**', 'app.config.ts', 'native-entry.ts', 'package.json', 'package-lock.json', 'eas.json', 'firebase.json', 'tsconfig*.json', 'scripts/verify-ios-inputs.ts') }}
+          lookup-only: true
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         if: steps.app.outputs.cache-hit != 'true'
         with: { node-version-file: '.nvmrc', cache: npm }
-      # Maestro runs on Java.
-      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
-        with: { distribution: temurin, java-version: '21' }
       - if: steps.app.outputs.cache-hit != 'true'
         run: npm ci
       # This test fails only on Windows (path separators); a Mac runs it for real.
@@ -299,8 +359,7 @@ jobs:
           test -d "$app"
           mkdir -p build/ios-app
           cp -R "$app" build/ios-app/
-      # Saved right away, so the build is reused even when a later step fails.
-      - name: Save the app for later runs
+      - name: Save the app for the test jobs and later runs
         if: steps.app.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
@@ -314,6 +373,31 @@ jobs:
             ios/Pods
             .ccache
           key: ${{ steps.build-caches.outputs.cache-primary-key }}
+
+  ios-test:
+    needs: ios-build
+    runs-on: macos-15
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        flow: [launch-demo, entry-lifecycle, settings, receipt]
+    name: ios (${{ matrix.flow }})
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      # The same Xcode as the build, so the simulator runtime matches.
+      - uses: maxim-lobanov/setup-xcode@1242409711ff5721add51979e9e11e23ebb7e5a4 # v1
+        with: { xcode-version: latest-stable }
+      - name: Restore the app
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: build/ios-app
+          key: ${{ needs.ios-build.outputs.app-key }}
+          fail-on-cache-miss: true
+      # Maestro runs on Java.
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with: { distribution: temurin, java-version: '21' }
       # An iPhone on the newest installed iOS runtime, which is the one the selected Xcode tests against.
       - name: Pick and boot an iPhone simulator
         run: |
@@ -333,23 +417,41 @@ jobs:
           echo "$MAESTRO_SHA256  $RUNNER_TEMP/maestro.zip" | shasum -a 256 -c -
           unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/maestro/bin" >> "$GITHUB_PATH"
-      - name: Run the checklist flows
-        run: bash tests/device/run-ios.sh branch "$IOS_APP" "$SIM_UDID" device-results/ios-branch
-      - name: Summary
-        if: always()
-        run: bash tests/device/summary.sh "iOS simulator (no v1.7.1 comparison, since the release IPA is built for devices)" "This branch=device-results/ios-branch" >> "$GITHUB_STEP_SUMMARY"
+      - name: Run ${{ matrix.flow }}
+        run: bash tests/device/run-ios.sh branch "$IOS_APP" "$SIM_UDID" device-results/ios-branch ${{ matrix.flow }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always() && hashFiles('device-results/**/results.tsv') != ''
         with:
-          name: device-results-ios
+          name: device-results-ios-${{ matrix.flow }}
           path: |
             device-results/
             !device-results/**/*.png
           retention-days: 3
-      - name: Fail on any failed flow
+      - name: Fail if the flow failed
         if: always()
         run: |
           if grep -q $'\tfail$' device-results/ios-branch/results.tsv 2>/dev/null; then
             grep $'\tfail$' device-results/ios-branch/results.tsv | cut -f1 | sed 's/^/::error::fails on iOS: /'
             exit 1
+          fi
+
+  # One pass/fail table for the whole checklist, from every test job's results.
+  summary:
+    needs: [android-test, ios-test]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false, sparse-checkout: tests/device }
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with: { pattern: 'device-results-*', path: all-results }
+      - name: Write the summary
+        run: |
+          bash tests/device/merge-results.sh all-results merged
+          if [ -f merged/android-branch/results.tsv ]; then
+            bash tests/device/summary.sh "Android emulator (API 34)" "This branch=merged/android-branch" "v1.7.1=merged/android-v1.7.1" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f merged/ios-branch/results.tsv ]; then
+            bash tests/device/summary.sh "iOS simulator (no v1.7.1 comparison, since the release IPA is built for devices)" "This branch=merged/ios-branch" >> "$GITHUB_STEP_SUMMARY"
           fi
