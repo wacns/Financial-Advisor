@@ -1,6 +1,7 @@
-# Checklist: Settings opens, with the reminders and app-updates sections a phone shows.
+# Checklist: Settings opens, with the backup and app-updates sections the demo shows on a
+# phone (payment reminders appear only in a signed-in workspace).
 appId: com.wacns.financialadvisor
-name: Settings, reminders and app updates
+name: Settings, backup and app updates
 ---
 - runFlow: start-app.yaml
 - runFlow: open-demo.yaml
@@ -10,10 +11,12 @@ name: Settings, reminders and app updates
     timeout: 20000
 - takeScreenshot: settings-top
 - scrollUntilVisible:
-    element: "Payment reminders"
+    element: "Your data, in your hands"
     timeout: 60000
-- takeScreenshot: settings-reminders
+- assertVisible: "Download backup"
+- takeScreenshot: settings-backup
 - scrollUntilVisible:
     element: "App updates"
     timeout: 60000
+- assertVisible: "Check for updates"
 - takeScreenshot: settings-updates

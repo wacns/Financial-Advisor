@@ -24,6 +24,8 @@ name: Add, keep, edit and delete an expense
     text: 'Amount \(BHD\)'
     index: 1
 - inputText: "1.250"
+# The keyboard can cover the next field on iOS.
+- hideKeyboard
 - tapOn:
     text: "Description"
     index: 1
@@ -50,13 +52,13 @@ name: Add, keep, edit and delete an expense
     timeout: 30000
 - takeScreenshot: entry-after-restart
 
-# Edit the amount to 2.000.
+# Edit the amount to 2.000. The edit form labels the field "Amount".
 - tapOn: "Edit CI coffee"
 - extendedWaitUntil:
-    visible: 'Amount \(BHD\)'
+    visible: "Edit transaction"
     timeout: 20000
 - tapOn:
-    text: 'Amount \(BHD\)'
+    text: "Amount"
     index: 1
 - eraseText
 - inputText: "2.000"
@@ -66,7 +68,7 @@ name: Add, keep, edit and delete an expense
     timeout: 20000
 - tapOn: "Save"
 - extendedWaitUntil:
-    notVisible: 'Amount \(BHD\)'
+    notVisible: "Edit transaction"
     timeout: 20000
 - tapOn: "Home"
 - assertVisible: '.*7,824\.500.*'
