@@ -23,14 +23,16 @@ iOS changes have only been type-checked. Check the iOS build closely.
 
 ## Automated emulator run
 
-The **Device checks** workflow (`.github/workflows/device-checks.yml`) runs when a push to
-this branch changes app, native or test files. It works through the steps below with Maestro
-(`tests/device/flows`) in demo mode:
+The **Device checks** workflow (`.github/workflows/device-checks.yml`) runs on pull requests
+to `main`, Dependabot's included, and on pushes to `main`, when they change app, native or
+test files. Each checklist flow runs in its own parallel job (`tests/device/flows`, Maestro),
+in demo mode:
 
 - **Android emulator (API 34), every run:** builds a release APK and runs every flow. Any
   flow that fails is then run on the released v1.7.1 APK too, which tells a regression
   (fails only on the branch) from a problem with the flow (fails on both).
-- **iOS simulator, only when the commit message contains `[ios]`:** builds the release app
+- **iOS simulator, opt-in (an `ios` label or `[ios]` in a pull request's title, or `[ios]`
+  in a pushed commit message):** builds the release app
   and runs the flows that don't need the Android PIN. This also covers the iOS project
   generation that Windows can't do, and the Xcode path test that fails only on Windows. A
   macOS minute is billed as 10 Linux minutes, so iOS is opt-in.
