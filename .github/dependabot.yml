@@ -6,7 +6,9 @@
 #   updates, ~ ranges get patch updates only; the rest arrives with an Expo SDK upgrade
 #   (npx expo install --fix).
 # - @react-native-firebase packages require each other's exact version, so they always
-#   update together, majors included.
+#   update together. Majors are held back: from 27 (Firebase Apple SDK 13) iOS needs Swift
+#   Package Manager and dynamic frameworks, but this project links Firebase statically
+#   through CocoaPods (see plugins/with-financial-advisor.ts). That is a planned migration.
 # - Versions in package.json are exact pins; Dependabot keeps them exact.
 version: 2
 updates:
@@ -59,6 +61,9 @@ updates:
         update-types: ['version-update:semver-major', 'version-update:semver-minor']
       - dependency-name: 'react-native-safe-area-context'
         update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      # Firebase 27+ requires SPM and dynamic frameworks on iOS; see the note above.
+      - dependency-name: '@react-native-firebase/*'
+        update-types: ['version-update:semver-major']
 
   # The Electron desktop shell's own packages (electron-updater).
   - package-ecosystem: npm
